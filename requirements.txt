@@ -1,0 +1,4 @@
+numpy
+flask
+flask-restful
+requests
