@@ -3,11 +3,11 @@ Simple Access Layer (SAL)
 
 A data access and storage middleware.
 
-Provides a heirarchical organisational structure into which various, administrator defined data sources can be stored. Users can locate, read and write data using a simple API.
+Provides a hierarchical organisational structure into which various, administrator defined data sources can be stored. Users can locate, read and write data using a simple API.
 
-The SAL server provides a REST API to access and modify data (where permitted). Client libraries for python are provided that automatically deserialise and convert the SAL data classes into equivalent python objects.
+The SAL server provides a REST API to access and modify data (where permitted). Client libraries for python are provided that automatically de-serialise and convert the SAL data classes into equivalent python objects.
 
-The backend persistance storage is easily replacable to enable data to be easily stored using a range of different technologies - object stores, filesystems, databases.
+The backend persistence storage is easily replaceable to enable data to be easily stored using a range of different technologies - object stores, filesystems, databases.
 
 Background
 ----------
