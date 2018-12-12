@@ -12,6 +12,6 @@ The backend persistance storage is easily replacable to enable data to be easily
 Background
 ----------
 
-This middeware was developed for the Joint European Torus to provide a unified method of access on top of a range of legacy storage technologies. The missleware was built to be a general access method where JET was one user. As such it should be generally useful to the wider community.
+This middleware was developed for the Joint European Torus to provide a unified method of access on top of a range of legacy storage technologies. The middleware was built to be a general access method where JET was one user. As such it should be generally useful to the wider community.
 
 Dr Alex Meakins - 12-12-2018.
