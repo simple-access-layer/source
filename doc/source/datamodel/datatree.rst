@@ -203,10 +203,6 @@ Data class attributes may be optional. An optional attribute will still appear i
 
 See :ref:`data_classes` for concrete data class definitions.
 
-Permissions
------------
-TBD
-
 Operations
 ----------
 
@@ -268,9 +264,20 @@ Delete
 
 Delete the entire sub-tree specified by the path.
 
-Permission Operations
-~~~~~~~~~~~~~~~~~~~~~
 
-TBD
+Permissions Tree
+================
+
+A persistence layer may support the ability to set access permissions on object in the data-tree. Where this is implemented, a parallel permissions tree will be accessible. The organisation of the permissions tree mirrors the head revision of the data tree hierarchy.
 
 
+Operations
+----------
+
+The following operations are defined for the permissions-tree.
+
+Get
+~~~
+
+Put
+~~~
