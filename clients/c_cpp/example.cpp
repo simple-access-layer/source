@@ -1,16 +1,34 @@
 //#include "sal.h"
 #include <stdint.h>
 #include <float.h>
+//#include <stdarg.h>
 #include <vector>
 #include <string>
 #include <map>
 #include <iostream>
+
 
 using namespace std;
 
 namespace sal {
 
     typedef enum {BRANCH, LEAF} ReportType;
+
+    // variable identifier strings in serialised objects
+    char VAR_KEY_INT8[] = "int8";
+    char VAR_KEY_INT16[] = "int16";
+    char VAR_KEY_INT32[] = "int32";
+    char VAR_KEY_INT64[] = "int64";
+    char VAR_KEY_UINT8[] = "uint8";
+    char VAR_KEY_UINT16[] = "uint16";
+    char VAR_KEY_UINT32[] = "uint32";
+    char VAR_KEY_UINT64[] = "uint64";
+    char VAR_KEY_FLOAT32[] = "float32";
+    char VAR_KEY_FLOAT64[] = "float64";
+    char VAR_KEY_BOOL[] = "bool";
+    char VAR_KEY_STRING[] = "string";
+    char VAR_KEY_ARRAY[] = "array";
+    char VAR_KEY_BRANCH[] = "branch";
 
     class ObjectType {
 
@@ -50,102 +68,12 @@ namespace sal {
 
         // needs copy and move constructors
     };
-//
-//    class Int8 : public Variable {
-//
-//        public:
-//            int8_t value;
-//            const string type = "int8";
-//
-//    };
-//
-//    class Int16 : public Variable {
-//        public:
-//            int16_t value;
-//            const string type = "int16";
-//    };
-//
-//    class Int32 : public Variable {
-//        public:
-//            int32_t value;
-//            const string type = "int32";
-//    };
-//
-//    class Int64 : public Variable {
-//        public:
-//            int64_t value;
-//            const string type = "int64";
-//    };
-//
-//    class UInt8 : public Variable {
-//        public:
-//            uint8_t value;
-//            const string type = "uint8";
-//    };
-//
-//    class UInt16 : public Variable {
-//        public:
-//            uint16_t value;
-//            const string type = "uint16";
-//    };
-//
-//    class UInt32 : public Variable {
-//        public:
-//            uint32_t value;
-//            const string type = "uint32";
-//    };
-//
-//    class UInt64 : public Variable {
-//        public:
-//            uint64_t value;
-//            const string type = "uint64";
-//    };
-//
-//    class Float32 : public Variable {
-//        public:
-//            float value;
-//            const string type = "float32";
-//    };
-//
-//    class Float64 : public Variable {
-//        public:
-//            double value;
-//            const string type = "float64";
-//    };
-//
-//    class Bool : public Variable {
-//        public:
-//            bool value;
-//            const string type = "bool";
-//    };
-//
-//    class String : public Variable {
-//        public:
-//            string value;
-//            const string type = "string";
-//    };
 
-    char VAR_KEY_INT8[] = "int8";
-    char VAR_KEY_INT16[] = "int16";
-    char VAR_KEY_INT32[] = "int32";
-    char VAR_KEY_INT64[] = "int64";
-
-    char VAR_KEY_UINT8[] = "uint8";
-    char VAR_KEY_UINT16[] = "uint16";
-    char VAR_KEY_UINT32[] = "uint32";
-    char VAR_KEY_UINT64[] = "uint64";
-
-    char VAR_KEY_FLOAT32[] = "float32";
-    char VAR_KEY_FLOAT64[] = "float64";
-
-    char VAR_KEY_BOOL[] = "bool";
-
-    char VAR_KEY_STRING[] = "string";
-
-    template<class T, char const *NAME> class ScalarVariable : Variable {
+    // define object types
+    template<class T, char const *TYPE> class ScalarVariable : Variable {
         public:
             T value;
-            const string name = NAME;
+            const string type = TYPE;
 
             ScalarVariable(T _value) : value(_value) {};
     };
@@ -165,21 +93,48 @@ namespace sal {
     typedef ScalarVariable<bool, VAR_KEY_BOOL> Bool;
     typedef ScalarVariable<string, VAR_KEY_STRING> String;
 
-    class Array : public Variable {
-        public:
-        const string type = "array";
+    template<class T, char const *ELEMENT_TYPE> class ArrayVariable : Variable {
 
+        public:
+            const string type = VAR_KEY_ARRAY;
+            const string element_type = ELEMENT_TYPE;
+
+            ArrayVariable();
+//            ~ArrayVariable();
+//            ArrayVariable(const ArrayVariable&);
+//            ArrayVariable& operator= (const ArrayVariable&);
+//            ArrayVariable(ArrayVariable&&);
+//            ArrayVariable& operator= (ArrayVariable&&);
+
+            T operator[](uint64_t index) { return this->data[index]; };
+
+            vector<uint64_t> shape;
+            vector<T> data;
     };
+
+    typedef ArrayVariable<int8_t, VAR_KEY_INT8> Int8Array;
+    typedef ArrayVariable<int16_t, VAR_KEY_INT16> Int16Array;
+    typedef ArrayVariable<int32_t, VAR_KEY_INT32> Int32Array;
+    typedef ArrayVariable<int64_t, VAR_KEY_INT64> Int64Array;
+
+    typedef ArrayVariable<uint8_t, VAR_KEY_UINT8> UInt8Array;
+    typedef ArrayVariable<uint16_t, VAR_KEY_UINT16> UInt16Array;
+    typedef ArrayVariable<uint32_t, VAR_KEY_UINT32> UInt32Array;
+    typedef ArrayVariable<uint64_t, VAR_KEY_UINT64> UInt64Array;
+
+    typedef ArrayVariable<float, VAR_KEY_FLOAT32> Float32Array;
+    typedef ArrayVariable<double, VAR_KEY_FLOAT64> Float64Array;
+    typedef ArrayVariable<bool, VAR_KEY_BOOL> BoolArray;
+    typedef ArrayVariable<string, VAR_KEY_STRING> StringArray;
+
 
     class Branch : public Variable {
 
         private:
+            string type = VAR_KEY_BRANCH;
             map<string, Variable> _map;
 
     };
-
-//    class Null : public Variable {
-//    };
 
     class Object {
 
@@ -225,20 +180,23 @@ int main(int argc, char **argv) {
     sal::Bool b(v);
     sal::String str("Hello!");
 
-    cout << int64_t(i8.value) << " " << i8.name << endl;
-    cout << i16.value << " " << i16.name << endl;
-    cout << i32.value << " " << i32.name << endl;
-    cout << i64.value << " " << i64.name << endl;
+    cout << int64_t(i8.value) << " " << i8.type << endl;
+    cout << i16.value << " " << i16.type << endl;
+    cout << i32.value << " " << i32.type << endl;
+    cout << i64.value << " " << i64.type << endl;
 
-    cout << uint64_t(ui8.value) << " " << ui8.name << endl;
-    cout << ui16.value << " " << ui16.name << endl;
-    cout << ui32.value << " " << ui32.name << endl;
-    cout << ui64.value << " " << ui64.name << endl;
+    cout << uint64_t(ui8.value) << " " << ui8.type << endl;
+    cout << ui16.value << " " << ui16.type << endl;
+    cout << ui32.value << " " << ui32.type << endl;
+    cout << ui64.value << " " << ui64.type << endl;
 
-    cout << f32.value << " " << f32.name << endl;
-    cout << f64.value << " " << f64.name << endl;
-    cout << b.value << " " << b.name << endl;
-    cout << str.value << " " << str.name << endl;
+    cout << f32.value << " " << f32.type << endl;
+    cout << f64.value << " " << f64.type << endl;
+    cout << b.value << " " << b.type << endl;
+    cout << str.value << " " << str.type << endl;
+
+//    sal::StringArray sa;
+//    sa.data.
 
 //
 //    sal::Client client("https://sal.jet.uk");
