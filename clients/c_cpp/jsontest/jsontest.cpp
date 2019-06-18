@@ -9,7 +9,11 @@
 using namespace std;
 
 
-class JSONException : public exception {};
+class JSONException : public exception {
+    const char* what() const noexcept {
+        return "An error occured while attempting to serialise/deserialise a JSON object.";
+    }
+};
 
 Poco::JSON::Object::Ptr deserialise_json(const string json) {
 
@@ -53,6 +57,8 @@ int main(int argc, char**argv) {
 
 //    root->stringify(cout);
 //    cout << endl;
+
+    obj = deserialise_json("I AM BAD");
 
 }
 
