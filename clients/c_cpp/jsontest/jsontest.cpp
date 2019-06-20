@@ -11,7 +11,7 @@ using namespace std;
 
 class JSONException : public exception {
     const char* what() const noexcept {
-        return "An error occured while attempting to serialise/deserialise a JSON object.";
+        return "An error occurred while attempting to serialise/deserialise a JSON object.";
     }
 };
 
@@ -48,9 +48,9 @@ int main(int argc, char**argv) {
     cout << json << endl;
 
 
+
     // create json object
     //root = new Object();
-    //root->
 
 
 
