@@ -2,8 +2,6 @@ import numpy as np
 
 from sal.core.object import DataObject, DataSummary, dataclass
 
-# todo: add dataclass definition to documentation
-
 
 class ArraySummary(DataSummary):
     """
