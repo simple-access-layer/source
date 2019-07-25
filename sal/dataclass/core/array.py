@@ -2,14 +2,14 @@ import numpy as np
 
 from sal.core.object import DataObject, DataSummary, dataclass
 
-# TODO: add tests
 # todo: add dataclass definition to documentation
-# todo: add docstrings
 
 
 class ArraySummary(DataSummary):
     """
+    The summary object for Array.
 
+    See the Array class for more information.
     """
 
     CLASS = 'array'
@@ -60,7 +60,6 @@ class ArraySummary(DataSummary):
 class Array(DataObject):
     """
     A SAL data class representing an N-dimensional array.
-
     """
 
     CLASS = 'array'
@@ -70,6 +69,13 @@ class Array(DataObject):
 
     def __init__(self, shape, data=None, dtype=None, description=None):
         """
+        The data array shape is is a tuple defining the length of each
+        dimension. For example:
+
+            Array(shape=(50,)) creates a 50 element 1D array
+
+            Array(shape=(10, 10)) creates a 10x10 element 2D array
+
         The data array data type can be configured with the dtype parameter.
         The following data types are permitted:
 

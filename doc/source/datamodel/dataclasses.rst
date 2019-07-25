@@ -11,4 +11,5 @@ Contents:
    dataclasses/scalar
    dataclasses/string
    dataclasses/dictionary
+   dataclasses/array
    dataclasses/signal
