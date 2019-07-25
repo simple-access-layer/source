@@ -75,11 +75,11 @@ class AsymmetricArrayError(Error):
             dtype = np.float64
 
         # ensure array data type is correct
-        if dtype != lower.dtype.type:
-            lower = lower.astype(dtype)
+        if dtype != lower.dtype.type or not lower.flags.c_contiguous:
+            lower = lower.astype(dtype, order='C')
 
-        if dtype != upper.dtype.type:
-            upper = upper.astype(dtype)
+        if dtype != upper.dtype.type or not upper.flags.c_contiguous:
+            upper = upper.astype(dtype, order='C')
 
         self.lower = lower
         self.upper = upper

@@ -3,8 +3,6 @@ from re import match
 
 from sal.core.object import DataObject, DataSummary, dataclass
 
-# TODO: add tests
-
 
 class DictionarySummary(DataSummary):
     """
