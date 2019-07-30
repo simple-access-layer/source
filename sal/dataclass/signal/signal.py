@@ -332,7 +332,7 @@ class Signal(DataObject):
         self.dimensions = dimensions
 
         # generate shape tuple
-        shape = (dimension.length for dimension in dimensions)
+        shape = tuple(dimension.length for dimension in dimensions)
 
         # validate data type
         if dtype:
