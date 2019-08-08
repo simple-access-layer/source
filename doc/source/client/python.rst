@@ -106,6 +106,20 @@ Dictionary Class
    :members:
 
 
+Array Class
+~~~~~~~~~~~
+
+**Full Object:**
+
+.. autoclass:: sal.dataclass.Array
+   :members:
+
+**Summary Object:**
+
+.. autoclass:: sal.dataclass.ArraySummary
+   :members:
+
+
 Signal Class
 ~~~~~~~~~~~~
 

@@ -332,10 +332,7 @@ class Signal(DataObject):
         self.dimensions = dimensions
 
         # generate shape tuple
-        shape = []
-        for dimension in self.dimensions:
-            shape.append(dimension.length)
-        self.shape = tuple(shape)
+        shape = tuple(dimension.length for dimension in dimensions)
 
         # validate data type
         if dtype:
@@ -351,17 +348,19 @@ class Signal(DataObject):
         # validate data or initialise an empty data array
         if data is not None:
 
+            data = np.array(data)
+
             # check dimensions
-            if data.shape != self.shape:
-                raise ValueError('The supplied data is inconsistent with the dimensions - data: {}, dimensions: {}'.format(data.shape, self.shape))
+            if data.shape != shape:
+                raise ValueError('The supplied data is inconsistent with the dimensions - data: {}, dimensions: {}'.format(data.shape, shape))
 
             # convert data if required
-            if dtype != data.dtype.type:
-                data = data.astype(dtype)
+            if dtype != data.dtype.type or not data.flags.c_contiguous:
+                data = data.astype(dtype, order='C')
 
             self.data = data
         else:
-            self.data = np.zeros(self.shape, dtype=dtype)
+            self.data = np.zeros(shape, dtype=dtype, order='C')
 
         # validate error
         if error is not None:
@@ -389,6 +388,10 @@ class Signal(DataObject):
 
         self.units = units
         super().__init__(description)
+
+    @property
+    def shape(self):
+        return self.data.shape
 
     def summary(self):
         """

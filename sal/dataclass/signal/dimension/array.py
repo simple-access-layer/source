@@ -74,8 +74,8 @@ class ArrayDimension(Dimension):
             dtype = np.float64
 
         # ensure array datatype is correct
-        if dtype != data.dtype.type:
-            data = data.astype(dtype)
+        if dtype != data.dtype.type or not data.flags.c_contiguous:
+            data = data.astype(dtype, order='C')
 
         self.data = data
         super().__init__(len(data), units, error, temporal, description)

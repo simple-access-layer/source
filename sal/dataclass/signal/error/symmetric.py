@@ -63,13 +63,12 @@ class SymmetricArrayError(Error):
             dtype = np.dtype(dtype).type
             if dtype not in supported_types:
                 raise TypeError('The specified data-type is not supported.')
-
         else:
             dtype = np.float64
 
-        # ensure array data type is correct
-        if dtype != data.dtype.type:
-            data = data.astype(dtype)
+        # ensure array data type/order is correct
+        if dtype != data.dtype.type or not data.flags.c_contiguous:
+            data = data.astype(dtype, order='C')
 
         self.data = data
 

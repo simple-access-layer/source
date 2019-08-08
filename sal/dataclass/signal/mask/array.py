@@ -25,7 +25,7 @@ class ArrayStatus(Mask):
         description = description or 'Array status mask.'
 
         # explicitly convert data to a numpy array, lets us use numpy to handle lists etc...
-        status = np.array(status, dtype=np.uint8)
+        status = np.array(status, dtype=np.uint8, order='C')
 
         # validate status
         if (status >= len(key)).any():

@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from sal.dataclass.dictionary import Dictionary, DictionarySummary
+from sal.dataclass.core.dictionary import Dictionary, DictionarySummary
 
 
 class TestDictionary(unittest.TestCase):
@@ -245,10 +245,10 @@ class TestDictionary(unittest.TestCase):
 
         # invalid data
         with self.assertRaises(ValueError):
-            d = DictionarySummary.from_dict({})
+            d = Dictionary.from_dict({})
 
         with self.assertRaises(ValueError):
-            d = DictionarySummary.from_dict(
+            d = Dictionary.from_dict(
                 {
                     '_group': 'invalid',
                     '_class': 'wrong',
