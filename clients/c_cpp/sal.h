@@ -39,7 +39,7 @@ namespace sal {
 
         class Branch;
 
-        class Variable {
+        class Attribute {
 
             public:
 
@@ -50,31 +50,36 @@ namespace sal {
                 Branch *parent;
         };
 
-        class Branch : public Variable {
+
+        /*
+        Data Object Branch Attribute
+        */
+        class Branch : public Attribute {
 
             public:
                 Poco::JSON::Object::Ptr encode() {};
 
             private:
                 string type = VAR_KEY_BRANCH;
-                map<string, Variable> _map;
+                map<string, Attribute> _map;
         };
 
-        // define object types
-        template<class T, char const *TYPE> class ScalarVariable : Variable {
+
+        /*
+        Data Object Scalar Attributes
+        */
+        template<class T, char const *TYPE> class ScalarVariable : Attribute {
 
             public:
                 T value;
                 const string type = TYPE;
 
                 ScalarVariable(T _value) : value(_value) {};
+
                 Poco::JSON::Object::Ptr encode() {
-
                     Poco::JSON::Object::Ptr obj = new Poco::JSON::Object();
-
-                    # todo: populate me
-
-
+                    obj->set("type", this->type);
+                    obj->set("value", this->value);
                     return obj;
                 };
         };
@@ -94,7 +99,11 @@ namespace sal {
         typedef ScalarVariable<bool, VAR_KEY_BOOL> Bool;
         typedef ScalarVariable<string, VAR_KEY_STRING> String;
 
-        template<class T, char const *ELEMENT_TYPE> class ArrayVariable : Variable {
+
+        /*
+        Data Object Array Attributes
+        */
+        template<class T, char const *ELEMENT_TYPE> class ArrayVariable : Attribute {
 
             public:
                 const string type = VAR_KEY_ARRAY;
