@@ -74,6 +74,7 @@ namespace sal {
                 T value;
                 const string type = TYPE;
 
+                ScalarVariable() : value(0) {};
                 ScalarVariable(T _value) : value(_value) {};
 
                 Poco::JSON::Object::Ptr encode() {
@@ -97,8 +98,23 @@ namespace sal {
         typedef ScalarVariable<float, VAR_KEY_FLOAT32> Float32;
         typedef ScalarVariable<double, VAR_KEY_FLOAT64> Float64;
         typedef ScalarVariable<bool, VAR_KEY_BOOL> Bool;
-        typedef ScalarVariable<string, VAR_KEY_STRING> String;
 
+        class String : Attribute {
+
+            public:
+                string value;
+                const string type = VAR_KEY_STRING;
+
+                String() : value("") {};
+                String(string _value) : value(_value) {};
+
+                Poco::JSON::Object::Ptr encode() {
+                    Poco::JSON::Object::Ptr obj = new Poco::JSON::Object();
+                    obj->set("type", this->type);
+                    obj->set("value", this->value);
+                    return obj;
+                };
+        };
 
         /*
         Data Object Array Attributes
@@ -122,8 +138,16 @@ namespace sal {
                 vector<T> data;
 
                 Poco::JSON::Object::Ptr encode() {
+                    Poco::JSON::Object::Ptr obj = new Poco::JSON::Object();
+                    Poco::JSON::Array::Ptr shape = new Poco::JSON::Array();
 
+                    // todo: encode data in base 64
+                    // todo: populate shape
 
+                    obj->set("type", this->type);
+                    obj->set("encoding", "base64");
+                    // obj->set("data", data);
+                    return obj;
                 };
         };
 

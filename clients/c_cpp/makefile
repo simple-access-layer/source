@@ -1,12 +1,26 @@
-.PHONY: all clean
+SRCS := $(wildcard src/*.cpp)
+OBJS := $(SRCS:%.cpp=%.o)
 
-all:
-	g++ -fPIC -std=c++11 -c sal.cpp
-	g++ -shared -Wl,-soname,libsal.so -o libsal.so sal.o
-	g++ -o saldemo demo.cpp -std=c++11 -lPocoNet -lPocoNetSSL -lPocoFoundation -lPocoJSON -lsal -L.
+.PHONY: build demo
 
-#	g++ -std=c++11 -c *.cpp
-#	g++ -o saldemo *.o -lPocoNet -lPocoNetSSL -lPocoFoundation -lPocoJSON
+all: build
+
+build: libsal.so
+
+demo: saldemo libsal.so
+
+libsal.so: ${OBJS}
+	g++ -shared -Wl,-soname,libsal.so -o libsal.so ${OBJS} -lPocoNet -lPocoNetSSL -lPocoFoundation -lPocoJSON
+
+saldemo: libsal.so
+	g++ -o saldemo demo.cpp -std=c++11 -lPocoNet -lPocoNetSSL -lPocoFoundation -lPocoJSON -lsal -Iinclude -L.
+
+%.o: %.cpp
+	g++ -fPIC -std=c++11 -o $@ -c $< -Iinclude
+
+test: libsal.so
+	$(MAKE) -C tests test
 
 clean:
-	rm -f *.o libsal.so saldemo
+	rm -f *.o src/*.o libsal.so saldemo
+	$(MAKE) -C tests clean
