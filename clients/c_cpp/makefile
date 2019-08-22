@@ -1,7 +1,7 @@
 SRCS := $(wildcard src/*.cpp)
 OBJS := $(SRCS:%.cpp=%.o)
 
-.PHONY: build demo
+.PHONY: build demo test clean
 
 all: build
 
@@ -12,7 +12,7 @@ demo: saldemo libsal.so
 libsal.so: ${OBJS}
 	g++ -shared -Wl,-soname,libsal.so -o libsal.so ${OBJS} -lPocoNet -lPocoNetSSL -lPocoFoundation -lPocoJSON
 
-saldemo: libsal.so
+saldemo: libsal.so demo.cpp
 	g++ -o saldemo demo.cpp -std=c++11 -lPocoNet -lPocoNetSSL -lPocoFoundation -lPocoJSON -lsal -Iinclude -L.
 
 %.o: %.cpp

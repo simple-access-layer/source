@@ -10,10 +10,21 @@
 #include "Poco/JSON/Parser.h"
 #include "Poco/Dynamic/Var.h"
 #include "Poco/Exception.h"
+#include <initializer_list>
+#include <array>
+//
+//void get(std::initializer_list<int> list)
+//{
+//    std::cout << "arg count: " << list.size() << endl;
+//    for(auto elem: list )
+//    {
+//        std::cout << elem << std::endl ;
+//    }
+//}
+
 
 
 using namespace std;
-
 
 int main(int argc, char **argv) {
 
@@ -84,6 +95,18 @@ int main(int argc, char **argv) {
     str.encode()->stringify(cout, 2);
     cout << endl;
 
+    sal::object::Int32Array i32a({5, 3, 2});
+    cout << i32a.type << " " << i32a.element_type << " " << i32a.size() << endl;
+
+    for (uint64_t v=0;v<i32a.size();v++) cout << i32a[v] << " ";
+    cout << endl;
+
+    i32a.at(1, 1, 0) = 50;
+
+    for (uint64_t v=0;v<i32a.size();v++) cout << i32a[v] << " ";
+    cout << endl;
+
+
 //    sal::StringArray sa;
 //    sa.data.
 
@@ -100,4 +123,11 @@ int main(int argc, char **argv) {
 //
 //    cout << "Object type: " << obj.type() << endl;
 //
+//    int n;
+//    cin >> n;
+//
+//    for (int j=0;j<n;j++) {
+//        get({j,2,3,4,5});
+//    }
+
 }

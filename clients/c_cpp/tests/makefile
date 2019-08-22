@@ -1,7 +1,7 @@
 SRCS := $(wildcard *.cpp)
 OBJS := $(SRCS:%.cpp=%.o)
 
-.PHONY: build
+.PHONY: build clean
 
 all: build
 

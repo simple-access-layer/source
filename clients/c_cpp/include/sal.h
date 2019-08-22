@@ -8,6 +8,7 @@
 #include <string>
 #include <map>
 #include <iostream>
+#include <stdexcept>
 #include "Poco/JSON/Object.h"
 #include "Poco/JSON/Parser.h"
 #include "Poco/Dynamic/Var.h"
@@ -68,7 +69,8 @@ namespace sal {
         /*
         Data Object Scalar Attributes
         */
-        template<class T, char const *TYPE> class ScalarVariable : Attribute {
+        template<class T, char const *TYPE>
+        class ScalarVariable : Attribute {
 
             public:
                 T value;
@@ -77,6 +79,9 @@ namespace sal {
                 ScalarVariable() : value(0) {};
                 ScalarVariable(T _value) : value(_value) {};
 
+                /*
+                Returns a Poco JSON object representation of the ScalarVariable.
+                */
                 Poco::JSON::Object::Ptr encode() {
                     Poco::JSON::Object::Ptr obj = new Poco::JSON::Object();
                     obj->set("type", this->type);
@@ -99,6 +104,9 @@ namespace sal {
         typedef ScalarVariable<double, VAR_KEY_FLOAT64> Float64;
         typedef ScalarVariable<bool, VAR_KEY_BOOL> Bool;
 
+        /*
+        Data Object String Attributes
+        */
         class String : Attribute {
 
             public:
@@ -108,6 +116,7 @@ namespace sal {
                 String() : value("") {};
                 String(string _value) : value(_value) {};
 
+                // Returns a Poco JSON object representation of the String.
                 Poco::JSON::Object::Ptr encode() {
                     Poco::JSON::Object::Ptr obj = new Poco::JSON::Object();
                     obj->set("type", this->type);
@@ -119,25 +128,102 @@ namespace sal {
         /*
         Data Object Array Attributes
         */
-        template<class T, char const *ELEMENT_TYPE> class ArrayVariable : Attribute {
+        template<class T, char const *ELEMENT_TYPE>
+        class ArrayVariable : Attribute {
 
             public:
                 const string type = VAR_KEY_ARRAY;
                 const string element_type = ELEMENT_TYPE;
 
-//                ArrayVariable();
-    //            ~ArrayVariable();
+                ArrayVariable(vector<uint64_t> shape) {
+
+                    this->dimensions = shape.size();
+                    this->shape = shape;
+                    this->stride.resize(this->dimensions);
+
+                    // calculate strides
+                    int16_t i = this->dimensions - 1;
+                    this->stride[i--] = 1;
+                    while (i >= 0) {
+                        this->stride[i] = this->stride[i+1] * this->shape[i+1];
+                        i--;
+                    }
+
+                    // calculate array buffer length
+                    uint64_t size = 1;
+                    for (uint64_t d: this->shape) size *= d;
+
+                    // create buffer
+                    this->data.resize(size);
+                };
+
+
     //            ArrayVariable(const ArrayVariable&);
     //            ArrayVariable& operator= (const ArrayVariable&);
     //            ArrayVariable(ArrayVariable&&);
     //            ArrayVariable& operator= (ArrayVariable&&);
 
-                T operator[](uint64_t index) { return this->data[index]; };
+                uint64_t size() const { return this->data.size(); };
 
+                /*
+                Fast element access via direct indexing of the array buffer.
+
+                The Array holds the data in a 1D strided array. Indexing into
+                multidimensional arrays therefore requires the user to
+                appropriately stride across the data. See the stride attribute.
+
+                No bounds checking is performed.
+                */
+                T& operator[](uint64_t index) { return this->data[index]; };
+
+                /*
+                Access an element of the array.
+
+                This method performs bounds checking and accepts a variable
+                number of array indices corresponding to the dimensionality of
+                the array.
+
+                Data access is slower than direct buffer indexing, however it
+                handles striding for the user.
+
+                Due to the method of implementing this functionality in C++, it
+                only supports arrays with a maximum of 10 dimensions.
+                */
+                T& at(int i0, int64_t i1=-1, int64_t i2=-1, int64_t i3=-1, int64_t i4=-1,
+                      int64_t i5=-1, int64_t i6=-1, int64_t i7=-1, int64_t i8=-1, int64_t i9=-1) {
+
+                    if (this->dimensions > 10) {
+                        throw out_of_range("The at() method can only be used with arrays of 10 dimensions of less.");
+                    }
+
+                    // convert the list or arguments to an array for convenience
+                    array<int64_t, 10> dim_index = {i0, i1, i2, i3, i4, i5, i6, i7, i8, i9};
+
+                    uint64_t element_index = 0;
+                    for (uint8_t i=0; i<this->dimensions; i++) {
+
+                        // check the indices are inside the array bounds
+                        if ((dim_index[i] < 0) || (dim_index[i] > this->shape[i] - 1)) {
+                            throw out_of_range("An array index is missing or is out of bounds.");
+                        }
+
+                        element_index += dim_index[i] * this->stride[i];
+                    }
+
+                    return this->data[element_index];
+                }
+
+            protected:
+                uint8_t dimensions;
                 vector<uint64_t> shape;
+                vector<uint64_t> stride;
                 vector<T> data;
 
+                /*
+                Returns a Poco JSON object representation of the ArrayVariable.
+                */
                 Poco::JSON::Object::Ptr encode() {
+
                     Poco::JSON::Object::Ptr obj = new Poco::JSON::Object();
                     Poco::JSON::Array::Ptr shape = new Poco::JSON::Array();
 
@@ -149,6 +235,9 @@ namespace sal {
                     // obj->set("data", data);
                     return obj;
                 };
+
+
+
         };
 
         typedef ArrayVariable<int8_t, VAR_KEY_INT8> Int8Array;
@@ -166,6 +255,7 @@ namespace sal {
         typedef ArrayVariable<bool, VAR_KEY_BOOL> BoolArray;
 
         typedef ArrayVariable<string, VAR_KEY_STRING> StringArray;
+
 
     }
 
