@@ -9,6 +9,8 @@
 #include <map>
 #include <iostream>
 #include <stdexcept>
+#include "Poco/Base64Encoder.h"
+#include "Poco/Base64Decoder.h"
 #include "Poco/JSON/Object.h"
 #include "Poco/JSON/Parser.h"
 #include "Poco/Dynamic/Var.h"
@@ -135,6 +137,28 @@ namespace sal {
                 const string type = VAR_KEY_ARRAY;
                 const string element_type = ELEMENT_TYPE;
 
+                /*
+                Array constructor.
+
+                Initialises an array with the specified dimensions (shape). The
+                array shape is a vector defining the length of each dimensions
+                of the array. The number of elements in the shape vector
+                defines the number of dimensions.
+
+                This class is not intended to be used directly by the users, a
+                set of typedefs are provided that define the supported SAL
+                array types. For example:
+
+                    // create a 1D uint8 array with 1000 elements.
+                    UInt8Array a1({1000});
+
+                    // create a 2D int32 array with 50x20 elements.
+                    Int32Array a2({50, 20});
+
+                    // create a 3D float array with 512x512x3 elements.
+                    Float32Array a3({512, 512, 3});
+
+                */
                 Array(vector<uint64_t> shape) {
 
                     this->dimensions = shape.size();
@@ -163,6 +187,9 @@ namespace sal {
     //            Array(Array&&);
     //            Array& operator= (Array&&);
 
+                /*
+                Returns the length of the array buffer.
+                */
                 uint64_t size() const { return this->data.size(); };
 
                 /*
@@ -213,31 +240,40 @@ namespace sal {
                     return this->data[element_index];
                 }
 
-            protected:
-                uint8_t dimensions;
-                vector<uint64_t> shape;
-                vector<uint64_t> stride;
-                vector<T> data;
-
                 /*
                 Returns a Poco JSON object representation of the Array.
                 */
                 Poco::JSON::Object::Ptr encode() {
 
                     Poco::JSON::Object::Ptr obj = new Poco::JSON::Object();
-                    Poco::JSON::Array::Ptr shape = new Poco::JSON::Array();
-
-                    // todo: encode data in base 64
-                    // todo: populate shape
 
                     obj->set("type", this->type);
                     obj->set("encoding", "base64");
-                    // obj->set("data", data);
+                    obj->set("data", this->encode_data());
+                    obj->set("shape", this->encode_shape());
+
                     return obj;
                 };
 
+            protected:
+                uint8_t dimensions;
+                vector<uint64_t> shape;
+                vector<uint64_t> stride;
+                vector<T> data;
 
+            const string encode_data() {
+                stringstream s;
+                Poco::Base64Encoder encoder(s, Poco::BASE64_URL_ENCODING);
+                encoder.write(reinterpret_cast<char*>(this->data.data()), this->data.size() * sizeof(T));
+                encoder.close();
+                return s.str();
+            };
 
+            Poco::JSON::Array::Ptr encode_shape() {
+                Poco::JSON::Array::Ptr shape = new Poco::JSON::Array();
+                for (uint8_t i=0;i<this->shape.size();i++) shape->add(this->shape[i]);
+                return shape;
+            };
         };
 
         typedef Array<int8_t, VAR_KEY_INT8> Int8Array;

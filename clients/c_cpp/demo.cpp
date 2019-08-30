@@ -106,6 +106,9 @@ int main(int argc, char **argv) {
     for (uint64_t v=0;v<i32a.size();v++) cout << i32a[v] << " ";
     cout << endl;
 
+    i32a.encode()->stringify(cout, 2);
+    cout << endl;
+
 
 //    sal::StringArray sa;
 //    sa.data.
