@@ -248,12 +248,12 @@ namespace sal {
                     Poco::JSON::Object::Ptr value = new Poco::JSON::Object();
                     Poco::JSON::Object::Ptr attribute = new Poco::JSON::Object();
 
-                    value->set("type", this->type);
+                    value->set("type", this->element_type);
                     value->set("encoding", "base64");
                     value->set("data", this->encode_data());
                     value->set("shape", this->encode_shape());
 
-                    attribute->set("type", "array");
+                    attribute->set("type", this->type);
                     attribute->set("value", value);
 
                     return attribute;
