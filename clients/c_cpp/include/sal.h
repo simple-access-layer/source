@@ -245,14 +245,18 @@ namespace sal {
                 */
                 Poco::JSON::Object::Ptr encode() {
 
-                    Poco::JSON::Object::Ptr obj = new Poco::JSON::Object();
+                    Poco::JSON::Object::Ptr value = new Poco::JSON::Object();
+                    Poco::JSON::Object::Ptr attribute = new Poco::JSON::Object();
 
-                    obj->set("type", this->type);
-                    obj->set("encoding", "base64");
-                    obj->set("data", this->encode_data());
-                    obj->set("shape", this->encode_shape());
+                    value->set("type", this->type);
+                    value->set("encoding", "base64");
+                    value->set("data", this->encode_data());
+                    value->set("shape", this->encode_shape());
 
-                    return obj;
+                    attribute->set("type", "array");
+                    attribute->set("value", value);
+
+                    return attribute;
                 };
 
             protected:
