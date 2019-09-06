@@ -9,6 +9,7 @@
 #include <map>
 #include <iostream>
 #include <stdexcept>
+#include <memory>
 #include "Poco/Base64Encoder.h"
 #include "Poco/Base64Decoder.h"
 #include "Poco/JSON/Object.h"
@@ -45,41 +46,31 @@ namespace sal {
         class Attribute {
 
             public:
+                const string type;
 
-                // needs copy and move constructors
+                Attribute(const string _type) : type(_type) {};
+
+                // TODO: needs copy and move constructors
                 virtual Poco::JSON::Object::Ptr encode() = 0;
 
             protected:
                 Branch *parent;
         };
 
-
-        /*
-        Data Object Branch Attribute
-        */
-        class Branch : public Attribute {
-
-            public:
-                Poco::JSON::Object::Ptr encode() {};
-
-            private:
-                string type = VAR_KEY_BRANCH;
-                map<string, Attribute> _map;
-        };
-
-
         /*
         Data Object Scalar Attributes
         */
         template<class T, char const *TYPE>
-        class Scalar : Attribute {
+        class Scalar : public Attribute {
 
             public:
                 T value;
-                const string type = TYPE;
 
-                Scalar() : value(0) {};
-                Scalar(T _value) : value(_value) {};
+                /*
+                Constructors.
+                */
+                Scalar() : Attribute(TYPE), value(0) {};
+                Scalar(T _value) : Attribute(TYPE), value(_value) {};
 
                 /*
                 Returns a Poco JSON object representation of the Scalar.
@@ -109,16 +100,20 @@ namespace sal {
         /*
         Data Object String Attributes
         */
-        class String : Attribute {
+        class String : public Attribute {
 
             public:
                 string value;
-                const string type = VAR_KEY_STRING;
 
-                String() : value("") {};
-                String(string _value) : value(_value) {};
+                /*
+                Constructors.
+                */
+                String() : Attribute(VAR_KEY_STRING), value("") {};
+                String(string _value) : Attribute(VAR_KEY_STRING), value(_value) {};
 
-                // Returns a Poco JSON object representation of the String.
+                /*
+                Returns a Poco JSON object representation of the String.
+                */
                 Poco::JSON::Object::Ptr encode() {
                     Poco::JSON::Object::Ptr obj = new Poco::JSON::Object();
                     obj->set("type", this->type);
@@ -131,11 +126,10 @@ namespace sal {
         Data Object Array Attributes
         */
         template<class T, char const *ELEMENT_TYPE>
-        class Array : Attribute {
+        class Array : public Attribute {
 
             public:
-                const string type = VAR_KEY_ARRAY;
-                const string element_type = ELEMENT_TYPE;
+                const string element_type;
 
                 /*
                 Array constructor.
@@ -159,7 +153,7 @@ namespace sal {
                     Float32Array a3({512, 512, 3});
 
                 */
-                Array(vector<uint64_t> shape) {
+                Array(vector<uint64_t> shape) : Attribute(VAR_KEY_ARRAY), element_type(ELEMENT_TYPE) {
 
                     this->dimensions = shape.size();
                     this->shape = shape;
@@ -180,7 +174,6 @@ namespace sal {
                     // create buffer
                     this->data.resize(size);
                 };
-
 
     //            Array(const Array&);
     //            Array& operator= (const Array&);
@@ -265,6 +258,9 @@ namespace sal {
                 vector<uint64_t> stride;
                 vector<T> data;
 
+            /*
+            Encodes the data buffer as a base64 string.
+            */
             const string encode_data() {
                 stringstream s;
                 Poco::Base64Encoder encoder(s, Poco::BASE64_URL_ENCODING);
@@ -273,6 +269,9 @@ namespace sal {
                 return s.str();
             };
 
+            /*
+            Converts the shape array to a POCO JSON array object.
+            */
             Poco::JSON::Array::Ptr encode_shape() {
                 Poco::JSON::Array::Ptr shape = new Poco::JSON::Array();
                 for (uint8_t i=0;i<this->shape.size();i++) shape->add(this->shape[i]);
@@ -295,6 +294,47 @@ namespace sal {
         typedef Array<bool, VAR_KEY_BOOL> BoolArray;
 
         typedef Array<string, VAR_KEY_STRING> StringArray;
+
+
+        /*
+        Data Object Branch Attribute
+        */
+        class Branch : public Attribute {
+
+            public:
+
+                /*
+                Constructors.
+                */
+                Branch() : Attribute(VAR_KEY_BRANCH) {};
+
+                 // TODO: better exception handling
+                Attribute& operator[](const string &key) const { return *this->attributes.at(key); };
+                Attribute &get(const string &key) const { return (*this)[key]; };
+                template<class T> T& get_as(const string &key) { return dynamic_cast<T&>(this->get(key)); };
+                void set(const string &key, Attribute &attribute) { this->attributes[key] = &attribute; };
+                const bool has(const string &key) const { return this->attributes.count(key); };
+                void remove (const string &key) { this->attributes.erase(key); };
+
+                /*
+                Returns a Poco JSON object representation of the String.
+                */
+                Poco::JSON::Object::Ptr encode() {
+                    Poco::JSON::Object::Ptr obj = new Poco::JSON::Object();
+                    Poco::JSON::Object::Ptr content = new Poco::JSON::Object();
+
+                    // encode each attribute
+                    for (map<string, Attribute*>::iterator i=this->attributes.begin(); i!=this->attributes.end(); ++i)
+                        content->set(i->first, i->second->encode());
+
+                    obj->set("type", this->type);
+                    obj->set("value", content);
+                    return obj;
+                };
+
+            private:
+                map<string, Attribute*> attributes;
+        };
 
 
     }

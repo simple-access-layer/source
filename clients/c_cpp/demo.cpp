@@ -110,6 +110,30 @@ int main(int argc, char **argv) {
     cout << endl;
 
 
+    sal::object::Branch br;
+
+    br.set("myint", i32);
+    br.set("myarr", i32a);
+
+    cout << br.has("wibble") << endl;
+    cout << br.has("myint") << endl;
+
+    cout << br["myint"].type << endl;
+    br.get_as<sal::object::Int32>("myint").value = 500;
+
+    br["myint"].encode()->stringify(cout, 2);
+    cout << endl;
+
+    br.encode()->stringify(cout, 2);
+    cout << endl;
+
+    br.remove("myarr");
+
+    br.encode()->stringify(cout, 2);
+    cout << endl;
+
+
+
 //    sal::StringArray sa;
 //    sa.data.
 
