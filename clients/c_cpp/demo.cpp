@@ -25,15 +25,16 @@
 
 
 using namespace std;
+using namespace sal::object;
 
 int main(int argc, char **argv) {
 
     int64_t v = 786236756785667848;
 
-    sal::object::Int8 i8(v);
-    sal::object::Int16 i16(v);
-    sal::object::Int32 i32(v);
-    sal::object::Int64 i64(v);
+    Int8::Ptr i8 = new Int8(v);
+    Int16::Ptr i16 = new Int16(v);
+    Int32::Ptr i32 = new Int32(v);
+    Int64::Ptr i64 = new Int64(v);
 
     sal::object::UInt8 ui8(v);
     sal::object::UInt16 ui16(v);
@@ -45,20 +46,20 @@ int main(int argc, char **argv) {
     sal::object::Bool b(v);
     sal::object::String str("Hello!");
 
-    cout << int64_t(i8.value) << " " << i8.type << " " <<  endl;
-    i8.encode()->stringify(cout, 2);
+    cout << int64_t(i8->value) << " " << i8->type << " " <<  endl;
+    i8->encode()->stringify(cout, 2);
     cout << endl;
 
-    cout << i16.value << " " << i16.type << endl;
-    i16.encode()->stringify(cout, 2);
+    cout << i16->value << " " << i16->type << endl;
+    i16->encode()->stringify(cout, 2);
     cout << endl;
 
-    cout << i32.value << " " << i32.type << endl;
-    i32.encode()->stringify(cout, 2);
+    cout << i32->value << " " << i32->type << endl;
+    i32->encode()->stringify(cout, 2);
     cout << endl;
 
-    cout << i64.value << " " << i64.type << endl;
-    i64.encode()->stringify(cout, 2);
+    cout << i64->value << " " << i64->type << endl;
+    i64->encode()->stringify(cout, 2);
     cout << endl;
 
 
@@ -112,26 +113,26 @@ int main(int argc, char **argv) {
 
     sal::object::Branch br;
 
-    br.set("myint", i32);
-    br.set("myarr", i32a);
+    br.set("myint", i8);
+//    br.set("myarr", sal::object::Int32Array::Ptr(i32a));
 
-    cout << br.has("wibble") << endl;
+//    cout << br.has("wibble") << endl;
     cout << br.has("myint") << endl;
-
-    cout << br["myint"].type << endl;
-    br.get_as<sal::object::Int32>("myint").value = 500;
-
-    br["myint"].encode()->stringify(cout, 2);
-    cout << endl;
-
+//
+//    cout << br["myint"].type << endl;
+//    br.get_as<sal::object::Int32>("myint")->value = 500;
+//
+//    br["myint"].encode()->stringify(cout, 2);
+//    cout << endl;
+//
     br.encode()->stringify(cout, 2);
     cout << endl;
 
-    br.remove("myarr");
-
-    br.encode()->stringify(cout, 2);
-    cout << endl;
-
+//    br.remove("myarr");
+//
+//    br.encode()->stringify(cout, 2);
+//    cout << endl;
+//
 
 
 //    sal::StringArray sa;

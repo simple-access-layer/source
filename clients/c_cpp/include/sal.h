@@ -9,13 +9,14 @@
 #include <map>
 #include <iostream>
 #include <stdexcept>
-#include <memory>
 #include "Poco/Base64Encoder.h"
 #include "Poco/Base64Decoder.h"
 #include "Poco/JSON/Object.h"
 #include "Poco/JSON/Parser.h"
 #include "Poco/Dynamic/Var.h"
 #include "Poco/Exception.h"
+#include "Poco/SharedPtr.h"
+
 
 using namespace std;
 
@@ -46,6 +47,8 @@ namespace sal {
         class Attribute {
 
             public:
+
+                typedef Poco::SharedPtr<Attribute> Ptr;
                 const string type;
 
                 Attribute(const string _type) : type(_type) {};
@@ -64,6 +67,9 @@ namespace sal {
         class Scalar : public Attribute {
 
             public:
+
+                typedef Poco::SharedPtr<Scalar<T, TYPE>> Ptr;
+
                 T value;
 
                 /*
@@ -103,6 +109,9 @@ namespace sal {
         class String : public Attribute {
 
             public:
+
+                typedef Poco::SharedPtr<String> Ptr;
+
                 string value;
 
                 /*
@@ -129,6 +138,9 @@ namespace sal {
         class Array : public Attribute {
 
             public:
+
+                typedef Poco::SharedPtr<Array<T, ELEMENT_TYPE>> Ptr;
+
                 const string element_type;
 
                 /*
@@ -303,16 +315,18 @@ namespace sal {
 
             public:
 
+                typedef Poco::SharedPtr<Branch> Ptr;
+
                 /*
                 Constructors.
                 */
                 Branch() : Attribute(VAR_KEY_BRANCH) {};
 
                  // TODO: better exception handling
-                Attribute& operator[](const string &key) const { return *this->attributes.at(key); };
-                Attribute &get(const string &key) const { return (*this)[key]; };
+                Attribute::Ptr& operator[](const string &key) { return this->attributes.at(key); };
+                Attribute::Ptr &get(const string &key) { return (*this)[key]; };
                 template<class T> T& get_as(const string &key) { return dynamic_cast<T&>(this->get(key)); };
-                void set(const string &key, Attribute &attribute) { this->attributes[key] = &attribute; };
+                void set(const string &key, const Attribute::Ptr &attribute) { this->attributes[key] = attribute; };
                 const bool has(const string &key) const { return this->attributes.count(key); };
                 void remove (const string &key) { this->attributes.erase(key); };
 
@@ -324,7 +338,7 @@ namespace sal {
                     Poco::JSON::Object::Ptr content = new Poco::JSON::Object();
 
                     // encode each attribute
-                    for (map<string, Attribute*>::iterator i=this->attributes.begin(); i!=this->attributes.end(); ++i)
+                    for (map<string, Attribute::Ptr>::iterator i=this->attributes.begin(); i!=this->attributes.end(); ++i)
                         content->set(i->first, i->second->encode());
 
                     obj->set("type", this->type);
@@ -333,7 +347,7 @@ namespace sal {
                 };
 
             private:
-                map<string, Attribute*> attributes;
+                map<string, Attribute::Ptr> attributes;
         };
 
 
