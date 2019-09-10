@@ -325,7 +325,9 @@ namespace sal {
                  // TODO: better exception handling
                 Attribute::Ptr& operator[](const string &key) { return this->attributes.at(key); };
                 Attribute::Ptr &get(const string &key) { return (*this)[key]; };
-                template<class T> T& get_as(const string &key) { return dynamic_cast<T&>(this->get(key)); };
+
+                template<class T> typename T::Ptr get_as(const string &key) { return typename T::Ptr(this->get(key).cast<T>()); };
+
                 void set(const string &key, const Attribute::Ptr &attribute) { this->attributes[key] = attribute; };
                 const bool has(const string &key) const { return this->attributes.count(key); };
                 void remove (const string &key) { this->attributes.erase(key); };

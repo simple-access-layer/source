@@ -36,96 +36,47 @@ int main(int argc, char **argv) {
     Int32::Ptr i32 = new Int32(v);
     Int64::Ptr i64 = new Int64(v);
 
-    sal::object::UInt8 ui8(v);
-    sal::object::UInt16 ui16(v);
-    sal::object::UInt32 ui32(v);
-    sal::object::UInt64 ui64(v);
+    UInt8::Ptr ui8 = new UInt8(v);
+    UInt16::Ptr ui16 = new UInt16(v);
+    UInt32::Ptr ui32 = new UInt32(v);
+    UInt64::Ptr ui64 = new UInt64(v);
 
-    sal::object::Float32 f32(v);
-    sal::object::Float64 f64(v);
-    sal::object::Bool b(v);
-    sal::object::String str("Hello!");
+    Float32::Ptr f32 = new Float32(v);
+    Float64::Ptr f64 = new Float64(v);
+    Bool::Ptr b = new Bool(v);
+    String::Ptr str = new String("Hello!");
 
-    cout << int64_t(i8->value) << " " << i8->type << " " <<  endl;
-    i8->encode()->stringify(cout, 2);
+    Int32Array::Ptr i32a = new Int32Array({5, 3, 2});
+    cout << i32a->type << " " << i32a->element_type << " " << i32a->size() << endl;
+
+    for (uint64_t v=0;v<i32a->size();v++) cout << (*i32a)[v] << " ";
     cout << endl;
 
-    cout << i16->value << " " << i16->type << endl;
-    i16->encode()->stringify(cout, 2);
+    i32a->at(1, 1, 0) = 50;
+
+    for (uint64_t v=0;v<i32a->size();v++) cout << (*i32a)[v] << " ";
     cout << endl;
 
-    cout << i32->value << " " << i32->type << endl;
-    i32->encode()->stringify(cout, 2);
+    i32a->encode()->stringify(cout, 2);
     cout << endl;
 
-    cout << i64->value << " " << i64->type << endl;
-    i64->encode()->stringify(cout, 2);
+    Branch::Ptr br = new Branch();
+
+    br->set("myint", i8);
+    br->set("myarr", i32a);
+
+    cout << br->has("wibble") << endl;
+    cout << br->has("myint") << endl;
+
+    cout << (*br)["myint"]->type << endl;
+
+
+    br->get_as<Int8>("myint")->value = 125;
+
+    (*br)["myint"]->encode()->stringify(cout, 2);
     cout << endl;
-
-
-    cout << uint64_t(ui8.value) << " " << ui8.type << endl;
-    ui8.encode()->stringify(cout, 2);
-    cout << endl;
-
-    cout << ui16.value << " " << ui16.type << endl;
-    ui16.encode()->stringify(cout, 2);
-    cout << endl;
-
-    cout << ui32.value << " " << ui32.type << endl;
-    ui32.encode()->stringify(cout, 2);
-    cout << endl;
-
-    cout << ui64.value << " " << ui64.type << endl;
-    ui64.encode()->stringify(cout, 2);
-    cout << endl;
-
-
-    cout << f32.value << " " << f32.type << endl;
-    f32.encode()->stringify(cout, 2);
-    cout << endl;
-
-    cout << f64.value << " " << f64.type << endl;
-    f64.encode()->stringify(cout, 2);
-    cout << endl;
-
-    cout << b.value << " " << b.type << endl;
-    b.encode()->stringify(cout, 2);
-    cout << endl;
-
-    cout << str.value << " " << str.type << endl;
-    str.encode()->stringify(cout, 2);
-    cout << endl;
-
-    sal::object::Int32Array i32a({5, 3, 2});
-    cout << i32a.type << " " << i32a.element_type << " " << i32a.size() << endl;
-
-    for (uint64_t v=0;v<i32a.size();v++) cout << i32a[v] << " ";
-    cout << endl;
-
-    i32a.at(1, 1, 0) = 50;
-
-    for (uint64_t v=0;v<i32a.size();v++) cout << i32a[v] << " ";
-    cout << endl;
-
-    i32a.encode()->stringify(cout, 2);
-    cout << endl;
-
-
-    sal::object::Branch br;
-
-    br.set("myint", i8);
-//    br.set("myarr", sal::object::Int32Array::Ptr(i32a));
-
-//    cout << br.has("wibble") << endl;
-    cout << br.has("myint") << endl;
 //
-//    cout << br["myint"].type << endl;
-//    br.get_as<sal::object::Int32>("myint")->value = 500;
-//
-//    br["myint"].encode()->stringify(cout, 2);
-//    cout << endl;
-//
-    br.encode()->stringify(cout, 2);
+    br->encode()->stringify(cout, 2);
     cout << endl;
 
 //    br.remove("myarr");
