@@ -33,6 +33,24 @@ int main(int argc, char **argv) {
 
 //    sal::node::Object("signal", "signal", 1);
 
+    Int8::Ptr i1 = new Int8(65);
+    Int8::Ptr i2;
+    Poco::JSON::Object::Ptr obj;
+
+    obj = i1->encode();
+
+    obj->remove("value");
+
+    i2 = Int8::decode(obj);
+
+    i1->encode()->stringify(cout, 2);
+    cout << endl;
+    i2->encode()->stringify(cout, 2);
+    cout << endl;
+
+
+
+/*
     Branch::Ptr br = new Branch();
 
     br->set("i8", new Int8(v));
@@ -63,20 +81,11 @@ int main(int argc, char **argv) {
     br->get_as<Branch>("ab")->set("array", f64a);
     br->get_as<Branch>("ab")->set("array2", new Float32Array({10, 2}));
 
-//    cout << (*br)["myint"]->type << endl;
-//    br->get_as<Int8>("myint")->value = 125;
-//    (*br)["myint"]->encode()->stringify(cout, 2);
-//    cout << endl;
-//
     br->encode()->stringify(cout, 2);
     cout << endl;
+*/
 
-//    br.remove("myarr");
-//
-//    br.encode()->stringify(cout, 2);
-//    cout << endl;
-//
-
+// -------------------JUNK
 
 //    sal::StringArray sa;
 //    sa.data.

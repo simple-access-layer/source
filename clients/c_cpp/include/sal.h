@@ -46,6 +46,8 @@ namespace sal {
 
         class Attribute {
 
+            // TODO: add documentation
+
             public:
 
                 typedef Poco::SharedPtr<Attribute> Ptr;
@@ -62,6 +64,8 @@ namespace sal {
         */
         template<class T, char const *TYPE>
         class Scalar : public Attribute {
+
+            // TODO: add documentation
 
             public:
 
@@ -84,6 +88,19 @@ namespace sal {
                     obj->set("value", this->value);
                     return obj;
                 };
+
+                static typename Scalar<T, TYPE>::Ptr decode(Poco::JSON::Object::Ptr obj) {
+
+                    // treat any failure as a failure to decode
+                    try {
+                        // check sal type is valid for this class
+                        if (obj->getValue<string>("type") != string(TYPE)) throw exception();
+                        return new Scalar<T, TYPE>( obj->getValue<T>("value") );
+                    } catch(...) {
+                        // todo: define a sal exception and replace
+                        throw runtime_error("JSON object does not define a valid SAL scalar.");
+                    }
+                };
         };
 
         typedef Scalar<int8_t, VAR_KEY_INT8> Int8;
@@ -104,6 +121,8 @@ namespace sal {
         Data Object String Attributes
         */
         class String : public Attribute {
+
+            // TODO: add documentation
 
             public:
 
@@ -126,6 +145,8 @@ namespace sal {
                     obj->set("value", this->value);
                     return obj;
                 };
+
+                // todo: add decoding
         };
 
         /*
@@ -133,6 +154,8 @@ namespace sal {
         */
         template<class T, char const *ELEMENT_TYPE>
         class Array : public Attribute {
+
+            // TODO: add documentation
 
             public:
 
@@ -261,6 +284,8 @@ namespace sal {
                     return attribute;
                 };
 
+                // todo: add decoding
+
             protected:
                 uint8_t dimensions;
                 vector<uint64_t> shape;
@@ -302,7 +327,7 @@ namespace sal {
         typedef Array<double, VAR_KEY_FLOAT64> Float64Array;
         typedef Array<bool, VAR_KEY_BOOL> BoolArray;
 
-        // todo: specialise
+        // todo: specialise for string
         typedef Array<string, VAR_KEY_STRING> StringArray;
 
 
@@ -310,6 +335,8 @@ namespace sal {
         Data Object Branch Attribute
         */
         class Branch : public Attribute {
+
+            // TODO: add documentation
 
             public:
 
@@ -321,6 +348,7 @@ namespace sal {
                 Branch() : Attribute(VAR_KEY_BRANCH) {};
 
                  // TODO: better exception handling
+                // TODO: add documentation
                 Attribute::Ptr& operator[](const string &key) { return this->attributes.at(key); };
                 Attribute::Ptr &get(const string &key) { return (*this)[key]; };
                 template<class T> typename T::Ptr get_as(const string &key) { return typename T::Ptr(this->get(key).cast<T>()); };
@@ -343,6 +371,8 @@ namespace sal {
                     obj->set("value", content);
                     return obj;
                 };
+
+                // todo: add decoding
 
             protected:
                 map<string, Attribute::Ptr> attributes;
