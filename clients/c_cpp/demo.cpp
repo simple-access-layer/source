@@ -31,50 +31,42 @@ int main(int argc, char **argv) {
 
     int64_t v = 786236756785667848;
 
-    Int8::Ptr i8 = new Int8(v);
-    Int16::Ptr i16 = new Int16(v);
-    Int32::Ptr i32 = new Int32(v);
-    Int64::Ptr i64 = new Int64(v);
-
-    UInt8::Ptr ui8 = new UInt8(v);
-    UInt16::Ptr ui16 = new UInt16(v);
-    UInt32::Ptr ui32 = new UInt32(v);
-    UInt64::Ptr ui64 = new UInt64(v);
-
-    Float32::Ptr f32 = new Float32(v);
-    Float64::Ptr f64 = new Float64(v);
-    Bool::Ptr b = new Bool(v);
-    String::Ptr str = new String("Hello!");
-
-    Int32Array::Ptr i32a = new Int32Array({5, 3, 2});
-    cout << i32a->type << " " << i32a->element_type << " " << i32a->size() << endl;
-
-    for (uint64_t v=0;v<i32a->size();v++) cout << (*i32a)[v] << " ";
-    cout << endl;
-
-    i32a->at(1, 1, 0) = 50;
-
-    for (uint64_t v=0;v<i32a->size();v++) cout << (*i32a)[v] << " ";
-    cout << endl;
-
-    i32a->encode()->stringify(cout, 2);
-    cout << endl;
+//    sal::node::Object("signal", "signal", 1);
 
     Branch::Ptr br = new Branch();
 
-    br->set("myint", i8);
-    br->set("myarr", i32a);
+    br->set("i8", new Int8(v));
+    br->set("i16", new Int16(v));
+    br->set("i32", new Int32(v));
+    br->set("i64", new Int64(v));
 
-    cout << br->has("wibble") << endl;
-    cout << br->has("myint") << endl;
+    br->set("ui8", new UInt8(v));
+    br->set("ui16", new UInt16(v));
+    br->set("ui32", new UInt32(v));
+    br->set("ui64", new UInt64(v));
 
-    cout << (*br)["myint"]->type << endl;
+    br->set("f32", new Float32(v));
+    br->set("f64", new Float64(v));
+    br->set("bl", new Bool());
+    br->set("str", new String("Hello!"));
 
+    Float64Array::Ptr f64a = new Float64Array({5, 3, 2});
 
-    br->get_as<Int8>("myint")->value = 125;
-
-    (*br)["myint"]->encode()->stringify(cout, 2);
+    for (uint64_t i=0;i<f64a->size();i++) {
+        (*f64a)[i] = 5.463 * i;
+        cout << (*f64a)[i] << " ";
+    }
     cout << endl;
+
+    Branch::Ptr br2 = new Branch();
+    br->set("ab", br2);
+    br->get_as<Branch>("ab")->set("array", f64a);
+    br->get_as<Branch>("ab")->set("array2", new Float32Array({10, 2}));
+
+//    cout << (*br)["myint"]->type << endl;
+//    br->get_as<Int8>("myint")->value = 125;
+//    (*br)["myint"]->encode()->stringify(cout, 2);
+//    cout << endl;
 //
     br->encode()->stringify(cout, 2);
     cout << endl;

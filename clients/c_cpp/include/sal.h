@@ -55,9 +55,6 @@ namespace sal {
 
                 // TODO: needs copy and move constructors
                 virtual Poco::JSON::Object::Ptr encode() = 0;
-
-            protected:
-                Branch *parent;
         };
 
         /*
@@ -305,6 +302,7 @@ namespace sal {
         typedef Array<double, VAR_KEY_FLOAT64> Float64Array;
         typedef Array<bool, VAR_KEY_BOOL> BoolArray;
 
+        // todo: specialise
         typedef Array<string, VAR_KEY_STRING> StringArray;
 
 
@@ -325,9 +323,7 @@ namespace sal {
                  // TODO: better exception handling
                 Attribute::Ptr& operator[](const string &key) { return this->attributes.at(key); };
                 Attribute::Ptr &get(const string &key) { return (*this)[key]; };
-
                 template<class T> typename T::Ptr get_as(const string &key) { return typename T::Ptr(this->get(key).cast<T>()); };
-
                 void set(const string &key, const Attribute::Ptr &attribute) { this->attributes[key] = attribute; };
                 const bool has(const string &key) const { return this->attributes.count(key); };
                 void remove (const string &key) { this->attributes.erase(key); };
@@ -348,7 +344,7 @@ namespace sal {
                     return obj;
                 };
 
-            private:
+            protected:
                 map<string, Attribute::Ptr> attributes;
         };
 
