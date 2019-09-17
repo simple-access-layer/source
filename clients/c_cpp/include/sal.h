@@ -89,6 +89,9 @@ namespace sal {
                     return obj;
                 };
 
+                /*
+                Decodes a Poco JSON object representation of the Scalar and returns a Scalar object.
+                */
                 static typename Scalar<T, TYPE>::Ptr decode(Poco::JSON::Object::Ptr obj) {
 
                     // treat any failure as a failure to decode
@@ -98,7 +101,7 @@ namespace sal {
                         return new Scalar<T, TYPE>( obj->getValue<T>("value") );
                     } catch(...) {
                         // todo: define a sal exception and replace
-                        throw runtime_error("JSON object does not define a valid SAL scalar.");
+                        throw runtime_error("JSON object does not define a valid SAL scalar attribute.");
                     }
                 };
         };
@@ -146,7 +149,21 @@ namespace sal {
                     return obj;
                 };
 
-                // todo: add decoding
+                /*
+                Decodes a Poco JSON object representation of the String and returns a String object.
+                */
+                static String::Ptr decode(Poco::JSON::Object::Ptr obj) {
+
+                    // treat any failure as a failure to decode
+                    try {
+                        // check sal type is valid for this class
+                        if (obj->getValue<string>("type") != VAR_KEY_STRING) throw exception();
+                        return new String( obj->getValue<string>("value") );
+                    } catch(...) {
+                        // todo: define a sal exception and replace
+                        throw runtime_error("JSON object does not define a valid SAL string attribute.");
+                    }
+                };
         };
 
         /*
@@ -347,7 +364,7 @@ namespace sal {
                 */
                 Branch() : Attribute(VAR_KEY_BRANCH) {};
 
-                 // TODO: better exception handling
+                // TODO: better exception handling
                 // TODO: add documentation
                 Attribute::Ptr& operator[](const string &key) { return this->attributes.at(key); };
                 Attribute::Ptr &get(const string &key) { return (*this)[key]; };

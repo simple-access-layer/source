@@ -39,13 +39,24 @@ int main(int argc, char **argv) {
 
     obj = i1->encode();
 
-    obj->remove("value");
-
     i2 = Int8::decode(obj);
 
     i1->encode()->stringify(cout, 2);
     cout << endl;
     i2->encode()->stringify(cout, 2);
+    cout << endl;
+
+
+    String::Ptr s1 = new String("This is a description.");
+    String::Ptr s2;
+
+    obj = s1->encode();
+
+    s2 = String::decode(obj);
+
+    s1->encode()->stringify(cout, 2);
+    cout << endl;
+    s2->encode()->stringify(cout, 2);
     cout << endl;
 
 
