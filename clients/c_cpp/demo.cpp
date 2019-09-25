@@ -83,6 +83,32 @@ int main(int argc, char **argv) {
     cout << endl;
 
 
+
+    StringArray::Ptr sarray1 = new StringArray({3, 2});
+    StringArray::Ptr sarray2;
+
+    sarray1->at(0,0) = "alpha";
+    sarray1->at(1,0) = "beta";
+    sarray1->at(2,0) = "delta";
+    sarray1->at(0,1) = "gamma";
+    sarray1->at(1,1) = "eta";
+    sarray1->at(2,1) = "omega";
+
+    obj = sarray1->encode();
+
+    sarray2 = StringArray::decode(obj);
+
+    sarray1->encode()->stringify(cout, 2);
+    cout << endl;
+    sarray2->encode()->stringify(cout, 2);
+    cout << endl;
+
+    for (uint64_t i=0;i<sarray2->size();i++) {
+        cout << (*sarray1)[i] << " ";
+        cout << (*sarray2)[i] << endl;
+    }
+    cout << endl;
+
 //    Branch::Ptr br = new Branch();
 //
 //    br->set("i8", new Int8(v));
