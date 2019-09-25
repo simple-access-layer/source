@@ -59,42 +59,63 @@ int main(int argc, char **argv) {
     s2->encode()->stringify(cout, 2);
     cout << endl;
 
+    Float64Array::Ptr f64array1 = new Float64Array({5, 3, 2});
+    Float64Array::Ptr f64array2;
 
-
-/*
-    Branch::Ptr br = new Branch();
-
-    br->set("i8", new Int8(v));
-    br->set("i16", new Int16(v));
-    br->set("i32", new Int32(v));
-    br->set("i64", new Int64(v));
-
-    br->set("ui8", new UInt8(v));
-    br->set("ui16", new UInt16(v));
-    br->set("ui32", new UInt32(v));
-    br->set("ui64", new UInt64(v));
-
-    br->set("f32", new Float32(v));
-    br->set("f64", new Float64(v));
-    br->set("bl", new Bool());
-    br->set("str", new String("Hello!"));
-
-    Float64Array::Ptr f64a = new Float64Array({5, 3, 2});
-
-    for (uint64_t i=0;i<f64a->size();i++) {
-        (*f64a)[i] = 5.463 * i;
-        cout << (*f64a)[i] << " ";
+    for (uint64_t i=0;i<f64array1->size();i++) {
+        (*f64array1)[i] = 5.463 * i;
     }
     cout << endl;
 
-    Branch::Ptr br2 = new Branch();
-    br->set("ab", br2);
-    br->get_as<Branch>("ab")->set("array", f64a);
-    br->get_as<Branch>("ab")->set("array2", new Float32Array({10, 2}));
+    obj = f64array1->encode();
 
-    br->encode()->stringify(cout, 2);
+    f64array2 = Float64Array::decode(obj);
+
+    f64array1->encode()->stringify(cout, 2);
     cout << endl;
-*/
+    f64array2->encode()->stringify(cout, 2);
+    cout << endl;
+
+    for (uint64_t i=0;i<f64array2->size();i++) {
+        cout << (*f64array1)[i] << " ";
+        cout << (*f64array2)[i] << endl;
+    }
+    cout << endl;
+
+
+//    Branch::Ptr br = new Branch();
+//
+//    br->set("i8", new Int8(v));
+//    br->set("i16", new Int16(v));
+//    br->set("i32", new Int32(v));
+//    br->set("i64", new Int64(v));
+//
+//    br->set("ui8", new UInt8(v));
+//    br->set("ui16", new UInt16(v));
+//    br->set("ui32", new UInt32(v));
+//    br->set("ui64", new UInt64(v));
+//
+//    br->set("f32", new Float32(v));
+//    br->set("f64", new Float64(v));
+//    br->set("bl", new Bool());
+//    br->set("str", new String("Hello!"));
+//
+//    Float64Array::Ptr f64a = new Float64Array({5, 3, 2});
+//
+//    for (uint64_t i=0;i<f64a->size();i++) {
+//        (*f64a)[i] = 5.463 * i;
+//        cout << (*f64a)[i] << " ";
+//    }
+//    cout << endl;
+//
+//    Branch::Ptr br2 = new Branch();
+//    br->set("ab", br2);
+//    br->get_as<Branch>("ab")->set("array", f64a);
+//    br->get_as<Branch>("ab")->set("array2", new Float32Array({10, 2}));
+//
+//    br->encode()->stringify(cout, 2);
+//    cout << endl;
+
 
 // -------------------JUNK
 

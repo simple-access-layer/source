@@ -287,27 +287,73 @@ namespace sal {
                 */
                 Poco::JSON::Object::Ptr encode() {
 
-                    Poco::JSON::Object::Ptr value = new Poco::JSON::Object();
+                    Poco::JSON::Object::Ptr array_definition = new Poco::JSON::Object();
                     Poco::JSON::Object::Ptr attribute = new Poco::JSON::Object();
 
-                    value->set("type", this->element_type);
-                    value->set("encoding", "base64");
-                    value->set("data", this->encode_data());
-                    value->set("shape", this->encode_shape());
+                    array_definition->set("type", this->element_type);
+                    array_definition->set("shape", this->encode_shape());
+                    array_definition->set("encoding", "base64");
+                    array_definition->set("data", this->encode_data());
 
                     attribute->set("type", this->type);
-                    attribute->set("value", value);
+                    attribute->set("value", array_definition);
 
                     return attribute;
                 };
 
-                // todo: add decoding
+                /*
+                Decodes a Poco JSON object representation of the Array and returns an Array object.
+                */
+                static typename Array<T, ELEMENT_TYPE>::Ptr decode(Poco::JSON::Object::Ptr obj) {
+
+                    Poco::JSON::Object::Ptr array_definition;
+                    vector<uint64_t> shape;
+                    string encoded_data;
+                    typename Array<T, ELEMENT_TYPE>::Ptr array;
+
+                    // treat any failure as a failure to decode
+                    try {
+
+                        // check sal type is valid for this class
+                        if (obj->getValue<string>("type") != string(VAR_KEY_ARRAY)) throw exception();
+
+                        // extract array definition
+                        array_definition = obj->getObject("value");
+
+                        // check array element type and array encoding are valid for this class
+                        if (array_definition->getValue<string>("type") != string(ELEMENT_TYPE)) throw exception();
+                        if (array_definition->getValue<string>("encoding") != string("base64")) throw exception();
+                        if (!array_definition->isArray("shape")) throw exception();
+
+                        // decode shape
+                        shape = Array<T, ELEMENT_TYPE>::decode_shape(array_definition->getArray("shape"));
+
+
+                        // create and populate array
+                        array = new Array<T, ELEMENT_TYPE>(shape);
+                        Array<T, ELEMENT_TYPE>::decode_data(array->data, array_definition->getValue<string>("data"));
+                        return array;
+
+                    } catch(...) {
+                        // todo: define a sal exception and replace
+                        throw runtime_error("JSON object does not define a valid SAL Array attribute.");
+                    }
+                };
 
             protected:
                 uint8_t dimensions;
                 vector<uint64_t> shape;
                 vector<uint64_t> stride;
                 vector<T> data;
+
+            /*
+            Converts the shape array to a POCO JSON array object.
+            */
+            Poco::JSON::Array::Ptr encode_shape() {
+                Poco::JSON::Array::Ptr shape = new Poco::JSON::Array();
+                for (uint8_t i=0;i<this->shape.size();i++) shape->add(this->shape[i]);
+                return shape;
+            };
 
             /*
             Encodes the data buffer as a base64 string.
@@ -321,12 +367,21 @@ namespace sal {
             };
 
             /*
-            Converts the shape array to a POCO JSON array object.
+            Decodes the shape array from a POCO JSON array object.
             */
-            Poco::JSON::Array::Ptr encode_shape() {
-                Poco::JSON::Array::Ptr shape = new Poco::JSON::Array();
-                for (uint8_t i=0;i<this->shape.size();i++) shape->add(this->shape[i]);
+            static vector<uint64_t> decode_shape(Poco::JSON::Array::Ptr encoded) {
+                vector<uint64_t> shape(encoded->size());
+                for (uint8_t i=0;i<encoded->size();i++) shape[i] = encoded->getElement<T>(i);
                 return shape;
+            };
+
+            /*
+            Decodes the data buffer from a base64 string.
+            */
+            static void decode_data(vector<T> &data, const string b64) {
+                stringstream s(b64);
+                Poco::Base64Decoder decoder(s, Poco::BASE64_URL_ENCODING);
+                decoder.read(reinterpret_cast<char*>(data.data()), data.size() * sizeof(T));
             };
         };
 
