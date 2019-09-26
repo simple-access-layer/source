@@ -548,7 +548,7 @@ namespace sal {
 
                         // create and populate array
                         array = new StringArray(shape);
-                        StringArray::decode_data(array->data, array_definition->getArray("data"));
+                        StringArray::decode_data(array, array_definition->getArray("data"));
                         return array;
 
                     } catch(...) {
@@ -567,36 +567,65 @@ namespace sal {
             Converts the shape array to a POCO JSON array object.
             */
             Poco::JSON::Array::Ptr encode_shape() {
-                Poco::JSON::Array::Ptr shape = new Poco::JSON::Array();
-                for (uint8_t i=0;i<this->shape.size();i++) shape->add(this->shape[i]);
-                return shape;
+                Poco::JSON::Array::Ptr json = new Poco::JSON::Array();
+                for (uint8_t i=0;i<this->shape.size();i++) json->add(this->shape[i]);
+                return json;
             };
 
             /*
             Decodes the shape array from a POCO JSON array object.
             */
-            static vector<uint64_t> decode_shape(Poco::JSON::Array::Ptr encoded) {
-                vector<uint64_t> shape(encoded->size());
-                for (uint8_t i=0;i<encoded->size();i++) shape[i] = encoded->getElement<uint64_t>(i);
+            static vector<uint64_t> decode_shape(Poco::JSON::Array::Ptr json) {
+                vector<uint64_t> shape(json->size());
+                for (uint8_t i=0;i<json->size();i++) shape[i] = json->getElement<uint64_t>(i);
                 return shape;
             };
 
             /*
-            Encodes the string vector as a Poco Array of strings.
+            Encodes the string vector as a nested Poco Array of strings.
             */
-            // TODO: double check if python returns a 1D list or an ND list, if ND this needs to be rewritten to write nested lists
-            Poco::JSON::Array::Ptr encode_data() {
-                Poco::JSON::Array::Ptr array = new Poco::JSON::Array();
-                for (uint64_t i=0;i<this->data.size();i++) array->add(this->data[i]);
-                return array;
+            Poco::JSON::Array::Ptr encode_data(uint8_t dimension=0, uint64_t offset=0) {
+
+                Poco::JSON::Array::Ptr json = new Poco::JSON::Array();
+
+                if (dimension == (this->dimensions - 1)) {
+
+                    // populate innermost array with the strings
+                    for (uint64_t i=0;i<this->shape[dimension];i++) {
+                        json->add(this->data[offset + i]);
+                    }
+
+                } else {
+
+                    // create nested array objects
+                    for (uint64_t i=0;i<this->shape[dimension];i++) {
+                        json->add(encode_data(dimension + 1, offset + i*this->stride[dimension]));
+                    }
+
+                }
+                return json;
             };
 
             /*
-            Decodes the Poco Array into a string vector.
+            Decodes a nested Poco Array into a string vector.
             */
-            // TODO: double check if python returns a 1D list or an ND list, if ND this needs to be rewritten to write nested lists
-            static void decode_data(vector<string> &data, const Poco::JSON::Array::Ptr array) {
-                for (uint8_t i=0;i<data.size();i++) data[i] = array->getElement<string>(i);
+            static void decode_data(StringArray::Ptr array, const Poco::JSON::Array::Ptr json, uint8_t dimension=0, uint64_t offset=0) {
+
+                if (dimension == (array->dimensions - 1)) {
+
+                    // innermost array contains strings
+                    for (uint64_t i=0;i<array->shape[dimension];i++) {
+                        array->data[offset + i] = json->getElement<string>(i);
+                    }
+
+                } else {
+
+                    // decode nested array objects
+                    for (uint64_t i=0;i<array->shape[dimension];i++) {
+                        decode_data(array, json->getArray(i), dimension + 1, offset + i*array->stride[dimension]);
+                    }
+
+                }
             };
         };
 

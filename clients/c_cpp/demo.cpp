@@ -88,18 +88,19 @@ int main(int argc, char **argv) {
     StringArray::Ptr sarray2;
 
     sarray1->at(0,0) = "alpha";
-    sarray1->at(1,0) = "beta";
-    sarray1->at(2,0) = "delta";
-    sarray1->at(0,1) = "gamma";
-    sarray1->at(1,1) = "eta";
+    sarray1->at(0,1) = "beta";
+    sarray1->at(1,0) = "delta";
+    sarray1->at(1,1) = "gamma";
+    sarray1->at(2,0) = "eta";
     sarray1->at(2,1) = "omega";
 
     obj = sarray1->encode();
 
-    sarray2 = StringArray::decode(obj);
-
     sarray1->encode()->stringify(cout, 2);
     cout << endl;
+
+    sarray2 = StringArray::decode(obj);
+
     sarray2->encode()->stringify(cout, 2);
     cout << endl;
 
