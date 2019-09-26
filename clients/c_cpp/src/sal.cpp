@@ -33,21 +33,21 @@ namespace sal {
 
     namespace object {
 
-        // variable identifier strings in serialised objects
-        char VAR_KEY_INT8[] = "int8";
-        char VAR_KEY_INT16[] = "int16";
-        char VAR_KEY_INT32[] = "int32";
-        char VAR_KEY_INT64[] = "int64";
-        char VAR_KEY_UINT8[] = "uint8";
-        char VAR_KEY_UINT16[] = "uint16";
-        char VAR_KEY_UINT32[] = "uint32";
-        char VAR_KEY_UINT64[] = "uint64";
-        char VAR_KEY_FLOAT32[] = "float32";
-        char VAR_KEY_FLOAT64[] = "float64";
-        char VAR_KEY_BOOL[] = "bool";
-        char VAR_KEY_STRING[] = "string";
-        char VAR_KEY_ARRAY[] = "array";
-        char VAR_KEY_BRANCH[] = "branch";
+        // attribute identifier strings in serialised objects
+        char ATTR_INT8[] = "int8";
+        char ATTR_INT16[] = "int16";
+        char ATTR_INT32[] = "int32";
+        char ATTR_INT64[] = "int64";
+        char ATTR_UINT8[] = "uint8";
+        char ATTR_UINT16[] = "uint16";
+        char ATTR_UINT32[] = "uint32";
+        char ATTR_UINT64[] = "uint64";
+        char ATTR_FLOAT32[] = "float32";
+        char ATTR_FLOAT64[] = "float64";
+        char ATTR_BOOL[] = "bool";
+        char ATTR_STRING[] = "string";
+        char ATTR_ARRAY[] = "array";
+        char ATTR_BRANCH[] = "branch";
 
     };
 

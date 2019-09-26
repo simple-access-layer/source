@@ -110,6 +110,11 @@ int main(int argc, char **argv) {
     }
     cout << endl;
 
+    Attribute::Ptr a = decode(i2->encode());
+    cout << a->type << endl;
+
+    Int8::Ptr i3 = decode_as<Int8>(i2->encode());
+    if (i3) cout << i3->type << endl;
 
 //    Branch::Ptr br = new Branch();
 //
