@@ -19,9 +19,10 @@
 
 // todo: proper exception handling, current catch all in various places is just a quick kludge
 
-using namespace std;
 
 namespace sal {
+
+    using namespace std;
 
     extern char VALID_CHARS[];
 
@@ -43,6 +44,7 @@ namespace sal {
         extern char ATTR_ARRAY[];
         extern char ATTR_BRANCH[];
 
+        // forward declare Branch
         class Branch;
 
         class Attribute {
@@ -629,6 +631,8 @@ namespace sal {
             };
         };
 
+        // forward declare decode()
+        Attribute::Ptr decode(Poco::JSON::Object::Ptr obj);
 
         /*
         Data Object Branch Attribute
@@ -656,7 +660,7 @@ namespace sal {
                 void remove (const string &key) { this->attributes.erase(key); };
 
                 /*
-                Returns a Poco JSON object representation of the String.
+                Returns a Poco JSON object representation of the Branch.
                 */
                 Poco::JSON::Object::Ptr encode() {
                     Poco::JSON::Object::Ptr obj = new Poco::JSON::Object();
@@ -672,43 +676,39 @@ namespace sal {
                 };
 
                 /*
-                Decodes a Poco JSON object representation of the Array and returns a StringArray object.
+                Decodes a Poco JSON object representation of the Branch attribute.
                 */
-                // todo: add decoding
                 static Branch::Ptr decode(Poco::JSON::Object::Ptr obj) {
 
                     Poco::JSON::Object::Ptr contents;
-//                    vector<uint64_t> shape;
-//                    string encoded_data;
-//                    typename StringArray::Ptr array;
+                    vector<string> keys;
+                    vector<string>::iterator key;
+                    Branch::Ptr branch;
 
                     // treat any failure as a failure to decode
                     try {
 
                         // check sal type is valid for this class
-                        if (obj->getValue<string>("type") != string(ATTR_BRANCH)) throw exception();
+                        if (obj->getValue<string>("type") != ATTR_BRANCH) throw exception();
 
                         // extract array definition
                         contents = obj->getObject("value");
 
-                        // todo: loop over contents
-                            // todo: skip null elements
-                            // todo: dispatch to appropriate decoder
+                        // create branch object and populate
+                        branch = new Branch();
+                        contents->getNames(keys);
+                        for (key=keys.begin(); key!=keys.end(); ++key) {
 
+                            // skip null elements
+                            if (contents->isNull(*key)) continue;
 
-                        // check array element type and array encoding are valid for this class
-//                        if (array_definition->getValue<string>("type") != string(ATTR_STRING)) throw exception();
-//                        if (array_definition->getValue<string>("encoding") != string("list")) throw exception();
-//                        if (!array_definition->isArray("shape")) throw exception();
-//                        if (!array_definition->isArray("data")) throw exception();
-//
-//                        // decode shape
-//                        shape = StringArray::decode_shape(array_definition->getArray("shape"));
-//
-//                        // create and populate array
-//                        array = new StringArray(shape);
-//                        StringArray::decode_data(array, array_definition->getArray("data"));
-//                        return array;
+                            // all valid attributes definitions are JSON objects
+                            if (!contents->isObject(*key)) throw exception();
+
+                            // dispatch object to the appropriate decoder
+                            branch->set(*key, sal::object::decode(contents->getObject(*key)));
+                        }
+                        return branch;
 
                     } catch(...) {
                         // todo: define a sal exception and replace
@@ -742,15 +742,12 @@ namespace sal {
             if (type == ATTR_INT16) return Int16::decode(obj);
             if (type == ATTR_INT32) return Int32::decode(obj);
             if (type == ATTR_INT64) return Int64::decode(obj);
-
             if (type == ATTR_UINT8) return UInt8::decode(obj);
             if (type == ATTR_UINT16) return UInt16::decode(obj);
             if (type == ATTR_UINT32) return UInt32::decode(obj);
             if (type == ATTR_UINT64) return UInt64::decode(obj);
-
             if (type == ATTR_FLOAT32) return Float32::decode(obj);
             if (type == ATTR_FLOAT64) return Float64::decode(obj);
-
             if (type == ATTR_BOOL) return Bool::decode(obj);
             if (type == ATTR_STRING) return String::decode(obj);
 
@@ -772,23 +769,24 @@ namespace sal {
                 if (element_type == ATTR_INT16) return Int16Array::decode(obj);
                 if (element_type == ATTR_INT32) return Int32Array::decode(obj);
                 if (element_type == ATTR_INT64) return Int64Array::decode(obj);
-
                 if (element_type == ATTR_UINT8) return UInt8Array::decode(obj);
                 if (element_type == ATTR_UINT16) return UInt16Array::decode(obj);
                 if (element_type == ATTR_UINT32) return UInt32Array::decode(obj);
                 if (element_type == ATTR_UINT64) return UInt64Array::decode(obj);
-
                 if (element_type == ATTR_FLOAT32) return Float32Array::decode(obj);
                 if (element_type == ATTR_FLOAT64) return Float64Array::decode(obj);
-
                 if (element_type == ATTR_STRING) return StringArray::decode(obj);
             }
 
+            // todo: define a sal exception and replace
             throw runtime_error("JSON object does not define a valid SAL attribute.");
         }
 
         /*
         Decodes
+
+        returns null pointer if cast is invalid
+
         */
         template<class T> typename T::Ptr decode_as(Poco::JSON::Object::Ptr obj) {
             return typename T::Ptr(decode(obj).cast<T>());
