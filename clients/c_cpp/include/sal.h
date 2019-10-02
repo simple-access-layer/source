@@ -24,25 +24,36 @@ namespace sal {
 
     using namespace std;
 
-    extern char VALID_CHARS[];
+    char VALID_CHARS[] = "abcdefghijklmnopqrstuvwxyz0123456789-_.";
 
     namespace object {
 
+        // the attribute type enumeration used to identify the type of Attribute object being handled
+        typedef enum {
+            ATTR_INT8, ATTR_INT16, ATTR_INT32, ATTR_INT64,
+            ATTR_UINT8, ATTR_UINT16, ATTR_UINT32, ATTR_UINT64,
+            ATTR_FLOAT32, ATTR_FLOAT64, ATTR_BOOL, ATTR_STRING,
+            ATTR_INT8_ARRAY, ATTR_INT16_ARRAY, ATTR_INT32_ARRAY, ATTR_INT64_ARRAY,
+            ATTR_UINT8_ARRAY, ATTR_UINT16_ARRAY, ATTR_UINT32_ARRAY, ATTR_UINT64_ARRAY,
+            ATTR_FLOAT32_ARRAY, ATTR_FLOAT64_ARRAY, ATTR_STRING_ARRAY,
+            ATTR_BRANCH,
+        } AttributeType;
+
         // attribute identifier strings in serialised objects
-        extern char ATTR_INT8[];
-        extern char ATTR_INT16[];
-        extern char ATTR_INT32[];
-        extern char ATTR_INT64[];
-        extern char ATTR_UINT8[];
-        extern char ATTR_UINT16[];
-        extern char ATTR_UINT32[];
-        extern char ATTR_UINT64[];
-        extern char ATTR_FLOAT32[];
-        extern char ATTR_FLOAT64[];
-        extern char ATTR_BOOL[];
-        extern char ATTR_STRING[];
-        extern char ATTR_ARRAY[];
-        extern char ATTR_BRANCH[];
+        char ID_STR_INT8[] = "int8";
+        char ID_STR_INT16[] = "int16";
+        char ID_STR_INT32[] = "int32";
+        char ID_STR_INT64[] = "int64";
+        char ID_STR_UINT8[] = "uint8";
+        char ID_STR_UINT16[] = "uint16";
+        char ID_STR_UINT32[] = "uint32";
+        char ID_STR_UINT64[] = "uint64";
+        char ID_STR_FLOAT32[] = "float32";
+        char ID_STR_FLOAT64[] = "float64";
+        char ID_STR_BOOL[] = "bool";
+        char ID_STR_STRING[] = "string";
+        char ID_STR_ARRAY[] = "array";
+        char ID_STR_BRANCH[] = "branch";
 
         // forward declare Branch
         class Branch;
@@ -54,54 +65,58 @@ namespace sal {
             public:
 
                 typedef Poco::SharedPtr<Attribute> Ptr;
-                const string type;
+                const AttributeType type;
 
-                Attribute(const string _type) : type(_type) {};
+                Attribute(const AttributeType _type, const string _id_str) : type(_type), id_str(_id_str) {};
 
                 // TODO: needs copy and move constructors
                 virtual Poco::JSON::Object::Ptr encode() = 0;
+
+            protected:
+                const string id_str;
+
         };
 
         /*
         Data Object Scalar Attributes
         */
-        template<class T, char const *TYPE>
+        template<class T, AttributeType TYPE, char const *ID_STR>
         class Scalar : public Attribute {
 
             // TODO: add documentation
 
             public:
 
-                typedef Poco::SharedPtr<Scalar<T, TYPE>> Ptr;
+                typedef Poco::SharedPtr<Scalar<T, TYPE, ID_STR>> Ptr;
 
                 T value;
 
                 /*
                 Constructors.
                 */
-                Scalar() : Attribute(TYPE), value(0) {};
-                Scalar(T _value) : Attribute(TYPE), value(_value) {};
+                Scalar() : Attribute(TYPE, ID_STR), value(0) {};
+                Scalar(T _value) : Attribute(TYPE, ID_STR), value(_value) {};
 
                 /*
                 Returns a Poco JSON object representation of the Scalar.
                 */
                 Poco::JSON::Object::Ptr encode() {
-                    Poco::JSON::Object::Ptr obj = new Poco::JSON::Object();
-                    obj->set("type", this->type);
-                    obj->set("value", this->value);
-                    return obj;
+                    Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
+                    json->set("type", this->type);
+                    json->set("value", this->value);
+                    return json;
                 };
 
                 /*
                 Decodes a Poco JSON object representation of the Scalar and returns a Scalar object.
                 */
-                static typename Scalar<T, TYPE>::Ptr decode(Poco::JSON::Object::Ptr obj) {
+                static typename Scalar<T, TYPE, ID_STR>::Ptr decode(Poco::JSON::Object::Ptr json) {
 
                     // treat any failure as a failure to decode
                     try {
                         // check sal type is valid for this class
-                        if (obj->getValue<string>("type") != string(TYPE)) throw exception();
-                        return new Scalar<T, TYPE>( obj->getValue<T>("value") );
+                        if (json->getValue<string>("type") != string(ID_STR)) throw exception();
+                        return new Scalar<T, TYPE, ID_STR>( json->getValue<T>("value") );
                     } catch(...) {
                         // todo: define a sal exception and replace
                         throw runtime_error("JSON object does not define a valid SAL scalar attribute.");
@@ -109,19 +124,19 @@ namespace sal {
                 };
         };
 
-        typedef Scalar<int8_t, ATTR_INT8> Int8;
-        typedef Scalar<int16_t, ATTR_INT16> Int16;
-        typedef Scalar<int32_t, ATTR_INT32> Int32;
-        typedef Scalar<int64_t, ATTR_INT64> Int64;
+        typedef Scalar<int8_t, ATTR_INT8, ID_STR_INT8> Int8;
+        typedef Scalar<int16_t, ATTR_INT16, ID_STR_INT16> Int16;
+        typedef Scalar<int32_t, ATTR_INT32, ID_STR_INT32> Int32;
+        typedef Scalar<int64_t, ATTR_INT64, ID_STR_INT64> Int64;
 
-        typedef Scalar<uint8_t, ATTR_UINT8> UInt8;
-        typedef Scalar<uint16_t, ATTR_UINT16> UInt16;
-        typedef Scalar<uint32_t, ATTR_UINT32> UInt32;
-        typedef Scalar<uint64_t, ATTR_UINT64> UInt64;
+        typedef Scalar<uint8_t, ATTR_UINT8, ID_STR_UINT8> UInt8;
+        typedef Scalar<uint16_t, ATTR_UINT16, ID_STR_UINT16> UInt16;
+        typedef Scalar<uint32_t, ATTR_UINT32, ID_STR_UINT32> UInt32;
+        typedef Scalar<uint64_t, ATTR_UINT64, ID_STR_UINT64> UInt64;
 
-        typedef Scalar<float, ATTR_FLOAT32> Float32;
-        typedef Scalar<double, ATTR_FLOAT64> Float64;
-        typedef Scalar<bool, ATTR_BOOL> Bool;
+        typedef Scalar<float, ATTR_FLOAT32, ID_STR_FLOAT32> Float32;
+        typedef Scalar<double, ATTR_FLOAT64, ID_STR_FLOAT64> Float64;
+        typedef Scalar<bool, ATTR_BOOL, ID_STR_BOOL> Bool;
 
         /*
         Data Object String Attributes
@@ -139,29 +154,29 @@ namespace sal {
                 /*
                 Constructors.
                 */
-                String() : Attribute(ATTR_STRING), value("") {};
-                String(string _value) : Attribute(ATTR_STRING), value(_value) {};
+                String() : Attribute(ATTR_STRING, ID_STR_STRING), value("") {};
+                String(string _value) : Attribute(ATTR_STRING, ID_STR_STRING), value(_value) {};
 
                 /*
                 Returns a Poco JSON object representation of the String.
                 */
                 Poco::JSON::Object::Ptr encode() {
-                    Poco::JSON::Object::Ptr obj = new Poco::JSON::Object();
-                    obj->set("type", this->type);
-                    obj->set("value", this->value);
-                    return obj;
+                    Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
+                    json->set("type", this->type);
+                    json->set("value", this->value);
+                    return json;
                 };
 
                 /*
                 Decodes a Poco JSON object representation of the String and returns a String object.
                 */
-                static String::Ptr decode(Poco::JSON::Object::Ptr obj) {
+                static String::Ptr decode(Poco::JSON::Object::Ptr json) {
 
                     // treat any failure as a failure to decode
                     try {
                         // check sal type is valid for this class
-                        if (obj->getValue<string>("type") != ATTR_STRING) throw exception();
-                        return new String( obj->getValue<string>("value") );
+                        if (json->getValue<string>("type") != ID_STR_STRING) throw exception();
+                        return new String( json->getValue<string>("value") );
                     } catch(...) {
                         // todo: define a sal exception and replace
                         throw runtime_error("JSON object does not define a valid SAL string attribute.");
@@ -169,19 +184,19 @@ namespace sal {
                 };
         };
 
+        //
+
         /*
         Data Object Array Attributes
         */
-        template<class T, char const *ELEMENT_TYPE>
+        template<class T, AttributeType TYPE, char const *ID_STR>
         class Array : public Attribute {
 
             // TODO: add documentation
 
             public:
 
-                typedef Poco::SharedPtr<Array<T, ELEMENT_TYPE>> Ptr;
-
-                const string element_type;
+                typedef Poco::SharedPtr<Array<T, TYPE, ID_STR>> Ptr;
 
                 /*
                 Array constructor.
@@ -205,7 +220,7 @@ namespace sal {
                     Float32Array a3({512, 512, 3});
 
                 */
-                Array(vector<uint64_t> shape) : Attribute(ATTR_ARRAY), element_type(ELEMENT_TYPE) {
+                Array(vector<uint64_t> shape) : Attribute(TYPE, ID_STR_ARRAY), element_id_str(ID_STR) {
 
                     this->dimensions = shape.size();
                     this->shape = shape;
@@ -293,7 +308,7 @@ namespace sal {
                     Poco::JSON::Object::Ptr array_definition = new Poco::JSON::Object();
                     Poco::JSON::Object::Ptr attribute = new Poco::JSON::Object();
 
-                    array_definition->set("type", this->element_type);
+                    array_definition->set("type", this->element_id_str);
                     array_definition->set("shape", this->encode_shape());
                     array_definition->set("encoding", "base64");
                     array_definition->set("data", this->encode_data());
@@ -307,33 +322,33 @@ namespace sal {
                 /*
                 Decodes a Poco JSON object representation of the Array and returns an Array object.
                 */
-                static typename Array<T, ELEMENT_TYPE>::Ptr decode(Poco::JSON::Object::Ptr obj) {
+                static typename Array<T, TYPE, ID_STR>::Ptr decode(Poco::JSON::Object::Ptr json) {
 
                     Poco::JSON::Object::Ptr array_definition;
                     vector<uint64_t> shape;
                     string encoded_data;
-                    typename Array<T, ELEMENT_TYPE>::Ptr array;
+                    typename Array<T, TYPE, ID_STR>::Ptr array;
 
                     // treat any failure as a failure to decode
                     try {
 
                         // check sal type is valid for this class
-                        if (obj->getValue<string>("type") != string(ATTR_ARRAY)) throw exception();
+                        if (json->getValue<string>("type") != string(ID_STR_ARRAY)) throw exception();
 
                         // extract array definition
-                        array_definition = obj->getObject("value");
+                        array_definition = json->getObject("value");
 
                         // check array element type and array encoding are valid for this class
-                        if (array_definition->getValue<string>("type") != string(ELEMENT_TYPE)) throw exception();
+                        if (array_definition->getValue<string>("type") != string(ID_STR)) throw exception();
                         if (array_definition->getValue<string>("encoding") != string("base64")) throw exception();
                         if (!array_definition->isArray("shape")) throw exception();
 
                         // decode shape
-                        shape = Array<T, ELEMENT_TYPE>::decode_shape(array_definition->getArray("shape"));
+                        shape = Array<T, TYPE, ID_STR>::decode_shape(array_definition->getArray("shape"));
 
                         // create and populate array
-                        array = new Array<T, ELEMENT_TYPE>(shape);
-                        Array<T, ELEMENT_TYPE>::decode_data(array->data, array_definition->getValue<string>("data"));
+                        array = new Array<T, TYPE, ID_STR>(shape);
+                        Array<T, TYPE, ID_STR>::decode_data(array->data, array_definition->getValue<string>("data"));
                         return array;
 
                     } catch(...) {
@@ -343,6 +358,7 @@ namespace sal {
                 };
 
             protected:
+                const string element_id_str;
                 uint8_t dimensions;
                 vector<uint64_t> shape;
                 vector<uint64_t> stride;
@@ -387,18 +403,18 @@ namespace sal {
             };
         };
 
-        typedef Array<int8_t, ATTR_INT8> Int8Array;
-        typedef Array<int16_t, ATTR_INT16> Int16Array;
-        typedef Array<int32_t, ATTR_INT32> Int32Array;
-        typedef Array<int64_t, ATTR_INT64> Int64Array;
+        typedef Array<int8_t, ATTR_INT8_ARRAY, ID_STR_INT8> Int8Array;
+        typedef Array<int16_t, ATTR_INT16_ARRAY, ID_STR_INT16> Int16Array;
+        typedef Array<int32_t, ATTR_INT32_ARRAY, ID_STR_INT32> Int32Array;
+        typedef Array<int64_t, ATTR_INT64_ARRAY, ID_STR_INT64> Int64Array;
 
-        typedef Array<uint8_t, ATTR_UINT8> UInt8Array;
-        typedef Array<uint16_t, ATTR_UINT16> UInt16Array;
-        typedef Array<uint32_t, ATTR_UINT32> UInt32Array;
-        typedef Array<uint64_t, ATTR_UINT64> UInt64Array;
+        typedef Array<uint8_t, ATTR_UINT8_ARRAY, ID_STR_UINT8> UInt8Array;
+        typedef Array<uint16_t, ATTR_UINT16_ARRAY, ID_STR_UINT16> UInt16Array;
+        typedef Array<uint32_t, ATTR_UINT32_ARRAY, ID_STR_UINT32> UInt32Array;
+        typedef Array<uint64_t, ATTR_UINT64_ARRAY, ID_STR_UINT64> UInt64Array;
 
-        typedef Array<float, ATTR_FLOAT32> Float32Array;
-        typedef Array<double, ATTR_FLOAT64> Float64Array;
+        typedef Array<float, ATTR_FLOAT32_ARRAY, ID_STR_FLOAT32> Float32Array;
+        typedef Array<double, ATTR_FLOAT64_ARRAY, ID_STR_FLOAT64> Float64Array;
 
         /*
         Data Object String Array Attribute
@@ -411,8 +427,6 @@ namespace sal {
 
                 typedef Poco::SharedPtr<StringArray> Ptr;
 
-                const string element_type;
-
                 /*
                 StringArray constructor.
 
@@ -421,7 +435,7 @@ namespace sal {
                 of the array. The number of elements in the shape vector
                 defines the number of dimensions.
                 */
-                StringArray(vector<uint64_t> shape) : Attribute(ATTR_ARRAY), element_type(ATTR_STRING) {
+                StringArray(vector<uint64_t> shape) : Attribute(ATTR_STRING_ARRAY, ID_STR_ARRAY), element_id_str(ID_STR_STRING) {
 
                     this->dimensions = shape.size();
                     this->shape = shape;
@@ -509,7 +523,7 @@ namespace sal {
                     Poco::JSON::Object::Ptr array_definition = new Poco::JSON::Object();
                     Poco::JSON::Object::Ptr attribute = new Poco::JSON::Object();
 
-                    array_definition->set("type", this->element_type);
+                    array_definition->set("type", this->element_id_str);
                     array_definition->set("shape", this->encode_shape());
                     array_definition->set("encoding", "list");
                     array_definition->set("data", this->encode_data());
@@ -523,7 +537,7 @@ namespace sal {
                 /*
                 Decodes a Poco JSON object representation of the Array and returns a StringArray object.
                 */
-                static StringArray::Ptr decode(Poco::JSON::Object::Ptr obj) {
+                static StringArray::Ptr decode(Poco::JSON::Object::Ptr json) {
 
                     Poco::JSON::Object::Ptr array_definition;
                     vector<uint64_t> shape;
@@ -534,13 +548,13 @@ namespace sal {
                     try {
 
                         // check sal type is valid for this class
-                        if (obj->getValue<string>("type") != string(ATTR_ARRAY)) throw exception();
+                        if (json->getValue<string>("type") != string(ID_STR_ARRAY)) throw exception();
 
                         // extract array definition
-                        array_definition = obj->getObject("value");
+                        array_definition = json->getObject("value");
 
                         // check array element type and array encoding are valid for this class
-                        if (array_definition->getValue<string>("type") != string(ATTR_STRING)) throw exception();
+                        if (array_definition->getValue<string>("type") != string(ID_STR_STRING)) throw exception();
                         if (array_definition->getValue<string>("encoding") != string("list")) throw exception();
                         if (!array_definition->isArray("shape")) throw exception();
                         if (!array_definition->isArray("data")) throw exception();
@@ -560,6 +574,7 @@ namespace sal {
                 };
 
             protected:
+                const string element_id_str;
                 uint8_t dimensions;
                 vector<uint64_t> shape;
                 vector<uint64_t> stride;
@@ -569,17 +584,17 @@ namespace sal {
             Converts the shape array to a POCO JSON array object.
             */
             Poco::JSON::Array::Ptr encode_shape() {
-                Poco::JSON::Array::Ptr obj = new Poco::JSON::Array();
-                for (uint8_t i=0;i<this->shape.size();i++) obj->add(this->shape[i]);
-                return obj;
+                Poco::JSON::Array::Ptr json = new Poco::JSON::Array();
+                for (uint8_t i=0;i<this->shape.size();i++) json->add(this->shape[i]);
+                return json;
             };
 
             /*
             Decodes the shape array from a POCO JSON array object.
             */
-            static vector<uint64_t> decode_shape(Poco::JSON::Array::Ptr obj) {
-                vector<uint64_t> shape(obj->size());
-                for (uint8_t i=0;i<obj->size();i++) shape[i] = obj->getElement<uint64_t>(i);
+            static vector<uint64_t> decode_shape(Poco::JSON::Array::Ptr json) {
+                vector<uint64_t> shape(json->size());
+                for (uint8_t i=0;i<json->size();i++) shape[i] = json->getElement<uint64_t>(i);
                 return shape;
             };
 
@@ -588,43 +603,43 @@ namespace sal {
             */
             Poco::JSON::Array::Ptr encode_data(uint8_t dimension=0, uint64_t offset=0) {
 
-                Poco::JSON::Array::Ptr obj = new Poco::JSON::Array();
+                Poco::JSON::Array::Ptr json = new Poco::JSON::Array();
 
                 if (dimension == (this->dimensions - 1)) {
 
                     // populate innermost array with the strings
                     for (uint64_t i=0;i<this->shape[dimension];i++) {
-                        obj->add(this->data[offset + i]);
+                        json->add(this->data[offset + i]);
                     }
 
                 } else {
 
                     // create nested array objects
                     for (uint64_t i=0;i<this->shape[dimension];i++) {
-                        obj->add(encode_data(dimension + 1, offset + i*this->stride[dimension]));
+                        json->add(encode_data(dimension + 1, offset + i*this->stride[dimension]));
                     }
 
                 }
-                return obj;
+                return json;
             };
 
             /*
             Decodes a nested Poco Array into a string vector.
             */
-            static void decode_data(StringArray::Ptr array, const Poco::JSON::Array::Ptr obj, uint8_t dimension=0, uint64_t offset=0) {
+            static void decode_data(StringArray::Ptr array, const Poco::JSON::Array::Ptr json, uint8_t dimension=0, uint64_t offset=0) {
 
                 if (dimension == (array->dimensions - 1)) {
 
                     // innermost array contains strings
                     for (uint64_t i=0;i<array->shape[dimension];i++) {
-                        array->data[offset + i] = obj->getElement<string>(i);
+                        array->data[offset + i] = json->getElement<string>(i);
                     }
 
                 } else {
 
                     // decode nested array objects
                     for (uint64_t i=0;i<array->shape[dimension];i++) {
-                        decode_data(array, obj->getArray(i), dimension + 1, offset + i*array->stride[dimension]);
+                        decode_data(array, json->getArray(i), dimension + 1, offset + i*array->stride[dimension]);
                     }
 
                 }
@@ -632,14 +647,12 @@ namespace sal {
         };
 
         // forward declare decode()
-        Attribute::Ptr decode(Poco::JSON::Object::Ptr obj);
+        Attribute::Ptr decode(Poco::JSON::Object::Ptr json);
 
         /*
         Data Object Branch Attribute
         */
         class Branch : public Attribute {
-
-            // TODO: add documentation
 
             public:
 
@@ -648,7 +661,7 @@ namespace sal {
                 /*
                 Constructors.
                 */
-                Branch() : Attribute(ATTR_BRANCH) {};
+                Branch() : Attribute(ATTR_BRANCH, ID_STR_BRANCH) {};
 
                 // TODO: better exception handling
                 // TODO: add documentation
@@ -663,22 +676,23 @@ namespace sal {
                 Returns a Poco JSON object representation of the Branch.
                 */
                 Poco::JSON::Object::Ptr encode() {
-                    Poco::JSON::Object::Ptr obj = new Poco::JSON::Object();
+
+                    Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
                     Poco::JSON::Object::Ptr content = new Poco::JSON::Object();
 
                     // encode each attribute
                     for (map<string, Attribute::Ptr>::iterator i=this->attributes.begin(); i!=this->attributes.end(); ++i)
                         content->set(i->first, i->second->encode());
 
-                    obj->set("type", this->type);
-                    obj->set("value", content);
-                    return obj;
+                    json->set("type", this->type);
+                    json->set("value", content);
+                    return json;
                 };
 
                 /*
                 Decodes a Poco JSON object representation of the Branch attribute.
                 */
-                static Branch::Ptr decode(Poco::JSON::Object::Ptr obj) {
+                static Branch::Ptr decode(Poco::JSON::Object::Ptr json) {
 
                     Poco::JSON::Object::Ptr contents;
                     vector<string> keys;
@@ -689,10 +703,10 @@ namespace sal {
                     try {
 
                         // check sal type is valid for this class
-                        if (obj->getValue<string>("type") != ATTR_BRANCH) throw exception();
+                        if (json->getValue<string>("type") != ID_STR_BRANCH) throw exception();
 
                         // extract array definition
-                        contents = obj->getObject("value");
+                        contents = json->getObject("value");
 
                         // create branch object and populate
                         branch = new Branch();
@@ -723,59 +737,61 @@ namespace sal {
         /*
         Decodes
         */
-        Attribute::Ptr decode(Poco::JSON::Object::Ptr obj) {
+        Attribute::Ptr decode(Poco::JSON::Object::Ptr json) {
 
-            string type;
+            string id_str;
 
             try {
-                type = obj->getValue<string>("type");
+                id_str = json->getValue<string>("type");
             } catch(...) {
                 // todo: define a sal exception and replace
                 throw runtime_error("JSON object does not define a valid SAL attribute.");
             }
 
+            cout << "decoding: " << id_str << endl;
+
             // branches
-            if (type == ATTR_BRANCH) return Branch::decode(obj);
+            if (id_str == ID_STR_BRANCH) return Branch::decode(json);
 
             // atomic
-            if (type == ATTR_INT8) return Int8::decode(obj);
-            if (type == ATTR_INT16) return Int16::decode(obj);
-            if (type == ATTR_INT32) return Int32::decode(obj);
-            if (type == ATTR_INT64) return Int64::decode(obj);
-            if (type == ATTR_UINT8) return UInt8::decode(obj);
-            if (type == ATTR_UINT16) return UInt16::decode(obj);
-            if (type == ATTR_UINT32) return UInt32::decode(obj);
-            if (type == ATTR_UINT64) return UInt64::decode(obj);
-            if (type == ATTR_FLOAT32) return Float32::decode(obj);
-            if (type == ATTR_FLOAT64) return Float64::decode(obj);
-            if (type == ATTR_BOOL) return Bool::decode(obj);
-            if (type == ATTR_STRING) return String::decode(obj);
+            if (id_str == ID_STR_INT8) return Int8::decode(json);
+            if (id_str == ID_STR_INT16) return Int16::decode(json);
+            if (id_str == ID_STR_INT32) return Int32::decode(json);
+            if (id_str == ID_STR_INT64) return Int64::decode(json);
+            if (id_str == ID_STR_UINT8) return UInt8::decode(json);
+            if (id_str == ID_STR_UINT16) return UInt16::decode(json);
+            if (id_str == ID_STR_UINT32) return UInt32::decode(json);
+            if (id_str == ID_STR_UINT64) return UInt64::decode(json);
+            if (id_str == ID_STR_FLOAT32) return Float32::decode(json);
+            if (id_str == ID_STR_FLOAT64) return Float64::decode(json);
+            if (id_str == ID_STR_BOOL) return Bool::decode(json);
+            if (id_str == ID_STR_STRING) return String::decode(json);
 
             // arrays
-            if (type == ATTR_ARRAY) {
+            if (id_str == ID_STR_ARRAY) {
 
                 Poco::JSON::Object::Ptr array_definition;
-                string element_type;
+                string element_id_str;
 
                 try {
-                    array_definition = obj->getObject("value");
-                    element_type = array_definition->getValue<string>("type");
+                    array_definition = json->getObject("value");
+                    element_id_str = array_definition->getValue<string>("type");
                 } catch(...) {
                     // todo: define a sal exception and replace
                     throw runtime_error("JSON object does not define a valid SAL attribute.");
                 }
 
-                if (element_type == ATTR_INT8) return Int8Array::decode(obj);
-                if (element_type == ATTR_INT16) return Int16Array::decode(obj);
-                if (element_type == ATTR_INT32) return Int32Array::decode(obj);
-                if (element_type == ATTR_INT64) return Int64Array::decode(obj);
-                if (element_type == ATTR_UINT8) return UInt8Array::decode(obj);
-                if (element_type == ATTR_UINT16) return UInt16Array::decode(obj);
-                if (element_type == ATTR_UINT32) return UInt32Array::decode(obj);
-                if (element_type == ATTR_UINT64) return UInt64Array::decode(obj);
-                if (element_type == ATTR_FLOAT32) return Float32Array::decode(obj);
-                if (element_type == ATTR_FLOAT64) return Float64Array::decode(obj);
-                if (element_type == ATTR_STRING) return StringArray::decode(obj);
+                if (element_id_str == ID_STR_INT8) return Int8Array::decode(json);
+                if (element_id_str == ID_STR_INT16) return Int16Array::decode(json);
+                if (element_id_str == ID_STR_INT32) return Int32Array::decode(json);
+                if (element_id_str == ID_STR_INT64) return Int64Array::decode(json);
+                if (element_id_str == ID_STR_UINT8) return UInt8Array::decode(json);
+                if (element_id_str == ID_STR_UINT16) return UInt16Array::decode(json);
+                if (element_id_str == ID_STR_UINT32) return UInt32Array::decode(json);
+                if (element_id_str == ID_STR_UINT64) return UInt64Array::decode(json);
+                if (element_id_str == ID_STR_FLOAT32) return Float32Array::decode(json);
+                if (element_id_str == ID_STR_FLOAT64) return Float64Array::decode(json);
+                if (element_id_str == ID_STR_STRING) return StringArray::decode(json);
             }
 
             // todo: define a sal exception and replace
@@ -788,14 +804,24 @@ namespace sal {
         returns null pointer if cast is invalid
 
         */
-        template<class T> typename T::Ptr decode_as(Poco::JSON::Object::Ptr obj) {
-            return typename T::Ptr(decode(obj).cast<T>());
+        template<class T> typename T::Ptr decode_as(Poco::JSON::Object::Ptr json) {
+            return typename T::Ptr(decode(json).cast<T>());
         };
     }
 
     namespace node {
 
         typedef enum {BRANCH, LEAF} ReportType;
+
+        char MSG_CONTENT_REPORT[] = "report";
+        char MSG_CONTENT_OBJECT[] = "object";
+
+        char MSG_TYPE_LEAF[] = "leaf";
+        char MSG_TYPE_BRANCH[] = "branch";
+
+        char OBJ_TYPE_FULL[] = "object";
+        char OBJ_TYPE_SUMMARY[] = "summary";
+
 
         class ObjectType {
 
@@ -827,17 +853,76 @@ namespace sal {
         };
 
 
-        class Branch {
-        };
-
         class Object {
 
             public:
-                const ObjectType type;
-                object::Branch root;
 
-            // needs copy and move constructors
+                const string cls;
+                const string group;
+                const uint64_t version;
+                const bool summary;
 
+                typedef Poco::SharedPtr<Object> Ptr;
+
+                // todo: needs copy and move constructors
+                Object(string _cls, string _group, uint64_t _version, bool _summary) : cls(_cls), group(_group), version(_version), summary(_summary) {};
+
+                object::Attribute::Ptr& operator[](const string &key) { return this->attributes.at(key); };
+                object::Attribute::Ptr &get(const string &key) { return (*this)[key]; };
+                template<class T> typename T::Ptr get_as(const string &key) { return typename T::Ptr(this->get(key).cast<T>()); };
+                void set(const string &key, const object::Attribute::Ptr &attribute) { this->attributes[key] = attribute; };
+                const bool has(const string &key) const { return this->attributes.count(key); };
+                void remove (const string &key) { this->attributes.erase(key); };
+
+
+                /*
+                Decodes a Poco JSON object representation of the data object and returns a SAL data object.
+                */
+                static Object::Ptr decode(Poco::JSON::Object::Ptr json) {
+
+                    vector<string> keys;
+                    vector<string>::iterator key;
+                    Object::Ptr obj;
+
+                    // treat any failure as a failure to decode
+                    try {
+
+                        // extract class, group, version and object type
+                        object::String::Ptr cls = object::decode_as<object::String>(json->getObject("_class"));
+                        object::String::Ptr group = object::decode_as<object::String>(json->getObject("_group"));
+                        object::UInt64::Ptr version = object::decode_as<object::UInt64>(json->getObject("_version"));
+                        object::String::Ptr type = object::decode_as<object::String>(json->getObject("_type"));
+
+                        // create object and populate
+                        obj = new Object(cls->value, group->value, version->value, type->value == OBJ_TYPE_SUMMARY);
+                        json->getNames(keys);
+                        for (key=keys.begin(); key!=keys.end(); ++key) {
+
+                            // skip null elements
+                            if (json->isNull(*key)) continue;
+
+                            // all valid attributes definitions are JSON objects
+                            if (!json->isObject(*key)) throw exception();
+
+                            // dispatch object to the appropriate decoder
+                            obj->set(*key, sal::object::decode(json->getObject(*key)));
+                        }
+                        return obj;
+
+                    } catch(...) {
+                        // todo: define a sal exception and replace
+                        throw runtime_error("JSON object does not define a valid SAL data object.");
+                    }
+
+
+                };
+
+            protected:
+                map<string, object::Attribute::Ptr> attributes;
+        };
+
+
+        class Branch {
         };
 
     };
