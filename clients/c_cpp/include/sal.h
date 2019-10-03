@@ -26,6 +26,44 @@ namespace sal {
 
     char VALID_CHARS[] = "abcdefghijklmnopqrstuvwxyz0123456789-_.";
 
+    namespace exception {
+
+        class SALException : public exception {
+            const char * what () const throw () { return "An error has occurred with the SAL client."; };
+        };
+
+        class InvalidPath : public SALException {
+            const char * what () const throw () { return "Path does not conform to path specification."; };
+        };
+
+        class NodeNotFound : public SALException {
+            const char * what () const throw () { return "The supplied path does not point to a valid node."; };
+        };
+
+        class UnsupportedOperation : public SALException {
+            const char * what () const throw () { return "Operation is not supported."; };
+        };
+
+        class InvalidRequest : public SALException {
+            const char * what () const throw () { return "The request sent to the server could not be handled."; };
+        };
+
+        class AuthenticationFailed : public SALException {
+            const char * what () const throw () { return "Valid authorisation credentials were not supplied"; };
+        };
+
+        class PermissionDenied : public SALException {
+            const char * what () const throw () { return "The user does not have permission to perform this operation."; };
+        };
+
+        class InternalError : public SALException {
+            const char * what () const throw () { return "An error occurred affecting server operation. Please contact your administrator."; };
+        };
+
+        class InvalidResponse : public SALException {
+            const char * what () const throw () { return "The response sent by the server could not be interpreted."; };
+        };
+    };
 
     namespace object {
 
@@ -124,7 +162,7 @@ namespace sal {
                     // treat any failure as a failure to decode
                     try {
                         // check sal type is valid for this class
-                        if (json->getValue<string>("type") != string(ID_STR)) throw exception();
+                        if (json->getValue<string>("type") != string(ID_STR)) throw std::exception();
                         return new Scalar<T, TYPE, ID_STR>( json->getValue<T>("value") );
                     } catch(...) {
                         // todo: define a sal exception and replace
@@ -187,7 +225,7 @@ namespace sal {
                     // treat any failure as a failure to decode
                     try {
                         // check sal type is valid for this class
-                        if (json->getValue<string>("type") != ID_STR_STRING) throw exception();
+                        if (json->getValue<string>("type") != ID_STR_STRING) throw std::exception();
                         return new String( json->getValue<string>("value") );
                     } catch(...) {
                         // todo: define a sal exception and replace
@@ -349,15 +387,15 @@ namespace sal {
                     try {
 
                         // check sal type is valid for this class
-                        if (json->getValue<string>("type") != string(ID_STR_ARRAY)) throw exception();
+                        if (json->getValue<string>("type") != string(ID_STR_ARRAY)) throw std::exception();
 
                         // extract array definition
                         array_definition = json->getObject("value");
 
                         // check array element type and array encoding are valid for this class
-                        if (array_definition->getValue<string>("type") != string(ID_STR)) throw exception();
-                        if (array_definition->getValue<string>("encoding") != string("base64")) throw exception();
-                        if (!array_definition->isArray("shape")) throw exception();
+                        if (array_definition->getValue<string>("type") != string(ID_STR)) throw std::exception();
+                        if (array_definition->getValue<string>("encoding") != string("base64")) throw std::exception();
+                        if (!array_definition->isArray("shape")) throw std::exception();
 
                         // decode shape
                         shape = Array<T, TYPE, ID_STR>::decode_shape(array_definition->getArray("shape"));
@@ -571,16 +609,16 @@ namespace sal {
                     try {
 
                         // check sal type is valid for this class
-                        if (json->getValue<string>("type") != string(ID_STR_ARRAY)) throw exception();
+                        if (json->getValue<string>("type") != string(ID_STR_ARRAY)) throw std::exception();
 
                         // extract array definition
                         array_definition = json->getObject("value");
 
                         // check array element type and array encoding are valid for this class
-                        if (array_definition->getValue<string>("type") != string(ID_STR_STRING)) throw exception();
-                        if (array_definition->getValue<string>("encoding") != string("list")) throw exception();
-                        if (!array_definition->isArray("shape")) throw exception();
-                        if (!array_definition->isArray("data")) throw exception();
+                        if (array_definition->getValue<string>("type") != string(ID_STR_STRING)) throw std::exception();
+                        if (array_definition->getValue<string>("encoding") != string("list")) throw std::exception();
+                        if (!array_definition->isArray("shape")) throw std::exception();
+                        if (!array_definition->isArray("data")) throw std::exception();
 
                         // decode shape
                         shape = StringArray::decode_shape(array_definition->getArray("shape"));
@@ -704,14 +742,14 @@ namespace sal {
                 Poco::JSON::Object::Ptr encode() {
 
                     Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
-                    Poco::JSON::Object::Ptr content = new Poco::JSON::Object();
+                    Poco::JSON::Object::Ptr value = new Poco::JSON::Object();
 
                     // encode each attribute
                     for (map<string, Attribute::Ptr>::iterator i=this->attributes.begin(); i!=this->attributes.end(); ++i)
-                        content->set(i->first, i->second->encode());
+                        value->set(i->first, i->second->encode());
 
                     json->set("type", this->type);
-                    json->set("value", content);
+                    json->set("value", value);
                     return json;
                 };
 
@@ -729,7 +767,7 @@ namespace sal {
                     try {
 
                         // check sal type is valid for this class
-                        if (json->getValue<string>("type") != ID_STR_BRANCH) throw exception();
+                        if (json->getValue<string>("type") != ID_STR_BRANCH) throw std::exception();
 
                         // extract array definition
                         contents = json->getObject("value");
@@ -743,7 +781,7 @@ namespace sal {
                             if (contents->isNull(*key)) continue;
 
                             // all valid attributes definitions are JSON objects
-                            if (!contents->isObject(*key)) throw exception();
+                            if (!contents->isObject(*key)) throw std::exception();
 
                             // dispatch object to the appropriate decoder
                             branch->set(*key, sal::object::decode(contents->getObject(*key)));
@@ -759,7 +797,6 @@ namespace sal {
             protected:
                 map<string, Attribute::Ptr> attributes;
         };
-
 
         /*
         Attempts to decode a JSON object into a SAL object attribute.
@@ -886,38 +923,59 @@ namespace sal {
         class Object {
 
             public:
-
                 typedef Poco::SharedPtr<Object> Ptr;
-
                 static const NodeType type;
-
-
         };
 
 
         class Branch : public Object {
 
             public:
+                typedef Poco::SharedPtr<Branch> Ptr;
                 static const NodeType type = NODE_BRANCH;
+                string description;
 
+                /*
+                Constructors and destructor.
+                */
+                Branch(string _description) : description(_description) {};
+                virtual ~Branch() {};
 
+                /*
+                Decodes a Poco JSON object representation of the data object and returns a SAL data object.
+                */
+                static Branch::Ptr decode(Poco::JSON::Object::Ptr json) {
+
+                    Branch::Ptr branch;
+
+                    // treat any failure as a failure to decode
+                    try {
+                        string description = json->getValue<string>("description");
+                        return new Branch(description);
+                    } catch(...) {
+                        // todo: define a sal exception and replace
+                        throw runtime_error("JSON object does not define a valid SAL data object.");
+                    }
+                };
         };
 
 
         class Leaf : public Object {
 
             public:
-
+                typedef Poco::SharedPtr<Leaf> Ptr;
                 static const NodeType type = NODE_LEAF;
                 const string cls;
                 const string group;
                 const uint64_t version;
                 const bool summary;
+                string description;
 
-                typedef Poco::SharedPtr<Leaf> Ptr;
-
+                /*
+                Constructors and destructor.
+                */
                 // todo: needs copy and move constructors
-                Leaf(string _cls, string _group, uint64_t _version, bool _summary) : cls(_cls), group(_group), version(_version), summary(_summary) {};
+                Leaf(string _cls, string _group, uint64_t _version, bool _summary, string _description) : cls(_cls), group(_group), version(_version), summary(_summary), description(_description) {};
                 virtual ~Leaf() {};
 
                 object::Attribute::Ptr& operator[](const string &key) { return this->attributes.at(key); };
@@ -926,7 +984,6 @@ namespace sal {
                 void set(const string &key, const object::Attribute::Ptr &attribute) { this->attributes[key] = attribute; };
                 const bool has(const string &key) const { return this->attributes.count(key); };
                 void remove (const string &key) { this->attributes.erase(key); };
-
 
                 /*
                 Decodes a Poco JSON object representation of the data object and returns a SAL data object.
@@ -945,9 +1002,10 @@ namespace sal {
                         object::String::Ptr group = object::decode_as<object::String>(json->getObject("_group"));
                         object::UInt64::Ptr version = object::decode_as<object::UInt64>(json->getObject("_version"));
                         object::String::Ptr type = object::decode_as<object::String>(json->getObject("_type"));
+                        object::String::Ptr description = object::decode_as<object::String>(json->getObject("description"));
 
                         // create object and populate
-                        obj = new Leaf(cls->value, group->value, version->value, type->value == OBJ_TYPE_SUMMARY);
+                        obj = new Leaf(cls->value, group->value, version->value, type->value == OBJ_TYPE_SUMMARY, description->value);
                         json->getNames(keys);
                         for (key=keys.begin(); key!=keys.end(); ++key) {
 
@@ -955,11 +1013,19 @@ namespace sal {
                             if (json->isNull(*key)) continue;
 
                             // all valid attributes definitions are JSON objects
-                            if (!json->isObject(*key)) throw exception();
+                            if (!json->isObject(*key)) throw std::exception();
 
                             // dispatch object to the appropriate decoder
                             obj->set(*key, sal::object::decode(json->getObject(*key)));
                         }
+
+                        // remove extracted items
+                        obj->remove("_class");
+                        obj->remove("_group");
+                        obj->remove("_version");
+                        obj->remove("_type");
+                        obj->remove("description");
+
                         return obj;
 
                     } catch(...) {
@@ -984,11 +1050,11 @@ namespace sal {
 
             try {
                  content = json->getValue<string>("content");
-                 if (content != JSON_CONTENT_OBJECT) throw exception();
+                 if (content != JSON_CONTENT_OBJECT) throw std::exception();
 
                  type = json->getValue<string>("type");
 
-                 if (json->isObject("object")) throw exception();
+                 if (json->isObject("object")) throw std::exception();
                  object = json->getObject("object");
             } catch(...) {
                 // todo: define a sal exception and replace
@@ -997,10 +1063,8 @@ namespace sal {
 
             cout << "decoding object: " <<  content << ", " << type << endl;
 
-            // TODO: implement me
-//            if (type == JSON_TYPE_BRANCH) return Branch::decode(object);
+            if (type == JSON_TYPE_BRANCH) return Branch::decode(object);
             if (type == JSON_TYPE_LEAF) return Leaf::decode(object);
-
 
             // todo: define a sal exception and replace
             throw runtime_error("JSON object does not define a valid SAL object.");
