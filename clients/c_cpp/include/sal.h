@@ -863,6 +863,9 @@ namespace sal {
         class Report {
 
             public:
+
+                typedef Poco::SharedPtr<Report> Ptr;
+
                 Report();
                 ~Report();
 
@@ -883,7 +886,11 @@ namespace sal {
         class Object {
 
             public:
+
+                typedef Poco::SharedPtr<Object> Ptr;
+
                 static const NodeType type;
+
 
         };
 
@@ -990,13 +997,24 @@ namespace sal {
 
             cout << "decoding object: " <<  content << ", " << type << endl;
 
-            if (type == JSON_TYPE_BRANCH) return Branch::decode(object);
+            // TODO: implement me
+//            if (type == JSON_TYPE_BRANCH) return Branch::decode(object);
             if (type == JSON_TYPE_LEAF) return Leaf::decode(object);
-            }
+
 
             // todo: define a sal exception and replace
             throw runtime_error("JSON object does not define a valid SAL object.");
         }
+
+
+        /*
+        Attempts to decode a JSON object into the specified SAL object.
+
+        Returns null pointer if cast is invalid.
+        */
+        template<class T> typename T::Ptr decode_object_as(Poco::JSON::Object::Ptr json) {
+            return typename T::Ptr(decode_object(json).cast<T>());
+        };
 
 
         /*

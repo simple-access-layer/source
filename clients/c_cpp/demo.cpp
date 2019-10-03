@@ -202,6 +202,7 @@ int main(int argc, char **argv) {
     cout << leaf->has("description") << endl;
     cout << leaf->get_as<String>("description")->value << endl;
     cout << leaf->get_as<UInt64>("value")->value << endl;
+    cout << leaf->get("description").cast<String>()->value << endl;
 //    cout << leaf->get_as<Branch>("dimensions")->get_as<Branch>("0")->get_as<String>("description")->value << endl;
 
 
