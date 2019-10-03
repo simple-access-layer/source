@@ -196,13 +196,13 @@ int main(int argc, char **argv) {
     content->stringify(cout, 2);
     cout << endl;
 
-    sal::node::Object::Ptr dobj = sal::node::Object::decode(content);
+    sal::node::Leaf::Ptr leaf = sal::node::Leaf::decode(content);
 
-    cout << dobj->cls << endl;
-    cout << dobj->has("description") << endl;
-    cout << dobj->get_as<String>("description")->value << endl;
-    cout << dobj->get_as<UInt64>("value")->value << endl;
-//    cout << dobj->get_as<Branch>("dimensions")->get_as<Branch>("0")->get_as<String>("description")->value << endl;
+    cout << leaf->cls << endl;
+    cout << leaf->has("description") << endl;
+    cout << leaf->get_as<String>("description")->value << endl;
+    cout << leaf->get_as<UInt64>("value")->value << endl;
+//    cout << leaf->get_as<Branch>("dimensions")->get_as<Branch>("0")->get_as<String>("description")->value << endl;
 
 
 

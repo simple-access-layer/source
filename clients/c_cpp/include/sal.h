@@ -26,6 +26,7 @@ namespace sal {
 
     char VALID_CHARS[] = "abcdefghijklmnopqrstuvwxyz0123456789-_.";
 
+
     namespace object {
 
         // the attribute type enumeration used to identify the type of Attribute object being handled
@@ -55,8 +56,10 @@ namespace sal {
         char ID_STR_ARRAY[] = "array";
         char ID_STR_BRANCH[] = "branch";
 
+
         // forward declare Branch
         class Branch;
+
 
         class Attribute {
 
@@ -67,15 +70,20 @@ namespace sal {
                 typedef Poco::SharedPtr<Attribute> Ptr;
                 const AttributeType type;
 
-                Attribute(const AttributeType _type, const string _id_str) : type(_type), id_str(_id_str) {};
-
+                /*
+                Constructors and destructor.
+                */
                 // TODO: needs copy and move constructors
+                Attribute(const AttributeType _type, const string _id_str) : type(_type), id_str(_id_str) {};
+                virtual ~Attribute() {};
+
                 virtual Poco::JSON::Object::Ptr encode() = 0;
 
             protected:
                 const string id_str;
 
         };
+
 
         /*
         Data Object Scalar Attributes
@@ -92,10 +100,11 @@ namespace sal {
                 T value;
 
                 /*
-                Constructors.
+                Constructors and destructor.
                 */
                 Scalar() : Attribute(TYPE, ID_STR), value(0) {};
                 Scalar(T _value) : Attribute(TYPE, ID_STR), value(_value) {};
+                virtual ~Scalar() {};
 
                 /*
                 Returns a Poco JSON object representation of the Scalar.
@@ -124,6 +133,7 @@ namespace sal {
                 };
         };
 
+
         typedef Scalar<int8_t, ATTR_INT8, ID_STR_INT8> Int8;
         typedef Scalar<int16_t, ATTR_INT16, ID_STR_INT16> Int16;
         typedef Scalar<int32_t, ATTR_INT32, ID_STR_INT32> Int32;
@@ -137,6 +147,7 @@ namespace sal {
         typedef Scalar<float, ATTR_FLOAT32, ID_STR_FLOAT32> Float32;
         typedef Scalar<double, ATTR_FLOAT64, ID_STR_FLOAT64> Float64;
         typedef Scalar<bool, ATTR_BOOL, ID_STR_BOOL> Bool;
+
 
         /*
         Data Object String Attributes
@@ -152,10 +163,11 @@ namespace sal {
                 string value;
 
                 /*
-                Constructors.
+                Constructors and destructor.
                 */
                 String() : Attribute(ATTR_STRING, ID_STR_STRING), value("") {};
                 String(string _value) : Attribute(ATTR_STRING, ID_STR_STRING), value(_value) {};
+                virtual ~String() {};
 
                 /*
                 Returns a Poco JSON object representation of the String.
@@ -184,7 +196,6 @@ namespace sal {
                 };
         };
 
-        //
 
         /*
         Data Object Array Attributes
@@ -246,6 +257,11 @@ namespace sal {
     //            Array& operator= (const Array&);
     //            Array(Array&&);
     //            Array& operator= (Array&&);
+
+                /*
+                Destructor
+                */
+                virtual ~Array() {};
 
                 /*
                 Returns the length of the array buffer.
@@ -403,6 +419,7 @@ namespace sal {
             };
         };
 
+
         typedef Array<int8_t, ATTR_INT8_ARRAY, ID_STR_INT8> Int8Array;
         typedef Array<int16_t, ATTR_INT16_ARRAY, ID_STR_INT16> Int16Array;
         typedef Array<int32_t, ATTR_INT32_ARRAY, ID_STR_INT32> Int32Array;
@@ -415,6 +432,7 @@ namespace sal {
 
         typedef Array<float, ATTR_FLOAT32_ARRAY, ID_STR_FLOAT32> Float32Array;
         typedef Array<double, ATTR_FLOAT64_ARRAY, ID_STR_FLOAT64> Float64Array;
+
 
         /*
         Data Object String Array Attribute
@@ -461,6 +479,11 @@ namespace sal {
     //            StringArray& operator= (const StringArray&);
     //            StringArray(StringArray&&);
     //            StringArray& operator= (StringArray&&);
+
+                /*
+                Destructor
+                */
+                virtual ~StringArray() {};
 
                 /*
                 Returns the length of the array buffer.
@@ -646,8 +669,10 @@ namespace sal {
             };
         };
 
+
         // forward declare decode()
         Attribute::Ptr decode(Poco::JSON::Object::Ptr json);
+
 
         /*
         Data Object Branch Attribute
@@ -659,9 +684,10 @@ namespace sal {
                 typedef Poco::SharedPtr<Branch> Ptr;
 
                 /*
-                Constructors.
+                Constructors and destructor.
                 */
                 Branch() : Attribute(ATTR_BRANCH, ID_STR_BRANCH) {};
+                virtual ~Branch() {};
 
                 // TODO: better exception handling
                 // TODO: add documentation
@@ -734,75 +760,76 @@ namespace sal {
                 map<string, Attribute::Ptr> attributes;
         };
 
+
         /*
-        Decodes
+        Attempts to decode a JSON object into a SAL object attribute.
         */
         Attribute::Ptr decode(Poco::JSON::Object::Ptr json) {
 
-            string id_str;
+            string id;
 
             try {
-                id_str = json->getValue<string>("type");
+                id = json->getValue<string>("type");
             } catch(...) {
                 // todo: define a sal exception and replace
                 throw runtime_error("JSON object does not define a valid SAL attribute.");
             }
 
-            cout << "decoding: " << id_str << endl;
+            cout << "decoding: " << id << endl;
 
             // branches
-            if (id_str == ID_STR_BRANCH) return Branch::decode(json);
+            if (id == ID_STR_BRANCH) return Branch::decode(json);
 
             // atomic
-            if (id_str == ID_STR_INT8) return Int8::decode(json);
-            if (id_str == ID_STR_INT16) return Int16::decode(json);
-            if (id_str == ID_STR_INT32) return Int32::decode(json);
-            if (id_str == ID_STR_INT64) return Int64::decode(json);
-            if (id_str == ID_STR_UINT8) return UInt8::decode(json);
-            if (id_str == ID_STR_UINT16) return UInt16::decode(json);
-            if (id_str == ID_STR_UINT32) return UInt32::decode(json);
-            if (id_str == ID_STR_UINT64) return UInt64::decode(json);
-            if (id_str == ID_STR_FLOAT32) return Float32::decode(json);
-            if (id_str == ID_STR_FLOAT64) return Float64::decode(json);
-            if (id_str == ID_STR_BOOL) return Bool::decode(json);
-            if (id_str == ID_STR_STRING) return String::decode(json);
+            if (id == ID_STR_INT8) return Int8::decode(json);
+            if (id == ID_STR_INT16) return Int16::decode(json);
+            if (id == ID_STR_INT32) return Int32::decode(json);
+            if (id == ID_STR_INT64) return Int64::decode(json);
+            if (id == ID_STR_UINT8) return UInt8::decode(json);
+            if (id == ID_STR_UINT16) return UInt16::decode(json);
+            if (id == ID_STR_UINT32) return UInt32::decode(json);
+            if (id == ID_STR_UINT64) return UInt64::decode(json);
+            if (id == ID_STR_FLOAT32) return Float32::decode(json);
+            if (id == ID_STR_FLOAT64) return Float64::decode(json);
+            if (id == ID_STR_BOOL) return Bool::decode(json);
+            if (id == ID_STR_STRING) return String::decode(json);
 
             // arrays
-            if (id_str == ID_STR_ARRAY) {
+            if (id == ID_STR_ARRAY) {
 
                 Poco::JSON::Object::Ptr array_definition;
-                string element_id_str;
+                string element_id;
 
                 try {
                     array_definition = json->getObject("value");
-                    element_id_str = array_definition->getValue<string>("type");
+                    element_id = array_definition->getValue<string>("type");
                 } catch(...) {
                     // todo: define a sal exception and replace
                     throw runtime_error("JSON object does not define a valid SAL attribute.");
                 }
 
-                if (element_id_str == ID_STR_INT8) return Int8Array::decode(json);
-                if (element_id_str == ID_STR_INT16) return Int16Array::decode(json);
-                if (element_id_str == ID_STR_INT32) return Int32Array::decode(json);
-                if (element_id_str == ID_STR_INT64) return Int64Array::decode(json);
-                if (element_id_str == ID_STR_UINT8) return UInt8Array::decode(json);
-                if (element_id_str == ID_STR_UINT16) return UInt16Array::decode(json);
-                if (element_id_str == ID_STR_UINT32) return UInt32Array::decode(json);
-                if (element_id_str == ID_STR_UINT64) return UInt64Array::decode(json);
-                if (element_id_str == ID_STR_FLOAT32) return Float32Array::decode(json);
-                if (element_id_str == ID_STR_FLOAT64) return Float64Array::decode(json);
-                if (element_id_str == ID_STR_STRING) return StringArray::decode(json);
+                if (element_id == ID_STR_INT8) return Int8Array::decode(json);
+                if (element_id == ID_STR_INT16) return Int16Array::decode(json);
+                if (element_id == ID_STR_INT32) return Int32Array::decode(json);
+                if (element_id == ID_STR_INT64) return Int64Array::decode(json);
+                if (element_id == ID_STR_UINT8) return UInt8Array::decode(json);
+                if (element_id == ID_STR_UINT16) return UInt16Array::decode(json);
+                if (element_id == ID_STR_UINT32) return UInt32Array::decode(json);
+                if (element_id == ID_STR_UINT64) return UInt64Array::decode(json);
+                if (element_id == ID_STR_FLOAT32) return Float32Array::decode(json);
+                if (element_id == ID_STR_FLOAT64) return Float64Array::decode(json);
+                if (element_id == ID_STR_STRING) return StringArray::decode(json);
             }
 
             // todo: define a sal exception and replace
             throw runtime_error("JSON object does not define a valid SAL attribute.");
         }
 
+
         /*
-        Decodes
+        Attempts to decode a JSON object into the specified SAL object attribute.
 
-        returns null pointer if cast is invalid
-
+        Returns null pointer if cast is invalid.
         */
         template<class T> typename T::Ptr decode_as(Poco::JSON::Object::Ptr json) {
             return typename T::Ptr(decode(json).cast<T>());
@@ -811,22 +838,22 @@ namespace sal {
 
     namespace node {
 
-        typedef enum {BRANCH, LEAF} ReportType;
+        typedef enum {NODE_BRANCH, NODE_LEAF} NodeType;
 
-        char MSG_CONTENT_REPORT[] = "report";
-        char MSG_CONTENT_OBJECT[] = "object";
+        char JSON_CONTENT_REPORT[] = "report";
+        char JSON_CONTENT_OBJECT[] = "object";
 
-        char MSG_TYPE_LEAF[] = "leaf";
-        char MSG_TYPE_BRANCH[] = "branch";
+        char JSON_TYPE_LEAF[] = "leaf";
+        char JSON_TYPE_BRANCH[] = "branch";
 
         char OBJ_TYPE_FULL[] = "object";
         char OBJ_TYPE_SUMMARY[] = "summary";
 
 
-        class ObjectType {
+        class LeafType {
 
             public:
-                ObjectType();
+                LeafType();
                 const string cls;
                 const string group;
                 const int version;
@@ -842,10 +869,10 @@ namespace sal {
                 bool is_leaf();
                 bool is_branch();
 
-                const ReportType type;
+                const NodeType type;
                 const string timestamp;  // todo: use something better std::chrono::time_point?
                 const vector<string> branches;
-                const vector<ObjectType> leaves;
+                const vector<LeafType> leaves;
         //        const
 
             // needs copy and move constructors
@@ -856,16 +883,35 @@ namespace sal {
         class Object {
 
             public:
+                static const NodeType type;
 
+        };
+
+
+        class Branch : public Object {
+
+            public:
+                static const NodeType type = NODE_BRANCH;
+
+
+        };
+
+
+        class Leaf : public Object {
+
+            public:
+
+                static const NodeType type = NODE_LEAF;
                 const string cls;
                 const string group;
                 const uint64_t version;
                 const bool summary;
 
-                typedef Poco::SharedPtr<Object> Ptr;
+                typedef Poco::SharedPtr<Leaf> Ptr;
 
                 // todo: needs copy and move constructors
-                Object(string _cls, string _group, uint64_t _version, bool _summary) : cls(_cls), group(_group), version(_version), summary(_summary) {};
+                Leaf(string _cls, string _group, uint64_t _version, bool _summary) : cls(_cls), group(_group), version(_version), summary(_summary) {};
+                virtual ~Leaf() {};
 
                 object::Attribute::Ptr& operator[](const string &key) { return this->attributes.at(key); };
                 object::Attribute::Ptr &get(const string &key) { return (*this)[key]; };
@@ -878,11 +924,11 @@ namespace sal {
                 /*
                 Decodes a Poco JSON object representation of the data object and returns a SAL data object.
                 */
-                static Object::Ptr decode(Poco::JSON::Object::Ptr json) {
+                static Leaf::Ptr decode(Poco::JSON::Object::Ptr json) {
 
                     vector<string> keys;
                     vector<string>::iterator key;
-                    Object::Ptr obj;
+                    Leaf::Ptr obj;
 
                     // treat any failure as a failure to decode
                     try {
@@ -894,7 +940,7 @@ namespace sal {
                         object::String::Ptr type = object::decode_as<object::String>(json->getObject("_type"));
 
                         // create object and populate
-                        obj = new Object(cls->value, group->value, version->value, type->value == OBJ_TYPE_SUMMARY);
+                        obj = new Leaf(cls->value, group->value, version->value, type->value == OBJ_TYPE_SUMMARY);
                         json->getNames(keys);
                         for (key=keys.begin(); key!=keys.end(); ++key) {
 
@@ -913,8 +959,6 @@ namespace sal {
                         // todo: define a sal exception and replace
                         throw runtime_error("JSON object does not define a valid SAL data object.");
                     }
-
-
                 };
 
             protected:
@@ -922,18 +966,55 @@ namespace sal {
         };
 
 
-        class Branch {
-        };
+        /*
+        Attempts to decode a JSON object into a SAL object.
+        */
+        Object::Ptr decode_object(Poco::JSON::Object::Ptr json) {
 
+            string content;
+            string type;
+            Poco::JSON::Object::Ptr object;
+
+            try {
+                 content = json->getValue<string>("content");
+                 if (content != JSON_CONTENT_OBJECT) throw exception();
+
+                 type = json->getValue<string>("type");
+
+                 if (json->isObject("object")) throw exception();
+                 object = json->getObject("object");
+            } catch(...) {
+                // todo: define a sal exception and replace
+                throw runtime_error("JSON object does not define a valid SAL object.");
+            }
+
+            cout << "decoding object: " <<  content << ", " << type << endl;
+
+            if (type == JSON_TYPE_BRANCH) return Branch::decode(object);
+            if (type == JSON_TYPE_LEAF) return Leaf::decode(object);
+            }
+
+            // todo: define a sal exception and replace
+            throw runtime_error("JSON object does not define a valid SAL object.");
+        }
+
+
+        /*
+        Attempts to decode a JSON object into a SAL object.
+        */
+        Report::Ptr decode_report(Poco::JSON::Object::Ptr json) {
+            // TODO: implement me
+        };
     };
 
     class Client {
 
         public:
             Client(const string host);
+            virtual ~Client() {};
             void authenticate(const string user, const string password);
             node::Report list(const string path) const;
-            node::Object get(const string path, bool summary=false) const;
+            node::Object object(const string path, bool summary=false) const;
             void put(const string path, const node::Object obj) const;
             void copy(const string target, const string source) const;
             void del(const string path) const;
