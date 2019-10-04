@@ -54,7 +54,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Simple Access Layer (SAL)'
-copyright = '2017, Dr Alex Meakins'
+copyright = '2018, European Atomic Energy Community (EURATOM)'
 author = 'Dr Alex Meakins'
 
 # The version info for the project you're documenting, acts as replacement for
