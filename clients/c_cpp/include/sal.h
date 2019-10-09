@@ -17,6 +17,12 @@
 #include "Poco/Exception.h"
 #include "Poco/SharedPtr.h"
 
+#include "Poco/Net/HTTPSClientSession.h"
+#include "Poco/Net/HTTPRequest.h"
+#include "Poco/Net/HTTPResponse.h"
+#include "Poco/URI.h"
+#include "Poco/StreamCopier.h"
+
 // todo: proper exception handling, current catch all in various places is just a quick kludge
 
 
@@ -1092,18 +1098,121 @@ namespace sal {
     class Client {
 
         public:
-            Client(const string host);
+
+            bool verify_https_cert;
+            string auth_token;
+
+            Client(const string host) : Client(host, true) {};
+            Client(const string host, const bool verify_https_cert) {
+
+                // authentication attributes
+                this->auth_required = false;
+                this->auth_token = "";
+                this->verify_https_cert = verify_https_cert;
+
+                // set and inspect host
+                this->set_host(host);
+            };
+
             virtual ~Client() {};
-            void authenticate(const string user, const string password);
-            node::Report list(const string path) const;
-            node::Object object(const string path, bool summary=false) const;
-            void put(const string path, const node::Object obj) const;
-            void copy(const string target, const string source) const;
-            void del(const string path) const;
+
+            const string get_host() const { return this->host; };
+            void set_host(const string host) {
+
+                // TODO: MOVE ALL THIS INTO A make_request METHOD
+
+
+                using namespace Poco;
+                using namespace Poco::Net;
+
+                HTTPClientSession *session;
+
+                // decode URI
+                URI uri(host);
+                string scheme = uri.getScheme();
+
+                // http or https?
+                cout << uri.getHost() << " " << uri.getPort() << endl;
+                if (scheme == "http") {
+                    session = new HTTPClientSession(uri.getHost(), uri.getPort());
+                } else if (scheme == "https") {
+
+                    // create SSL context
+                    if (this->verify_https_cert) {
+                        session = new HTTPSClientSession(
+                            uri.getHost(),
+                            uri.getPort()
+                        );
+                    } else {
+                        session = new HTTPSClientSession(
+                            uri.getHost(),
+                            uri.getPort(),
+                            new Poco::Net::Context(Context::CLIENT_USE, "", Context::VERIFY_NONE)
+                        );
+                    }
+
+//                    const Poco::Net::Context::Ptr context = new Poco::Net::Context(Poco::Net::Context::CLIENT_USE, "", "", "", Poco::Net::Context::VERIFY_NONE, 9, false, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
+
+                } else
+                    throw UnknownURISchemeException();
+
+                // redirect empty path to root
+                string path = uri.getPathEtc();
+                if (path.empty()) path = "/";
+
+                cout << "path: " << path << endl;
+
+                // make request
+                HTTPRequest request(HTTPRequest::HTTP_GET, path, HTTPMessage::HTTP_1_1);
+                session->sendRequest(request);
+
+                // convert response to a string
+                HTTPResponse response;
+                string json;
+                StreamCopier::copyToString(session->receiveResponse(response), json);
+                cout << json << endl;
+
+
+//                // connect to and validate server
+//
+//
+//                Poco::Net::HTTPSClientSession session(uri.getHost(), uri.getPort());
+//                Poco::Net::HTTPRequest request(HTTPRequest::HTTP_GET, uri.getPathEtc(), HTTPMessage::HTTP_1_1);
+//                Poco::Net::HTTPResponse response;
+
+
+
+                // all good, update host
+                this->host = host;
+
+            };
+
+            const bool is_auth_required() const { return this->auth_required; };
+
+            void authenticate(const string user, const string password) {
+            };
+
+            node::Report list(const string path) const {
+            };
+
+            node::Object object(const string path, bool summary=false) const {
+            };
+
+            void put(const string path, const node::Object obj) const {
+            };
+
+            void copy(const string target, const string source) const {
+            };
+
+            void del(const string path) const {
+            };
 
         protected:
-            string serialise(node::Object obj);
-            node::Object deserialise(string json);
+            bool auth_required;
+            string host;
+
+//            string serialise(node::Object obj);
+//            node::Object deserialise(string json);
 
     };
 

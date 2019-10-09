@@ -45,15 +45,28 @@ using namespace sal::object;
 
 int main(int argc, char **argv) {
 
+//    sal::Client sal("https://sal.jet.uk", true);
+//    sal::Client sal("https://sal.jet.uk");
+//
+//    sal.verify_https_cert = false;
+//    sal.set_host("https://sal-dev.jet.uk");
+//    sal.set_host("http://cnlpepper.net");
+//    exit(0);
+
+
+
+
+
     // connect and setup request
-//    URI uri("https://sal.jet.uk/data/pulse/87737/ppf/signal/jetppf/magn/ipla?object=full");
-    URI uri("https://sal.jet.uk/data/pulse/latest?object=full");
+    URI uri("https://sal-dev.jet.uk/data/pulse/87737/ppf/signal/jetppf/magn/ipla?object=full");
+//    URI uri("https://sal.jet.uk/data/pulse/latest?object=full");
+    cout << "SCHEME: " << uri.getScheme() << endl;
     HTTPSClientSession session(uri.getHost(), uri.getPort());
     HTTPRequest request(HTTPRequest::HTTP_GET, uri.getPathEtc(), HTTPMessage::HTTP_1_1);
     HTTPResponse response;
 
     // print request
-    request.write(std::cout);
+//    request.write(std::cout);
 
     // make request
     session.sendRequest(request);
@@ -78,7 +91,7 @@ int main(int argc, char **argv) {
     cout << leaf->cls << endl;
     cout << leaf->has("description") << endl;
     cout << leaf->get_as<String>("description")->value << endl;
-    cout << leaf->get_as<UInt64>("value")->value << endl;
+//    cout << leaf->get_as<UInt64>("value")->value << endl;
     cout << leaf->get("description").cast<String>()->value << endl;
 //    cout << leaf->get_as<Branch>("dimensions")->get_as<Branch>("0")->get_as<String>("description")->value << endl;
 
