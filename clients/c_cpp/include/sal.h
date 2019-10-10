@@ -22,6 +22,7 @@
 #include "Poco/Net/HTTPResponse.h"
 #include "Poco/URI.h"
 #include "Poco/StreamCopier.h"
+#include "Poco/UTF8String.h"
 
 // todo: proper exception handling, current catch all in various places is just a quick kludge
 
@@ -818,8 +819,6 @@ namespace sal {
                 throw runtime_error("JSON object does not define a valid SAL attribute.");
             }
 
-            cout << "decoding: " << id << endl;
-
             // branches
             if (id == ID_STR_BRANCH) return Branch::decode(json);
 
@@ -1060,14 +1059,12 @@ namespace sal {
 
                  type = json->getValue<string>("type");
 
-                 if (json->isObject("object")) throw std::exception();
+                 if (!json->isObject("object")) throw std::exception();
                  object = json->getObject("object");
             } catch(...) {
                 // todo: define a sal exception and replace
                 throw runtime_error("JSON object does not define a valid SAL object.");
             }
-
-            cout << "decoding object: " <<  content << ", " << type << endl;
 
             if (type == JSON_TYPE_BRANCH) return Branch::decode(object);
             if (type == JSON_TYPE_LEAF) return Leaf::decode(object);
@@ -1119,11 +1116,13 @@ namespace sal {
             const string get_host() const { return this->host; };
             void set_host(const string host) {
 
-                this->make_get_request(Poco::URI(host));
+                Poco::URI uri = Poco::URI(host);
+                this->make_get_request(uri);
 
+                // todo: DO STUFF
 
                 // all good, update host
-                this->host = host;
+                this->host = uri.toString();
 
             };
 
@@ -1132,10 +1131,19 @@ namespace sal {
             void authenticate(const string user, const string password) {
             };
 
-            node::Report list(const string path) const {
+            node::Report::Ptr list(const string path) const {
             };
 
-            node::Object object(const string path, bool summary=false) const {
+            node::Object::Ptr get(const string path, bool summary=false) const {
+
+                // convert sal path to uri
+
+                // todo: kludge
+                string uri = this->host + path;
+                Poco::JSON::Object::Ptr obj = this->make_get_request(Poco::URI(uri));
+                obj->stringify(cout, 2);
+                return sal::node::decode_object(obj);
+
             };
 
             void put(const string path, const node::Object obj) const {
@@ -1203,6 +1211,7 @@ namespace sal {
                 if (path.empty()) path = "/";
 
                 // make request
+                // todo: handle errors
                 HTTPRequest request(HTTPRequest::HTTP_GET, path, HTTPMessage::HTTP_1_1);
                 session->sendRequest(request);
                 StreamCopier::copyToString(session->receiveResponse(response), json);

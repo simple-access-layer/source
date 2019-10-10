@@ -46,9 +46,18 @@ using namespace sal::object;
 int main(int argc, char **argv) {
 
     sal::Client sal("https://sal.jet.uk");
+    cout << sal.get_host() << endl;
 
-    sal.verify_https_cert = false;
-    sal.set_host("https://sal-dev.jet.uk");
+
+    sal.get("/data/pulse/latest?object=full");
+    sal.get("/data/pulse/87738/ppf/signal/jetppf/magn/ipla?object=summary");
+//    sal.get("/data/pulse/87738/ppf/signal/jetppf/magn/ipla?object=full");
+
+
+
+
+//    sal.verify_https_cert = false;
+//    sal.set_host("https://sal-dev.jet.uk/");
 
 
     exit(0);
