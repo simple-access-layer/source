@@ -45,55 +45,55 @@ using namespace sal::object;
 
 int main(int argc, char **argv) {
 
-//    sal::Client sal("https://sal.jet.uk", true);
-//    sal::Client sal("https://sal.jet.uk");
+    sal::Client sal("https://sal.jet.uk");
+
+    sal.verify_https_cert = false;
+    sal.set_host("https://sal-dev.jet.uk");
+
+
+    exit(0);
+
 //
-//    sal.verify_https_cert = false;
-//    sal.set_host("https://sal-dev.jet.uk");
-//    sal.set_host("http://cnlpepper.net");
-//    exit(0);
-
-
-
-
-
-    // connect and setup request
-    URI uri("https://sal-dev.jet.uk/data/pulse/87737/ppf/signal/jetppf/magn/ipla?object=full");
-//    URI uri("https://sal.jet.uk/data/pulse/latest?object=full");
-    cout << "SCHEME: " << uri.getScheme() << endl;
-    HTTPSClientSession session(uri.getHost(), uri.getPort());
-    HTTPRequest request(HTTPRequest::HTTP_GET, uri.getPathEtc(), HTTPMessage::HTTP_1_1);
-    HTTPResponse response;
-
-    // print request
-//    request.write(std::cout);
-
-    // make request
-    session.sendRequest(request);
-
-    // convert response to a string
-    string json;
-    StreamCopier::copyToString(session.receiveResponse(response), json);
-    cout << json << endl;
-
-    if (response.getStatus() != Poco::Net::HTTPResponse::HTTP_OK) throw sal::exception::SALException();
-
-    Poco::JSON::Parser parser;
-    Poco::Dynamic::Var decoded = parser.parse(json);
-    Poco::JSON::Object::Ptr obj = decoded.extract<Poco::JSON::Object::Ptr>();
-
-    Poco::JSON::Object::Ptr content = obj->getObject("object");
-    content->stringify(cout, 2);
-    cout << endl;
-
-    sal::node::Leaf::Ptr leaf = sal::node::Leaf::decode(content);
-
-    cout << leaf->cls << endl;
-    cout << leaf->has("description") << endl;
-    cout << leaf->get_as<String>("description")->value << endl;
-//    cout << leaf->get_as<UInt64>("value")->value << endl;
-    cout << leaf->get("description").cast<String>()->value << endl;
-//    cout << leaf->get_as<Branch>("dimensions")->get_as<Branch>("0")->get_as<String>("description")->value << endl;
+//
+//
+//
+//    // connect and setup request
+//    URI uri("https://sal-dev.jet.uk/data/pulse/87737/ppf/signal/jetppf/magn/ipla?object=full");
+////    URI uri("https://sal.jet.uk/data/pulse/latest?object=full");
+//    cout << "SCHEME: " << uri.getScheme() << endl;
+//    HTTPSClientSession session(uri.getHost(), uri.getPort());
+//    HTTPRequest request(HTTPRequest::HTTP_GET, uri.getPathEtc(), HTTPMessage::HTTP_1_1);
+//    HTTPResponse response;
+//
+//    // print request
+////    request.write(std::cout);
+//
+//    // make request
+//    session.sendRequest(request);
+//
+//    // convert response to a string
+//    string json;
+//    StreamCopier::copyToString(session.receiveResponse(response), json);
+//    cout << json << endl;
+//
+//    if (response.getStatus() != Poco::Net::HTTPResponse::HTTP_OK) throw sal::exception::SALException();
+//
+//    Poco::JSON::Parser parser;
+//    Poco::Dynamic::Var decoded = parser.parse(json);
+//    Poco::JSON::Object::Ptr obj = decoded.extract<Poco::JSON::Object::Ptr>();
+//
+//    Poco::JSON::Object::Ptr content = obj->getObject("object");
+//    content->stringify(cout, 2);
+//    cout << endl;
+//
+//    sal::node::Leaf::Ptr leaf = sal::node::Leaf::decode(content);
+//
+//    cout << leaf->cls << endl;
+//    cout << leaf->has("description") << endl;
+//    cout << leaf->get_as<String>("description")->value << endl;
+////    cout << leaf->get_as<UInt64>("value")->value << endl;
+//    cout << leaf->get("description").cast<String>()->value << endl;
+////    cout << leaf->get_as<Branch>("dimensions")->get_as<Branch>("0")->get_as<String>("description")->value << endl;
 
 
 

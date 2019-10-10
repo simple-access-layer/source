@@ -1119,67 +1119,7 @@ namespace sal {
             const string get_host() const { return this->host; };
             void set_host(const string host) {
 
-                // TODO: MOVE ALL THIS INTO A make_request METHOD
-
-
-                using namespace Poco;
-                using namespace Poco::Net;
-
-                HTTPClientSession *session;
-
-                // decode URI
-                URI uri(host);
-                string scheme = uri.getScheme();
-
-                // http or https?
-                cout << uri.getHost() << " " << uri.getPort() << endl;
-                if (scheme == "http") {
-                    session = new HTTPClientSession(uri.getHost(), uri.getPort());
-                } else if (scheme == "https") {
-
-                    // create SSL context
-                    if (this->verify_https_cert) {
-                        session = new HTTPSClientSession(
-                            uri.getHost(),
-                            uri.getPort()
-                        );
-                    } else {
-                        session = new HTTPSClientSession(
-                            uri.getHost(),
-                            uri.getPort(),
-                            new Poco::Net::Context(Context::CLIENT_USE, "", Context::VERIFY_NONE)
-                        );
-                    }
-
-//                    const Poco::Net::Context::Ptr context = new Poco::Net::Context(Poco::Net::Context::CLIENT_USE, "", "", "", Poco::Net::Context::VERIFY_NONE, 9, false, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
-
-                } else
-                    throw UnknownURISchemeException();
-
-                // redirect empty path to root
-                string path = uri.getPathEtc();
-                if (path.empty()) path = "/";
-
-                cout << "path: " << path << endl;
-
-                // make request
-                HTTPRequest request(HTTPRequest::HTTP_GET, path, HTTPMessage::HTTP_1_1);
-                session->sendRequest(request);
-
-                // convert response to a string
-                HTTPResponse response;
-                string json;
-                StreamCopier::copyToString(session->receiveResponse(response), json);
-                cout << json << endl;
-
-
-//                // connect to and validate server
-//
-//
-//                Poco::Net::HTTPSClientSession session(uri.getHost(), uri.getPort());
-//                Poco::Net::HTTPRequest request(HTTPRequest::HTTP_GET, uri.getPathEtc(), HTTPMessage::HTTP_1_1);
-//                Poco::Net::HTTPResponse response;
-
+                this->make_get_request(Poco::URI(host));
 
 
                 // all good, update host
@@ -1210,6 +1150,67 @@ namespace sal {
         protected:
             bool auth_required;
             string host;
+
+            const Poco::SharedPtr<Poco::Net::HTTPClientSession> open_session(const Poco::URI uri) const {
+
+                using namespace Poco::Net;
+
+                // http or https?
+                string scheme = uri.getScheme();
+                if (scheme == "http") {
+
+                    // http session
+                    return new HTTPClientSession(uri.getHost(), uri.getPort());
+
+                } else if (scheme == "https") {
+
+                    if (this->verify_https_cert) {
+
+                        // https session, checking certificate is valid
+                        return new HTTPSClientSession(
+                            uri.getHost(),
+                            uri.getPort()
+                        );
+
+                    } else {
+
+                        // https session, ignoring invalid certificates
+                        return new HTTPSClientSession(
+                            uri.getHost(),
+                            uri.getPort(),
+                            new Context(Context::CLIENT_USE, "", Context::VERIFY_NONE)
+                        );
+                    }
+                } else
+                    throw Poco::UnknownURISchemeException();
+            };
+
+            Poco::JSON::Object::Ptr make_get_request(const Poco::URI uri) const {
+
+                using namespace Poco;
+                using namespace Poco::Net;
+                using namespace Poco::JSON;
+
+                HTTPResponse response;
+                Poco::JSON::Parser parser;
+                string json;
+
+                // open http or https session
+                SharedPtr<HTTPClientSession> session = this->open_session(uri);
+
+                // redirect empty path to root
+                string path = uri.getPathEtc();
+                if (path.empty()) path = "/";
+
+                // make request
+                HTTPRequest request(HTTPRequest::HTTP_GET, path, HTTPMessage::HTTP_1_1);
+                session->sendRequest(request);
+                StreamCopier::copyToString(session->receiveResponse(response), json);
+
+                // decode json
+                // todo: handle exceptions
+                return parser.parse(json).extract<Poco::JSON::Object::Ptr>();
+            };
 
 //            string serialise(node::Object obj);
 //            node::Object deserialise(string json);
