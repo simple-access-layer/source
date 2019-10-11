@@ -13,17 +13,6 @@
 #include "Poco/Exception.h"
 #include <initializer_list>
 #include <array>
-//
-//void get(std::initializer_list<int> list)
-//{
-//    std::cout << "arg count: " << list.size() << endl;
-//    for(auto elem: list )
-//    {
-//        std::cout << elem << std::endl ;
-//    }
-//}
-
-
 #include "Poco/Net/HTTPSClientSession.h"
 #include "Poco/Net/HTTPRequest.h"
 #include "Poco/Net/HTTPResponse.h"
@@ -38,23 +27,21 @@ using Poco::Net::HTTPMessage;
 using Poco::URI;
 using Poco::StreamCopier;
 
-
-
 using namespace std;
 using namespace sal::object;
 
-int main(int argc, char **argv) {
+int main(int argc, char **argvstring) {
 
     sal::Client sal("https://sal.jet.uk");
+//    sal::Client sal("http://cnlpepper.net");
     cout << sal.get_host() << endl;
+    cout << sal.is_auth_required() << endl;
 
+    sal.authenticate("lkjlkj", "lkjlkj");
 
-    sal.get("/data/pulse/latest?object=full");
-    sal.get("/data/pulse/87738/ppf/signal/jetppf/magn/ipla?object=summary");
+    sal.get("pulse/latest?object=full");
+    sal.get("pulse/87738/ppf/signal/jetppf/magn/ipla?object=summary");
 //    sal.get("/data/pulse/87738/ppf/signal/jetppf/magn/ipla?object=full");
-
-
-
 
 //    sal.verify_https_cert = false;
 //    sal.set_host("https://sal-dev.jet.uk/");

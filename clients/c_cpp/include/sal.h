@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 #include <float.h>
-//#include <stdarg.h>
 #include <vector>
 #include <string>
 #include <map>
@@ -1092,6 +1091,8 @@ namespace sal {
         };
     };
 
+    uint32_t SUPPORTED_API_VERSION = 2;
+
     class Client {
 
         public:
@@ -1113,22 +1114,44 @@ namespace sal {
 
             virtual ~Client() {};
 
-            const string get_host() const { return this->host; };
+            const string get_host() const { return this->host_uri.toString(); };
             void set_host(const string host) {
 
+                bool auth_required;
                 Poco::URI uri = Poco::URI(host);
-                this->make_get_request(uri);
 
-                // todo: DO STUFF
+                try {
+                    // connect to server and request server properties
+                    Poco::JSON::Object::Ptr json = this->make_get_request(uri);
 
-                // all good, update host
-                this->host = uri.toString();
+                    // check server response is valid and store relevant server settings
+                    string name = json->getObject("service")->getValue<string>("name");
+                    if (name != "Simple Access Layer (SAL) Server") throw exception::SALException(); // TODO: add a message to exception: "Could not identify a SAL server on the specified host:"
 
+                    Poco::JSON::Object::Ptr api = json->getObject("api");
+                    uint32_t version = api->getValue<uint32_t>("version");
+                    if (version != SUPPORTED_API_VERSION) throw exception::SALException(); // TODO: add a message to exception: "The server is using a newer API than the client recognises, please update your client."
+
+                    auth_required = api->getValue<bool>("requires_auth");
+                } catch(Poco::JSON::JSONException) {
+                    throw exception::SALException(); // todo: add a sensible message
+                }
+
+                // all good, update host state
+                this->auth_required = auth_required;
+                this->host_uri = uri;
+                this->auth_uri = Poco::URI(uri, "auth/");
+                this->data_uri = Poco::URI(uri, "data/");
             };
 
             const bool is_auth_required() const { return this->auth_required; };
 
             void authenticate(const string user, const string password) {
+
+                try {
+                    // connect to server and request server properties
+
+
             };
 
             node::Report::Ptr list(const string path) const {
@@ -1136,11 +1159,15 @@ namespace sal {
 
             node::Object::Ptr get(const string path, bool summary=false) const {
 
-                // convert sal path to uri
+                // TODO: convert sal path to uri
+                string sal_path = path;
 
                 // todo: kludge
-                string uri = this->host + path;
-                Poco::JSON::Object::Ptr obj = this->make_get_request(Poco::URI(uri));
+                Poco::URI node_uri(data_uri, sal_path);
+
+                cout << node_uri.toString() << endl;
+
+                Poco::JSON::Object::Ptr obj = this->make_get_request(node_uri);
                 obj->stringify(cout, 2);
                 return sal::node::decode_object(obj);
 
@@ -1157,7 +1184,9 @@ namespace sal {
 
         protected:
             bool auth_required;
-            string host;
+            Poco::URI host_uri;
+            Poco::URI auth_uri;
+            Poco::URI data_uri;
 
             const Poco::SharedPtr<Poco::Net::HTTPClientSession> open_session(const Poco::URI uri) const {
 
