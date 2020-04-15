@@ -10,18 +10,37 @@ namespace sal
     /// The exception namespace is part of sal_core module
     namespace exception
     {
-
+        /// Refactored: what() must be virtual function override public function
+        /** This general error class can be constructed with message,
+           Any exception does not fit SALException derived class should use this.
+        */
         class SALException : public exception
         {
-            const char* what() const throw()
+        protected:
+            /** Error message.
+             */
+            std::string msg;
+
+        public:
+            SALException(const std::string& _msg)
+                    : msg(_msg)
             {
-                return "An error has occurred with the SAL client.";
+            }
+            SALException()
+                    : msg("An error happen in SAL")
+            {
+            }
+            virtual const char* what() const noexcept override // throw() == noexcept
+            {
+                return msg.c_str();
             };
         };
 
         class InvalidPath : public SALException
         {
-            const char* what() const throw()
+        public:
+            using SALException::SALException;
+            virtual const char* what() const noexcept override
             {
                 return "Path does not conform to path specification.";
             };
@@ -29,7 +48,8 @@ namespace sal
 
         class NodeNotFound : public SALException
         {
-            const char* what() const throw()
+        public:
+            virtual const char* what() const noexcept override
             {
                 return "The supplied path does not point to a valid node.";
             };
@@ -37,7 +57,8 @@ namespace sal
 
         class UnsupportedOperation : public SALException
         {
-            const char* what() const throw()
+        public:
+            virtual const char* what() const noexcept override
             {
                 return "Operation is not supported.";
             };
@@ -45,7 +66,8 @@ namespace sal
 
         class InvalidRequest : public SALException
         {
-            const char* what() const throw()
+        public:
+            virtual const char* what() const noexcept override
             {
                 return "The request sent to the server could not be handled.";
             };
@@ -53,7 +75,8 @@ namespace sal
 
         class AuthenticationFailed : public SALException
         {
-            const char* what() const throw()
+        public:
+            virtual const char* what() const noexcept override
             {
                 return "Valid authorisation credentials were not supplied";
             };
@@ -61,7 +84,8 @@ namespace sal
 
         class PermissionDenied : public SALException
         {
-            const char* what() const throw()
+        public:
+            virtual const char* what() const noexcept override
             {
                 return "The user does not have permission to perform this operation.";
             };
@@ -69,7 +93,8 @@ namespace sal
 
         class InternalError : public SALException
         {
-            const char* what() const throw()
+        public:
+            virtual const char* what() const noexcept override
             {
                 return "An error occurred affecting server operation. Please contact your administrator.";
             };
@@ -77,7 +102,8 @@ namespace sal
 
         class InvalidResponse : public SALException
         {
-            const char* what() const throw()
+        public:
+            virtual const char* what() const noexcept override
             {
                 return "The response sent by the server could not be interpreted.";
             };
