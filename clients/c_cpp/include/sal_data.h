@@ -14,6 +14,7 @@
 #include "Poco/JSON/Object.h"
 #include "Poco/JSON/Parser.h"
 #include "Poco/SharedPtr.h"
+#include "Poco/Version.h" // #define POCO_VERSION 0x01090000
 
 namespace sal
 {
@@ -98,9 +99,11 @@ namespace sal
                     , m_typeName(_type_name){};
             virtual ~Attribute(){};
 
+            /// from Attribute instance to json, return `Poco::JSON::Object::Ptr`
             virtual Poco::JSON::Object::Ptr encode() = 0;
-            // TODO: decode() = 0;
+            // TODO: void* data_pointer() = 0;  // for C-API, C user will cast to typed pointer
 
+            // consider: method name should be type_name()
             inline const std::string& typeName() const
             {
                 return m_typeName;
@@ -111,14 +114,20 @@ namespace sal
                 return m_type;
             }
 
+            // consider: method name should be isNull()
             inline bool is_null() const
             {
                 return m_type == ATTR_NULL;
             }
-
+            // is bool regarded as scalar?
             inline bool is_scalar() const
             {
                 return not(is_array() or is_string() or is_null() or is_object());
+            }
+
+            inline bool is_atomic() const
+            {
+                return not(is_array() or is_object());
             }
 
             inline bool is_array() const
@@ -142,6 +151,10 @@ namespace sal
         };
 
         /// this class can be merged to the base class  It is a design decision
+        /// do not merge, so the base class can not be instantiated
+        /// to avoid silly mistake by API users. Note, C++ json
+
+        /// content is optional, null is used inplace of missing content.
         /// corresponding to unintialized json (empty, null state).
         class Null : public Attribute
         {
@@ -533,7 +546,13 @@ namespace sal
             const string encode_data()
             {
                 stringstream s;
+#if POCO_VERSION >= 0x01080000
+                // Poco::BASE64_URL_ENCODING is a enum, with value 1
                 Poco::Base64Encoder encoder(s, Poco::BASE64_URL_ENCODING);
+#else
+                // POCO 1.6 on Centos7 does not have such
+                Poco::Base64Encoder encoder(s);
+#endif
                 // TODO: why not reinterpret_cast<unsigned char*>
                 encoder.write(reinterpret_cast<char*>(this->data.data()), this->data.size() * sizeof(T));
                 encoder.close();
@@ -546,7 +565,13 @@ namespace sal
             static void decode_data(vector<T>& data, const string b64)
             {
                 stringstream s(b64);
+#if POCO_VERSION >= 0x01080000
+                // Poco::BASE64_URL_ENCODING is a enum, with value 1
                 Poco::Base64Decoder decoder(s, Poco::BASE64_URL_ENCODING);
+#else
+                // POCO 1.6 on Centos7 does not have Poco::BASE64_URL_ENCODING enum
+                Poco::Base64Decoder decoder(s);
+#endif
                 decoder.read(reinterpret_cast<char*>(data.data()), data.size() * sizeof(T));
             };
         };
