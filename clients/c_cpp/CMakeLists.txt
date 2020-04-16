@@ -42,7 +42,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 ###################### module selection ##########################
 
 option(SAL_USE_TYPE "use type system in base modlule" ON)
-option(SAL_USE_EIGEN "use Eigen represent multi-dimension array" ON)
+option(SAL_USE_EIGEN "use Eigen represent multi-dimension array" OFF)
 option(SAL_USE_TEST "use unit test module" ON)
 
 ####################################################
@@ -71,6 +71,21 @@ endif()
 ##########################################################
 # compulsary dependency
 find_package(Poco REQUIRED COMPONENTS Foundation Util Net NetSSL Crypto JSON)
+include_directories(${Poco_INCLUDE_DIRS})
+
+if (UNIX)
+    include("${PROJECT_SOURCE_DIR}/cMake/IdentifyOS.cmake")
+    message("OS detected by `IdentifyOS.cmake` as `${CMAKE_OS_NAME}`")
+endif()
+
+if (UNIX)
+    if (NOT DEFINED Poco_LIBRARIES})     # use FindPoco.cmake provided in this repo
+        message(STATUS "Poco_LIBRARIES = ${Poco_LIBRARIES}")
+    else()    # system provided Poco::JSON, to make it compatible with Poco_LIBRARIES
+        set(Poco_LIBRARIES "-lPocoNet -lPocoNetSSL -lPocoFoundation -lPocoJSON")
+        message(STATUS "Poco_LIBRARIES = ${Poco_LIBRARIES}")
+    endif()
+endif()
 
 
 if(SAL_USE_EIGEN)
@@ -134,8 +149,7 @@ endmacro( option_with_default OPTION_NAME OPTION_STRING OPTION_DEFAULT )
 ############################################################
 
 if (UNIX)
-    include("${PROJECT_SOURCE_DIR}/cMake/IdentifyOS.cmake")
-    message("OS detected by `IdentifyOS.cmake` as `${CMAKE_OS_NAME}`")
+    #include("${PROJECT_SOURCE_DIR}/cMake/IdentifyOS.cmake")
     if (${CMAKE_OS_NAME} STREQUAL "Debian" OR ${CMAKE_OS_NAME} STREQUAL "Ubuntu")
         # Tell CPack to generate a .deb package
         set(CPACK_GENERATOR "DEB")

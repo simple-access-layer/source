@@ -4,9 +4,9 @@
 add_executable(sal_test_attributes "test_attributes.cpp")
 
 target_link_libraries(sal_test_attributes
-PUBLIC
-    Poco::Foundation
-    Poco::JSON
-    Poco::Net
-    Poco::NetSSL
+    PUBLIC     ${Poco_LIBRARIES}
+        #        Poco::NetSSL
+        #        Poco::Foundation
+        #        Poco::Net
+        #        Poco::JSON
 )
