@@ -582,8 +582,7 @@ TEST_CASE("Data object null or empty attribute.", "[sal::object::Attribute]")
         sal::object::Null v;
         Poco::JSON::Object::Ptr obj = v.encode();
 
-        // REQUIRE(obj->get("value").convert<string>() == "null"
-        //    or obj->get("value").convert<string>() == "");
+        REQUIRE(obj->isNull("value"));
         REQUIRE(obj->get("type").convert<string>() == "null");
     }
 }

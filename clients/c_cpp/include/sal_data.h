@@ -13,7 +13,6 @@
 #include "Poco/Exception.h"
 #include "Poco/JSON/Object.h"
 #include "Poco/JSON/Parser.h"
-#include "Poco/Nullable.h"
 #include "Poco/SharedPtr.h"
 #include "Poco/Version.h" // #define POCO_VERSION 0x01090000
 
@@ -157,6 +156,7 @@ namespace sal
 
         /// content is optional, null is used inplace of missing content.
         /// corresponding to unintialized json (empty, null state).
+        /// there is no need for a decode static function
         class Null : public Attribute
         {
         public:
@@ -170,9 +170,9 @@ namespace sal
             {
                 Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
                 json->set("type", this->type_name());
-                Poco::Nullable<string> nl; // json->set("value", nullptr); does not work
-                json->set("value", "");    // TODO: use unit test find out stringified null
-                json->stringify(cout, 4);
+                Poco::Dynamic::Var v;
+                json->set("value", v);
+                // json->stringify(cout, 4);
                 return json;
             };
         };
