@@ -13,6 +13,7 @@
 #include "Poco/Exception.h"
 #include "Poco/JSON/Object.h"
 #include "Poco/JSON/Parser.h"
+#include "Poco/Nullable.h"
 #include "Poco/SharedPtr.h"
 #include "Poco/Version.h" // #define POCO_VERSION 0x01090000
 
@@ -104,12 +105,12 @@ namespace sal
             // TODO: void* data_pointer() = 0;  // for C-API, C user will cast to typed pointer
 
             // consider: method name should be type_name()
-            inline const std::string& typeName() const
+            inline const std::string& type_name() const
             {
                 return m_typeName;
             }
 
-            inline const AttributeType& typeId() const
+            inline const AttributeType& type_id() const
             {
                 return m_type;
             }
@@ -165,17 +166,20 @@ namespace sal
                     : Attribute(ATTR_NULL, "null"){};
             virtual ~Null(){};
 
-            Poco::JSON::Object::Ptr encode()
+            virtual Poco::JSON::Object::Ptr encode() override
             {
                 Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
-                json->set("type", this->typeName());
-                json->set("value", nullptr);
+                json->set("type", this->type_name());
+                Poco::Nullable<string> nl; // json->set("value", nullptr); does not work
+                json->set("value", "");    // TODO: use unit test find out stringified null
+                json->stringify(cout, 4);
                 return json;
             };
         };
 
         /*
         Data Object for Scalar atomic types (JSON number types)
+        CONSIDER: rename Scalar into Atomic
         */
         template <class T, AttributeType TYPE, char const* TYPE_NAME> class Scalar : public Attribute
         {
@@ -208,10 +212,10 @@ namespace sal
             /*
             Returns a Poco JSON object representation of the Scalar.
             */
-            Poco::JSON::Object::Ptr encode()
+            virtual Poco::JSON::Object::Ptr encode() override
             {
                 Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
-                json->set("type", this->typeName());
+                json->set("type", this->type_name());
                 json->set("value", this->m_value);
                 return json;
             };
@@ -316,6 +320,8 @@ namespace sal
 
         /*
         It is a multi-dimension array based on std::vector<T>
+        No default constructor without parameter is allowed,
+        so shape of the array, as std::vector<uint64_t>,  consistent with python numpy.array
         */
         template <class T, AttributeType TYPE, char const* TYPE_NAME> class Array : public Attribute
         {
@@ -344,34 +350,36 @@ namespace sal
                 Float32Array a3({512, 512, 3});
 
             */
-            Array(vector<uint64_t> shape)
+            Array(vector<uint64_t> _shape)
                     : Attribute(ATTR_ARRAY, TYPE_NAME_ARRAY)
-                    , element_type(TYPE)
-                    , element_type_name(TYPE_NAME)
+                    , m_element_type(TYPE)
+                    , m_element_type_name(TYPE_NAME)
             {
 
-                this->dimensions = shape.size();
-                this->shape = shape;
-                this->stride.resize(this->dimensions);
+                this->m_dimension = _shape.size();
+                this->m_shape = _shape;
+                this->m_strides.resize(this->m_dimension);
 
                 // calculate strides
-                int16_t i = this->dimensions - 1;
-                this->stride[i--] = 1;
+                int16_t i = this->m_dimension - 1;
+                this->m_strides[i] = 1;
+                i--;
                 while (i >= 0)
                 {
-                    this->stride[i] = this->stride[i + 1] * this->shape[i + 1];
+                    this->m_strides[i] = this->m_strides[i + 1] * this->m_shape[i + 1];
                     i--;
                 }
 
                 // calculate array buffer length
-                uint64_t size = 1;
-                for (uint64_t d : this->shape)
-                    size *= d;
+                uint64_t element_size = 1;
+                for (uint64_t d : this->m_shape)
+                    element_size *= d;
 
-                // create buffer
-                this->data.resize(size);
+                // create buffer, how about set a default value?
+                this->data.resize(element_size);
             };
 
+            // CONSIDER: disable those constructors
             //            Array(const Array&);
             //            Array& operator= (const Array&);
             //            Array(Array&&);
@@ -383,15 +391,41 @@ namespace sal
             virtual ~Array(){};
 
             /*
-            Returns the length of the array buffer.
+            Returns the length of the array buffer, element_size, not byte size
+            flattened 1D array from all dimensions
             */
-            uint64_t size() const
+            inline uint64_t size() const
             {
                 return this->data.size();
             };
+#if 0
+            inline size_t byte_size() const
+            {
+                return this->data.size() * size_of(T);
+            };
+#endif
+            inline vector<uint64_t> shape() const
+            {
+                return this->m_shape;
+            };
+            /// consider: plural name
+            inline size_t dimension() const
+            {
+                return this->m_shape.size();
+            };
+
+            AttributeType element_type() const
+            {
+                return m_element_type;
+            }
+
+            string element_type_name() const
+            {
+                return m_element_type_name;
+            }
 
             /*
-            Fast element access via direct indexing of the array buffer.
+            Fast element access via direct indexing of the array buffer (flattened ID array).
 
             The Array holds the data in a 1D strided array. Indexing into
             multidimensional arrays therefore requires the user to
@@ -399,10 +433,32 @@ namespace sal
 
             No bounds checking is performed.
             */
-            T& operator[](uint64_t index)
+            inline T& operator[](const uint64_t index)
             {
                 return this->data[index];
             };
+
+            inline const T& operator[](const uint64_t index) const
+            {
+                return this->data[index];
+            };
+
+                // C++14 provide <T indices ...>
+#if 1
+            /// quick access an element for 2D matrix row and col,  without bound check
+            /// array(row, col), all zero for the first
+            inline T& operator()(const uint64_t row, const uint64_t column)
+            {
+                uint64_t index = row * this->m_strides[0] + column;
+                return this->data[index];
+            };
+
+            inline const T& operator()(const uint64_t row, const uint64_t column) const
+            {
+                uint64_t index = row * this->m_strides[0] + column;
+                return this->data[index];
+            };
+#endif
 
             /*
             Access an element of the array.
@@ -417,11 +473,11 @@ namespace sal
             Due to the method of implementing this functionality in C++, it
             only supports arrays with a maximum of 10 dimensions.
             */
-            T& at(int i0, int64_t i1 = -1, int64_t i2 = -1, int64_t i3 = -1, int64_t i4 = -1, int64_t i5 = -1,
-                  int64_t i6 = -1, int64_t i7 = -1, int64_t i8 = -1, int64_t i9 = -1)
+            const T& at(int i0, int64_t i1 = -1, int64_t i2 = -1, int64_t i3 = -1, int64_t i4 = -1, int64_t i5 = -1,
+                        int64_t i6 = -1, int64_t i7 = -1, int64_t i8 = -1, int64_t i9 = -1) const throw()
             {
 
-                if (this->dimensions > 10)
+                if (this->m_dimension > 10)
                 {
                     throw out_of_range("The at() method can only be used with arrays of 10 dimensions of less.");
                 }
@@ -430,16 +486,16 @@ namespace sal
                 array<int64_t, 10> dim_index = {i0, i1, i2, i3, i4, i5, i6, i7, i8, i9};
 
                 uint64_t element_index = 0;
-                for (uint8_t i = 0; i < this->dimensions; i++)
+                for (uint8_t i = 0; i < this->m_dimension; i++)
                 {
 
                     // check the indices are inside the array bounds
-                    if ((dim_index[i] < 0) || (dim_index[i] > this->shape[i] - 1))
+                    if ((dim_index[i] < 0) || (dim_index[i] > this->m_shape[i] - 1))
                     {
                         throw out_of_range("An array index is missing or is out of bounds.");
                     }
 
-                    element_index += dim_index[i] * this->stride[i];
+                    element_index += dim_index[i] * this->m_strides[i];
                 }
 
                 return this->data[element_index];
@@ -448,21 +504,21 @@ namespace sal
             /*
             Returns a Poco JSON object representation of the Array.
             */
-            Poco::JSON::Object::Ptr encode()
+            virtual Poco::JSON::Object::Ptr encode() override
             {
                 // not complete  array_definition is empty
                 Poco::JSON::Object::Ptr array_definition = new Poco::JSON::Object();
-                Poco::JSON::Object::Ptr attribute = new Poco::JSON::Object();
+                Poco::JSON::Object::Ptr json_obj = new Poco::JSON::Object();
 
-                array_definition->set("type", this->element_type_name);
+                array_definition->set("type", this->m_element_type_name);
                 array_definition->set("shape", this->encode_shape());
                 array_definition->set("encoding", "base64");
                 array_definition->set("data", this->encode_data());
 
-                attribute->set("type", this->typeName());
-                attribute->set("value", array_definition);
+                json_obj->set("type", this->type_name());
+                json_obj->set("value", array_definition);
 
-                return attribute;
+                return json_obj;
             };
 
             /*
@@ -511,21 +567,21 @@ namespace sal
             };
 
         protected:
-            const string element_type_name;
-            const AttributeType element_type;
-            uint8_t dimensions;
-            vector<uint64_t> shape;
-            vector<uint64_t> stride;
+            const string m_element_type_name;
+            const AttributeType m_element_type;
+            uint8_t m_dimension; // CONSIDER: size_t otherwise lots of compiler warning
+            vector<uint64_t> m_shape;
+            vector<uint64_t> m_strides;
             vector<T> data;
 
             /*
             Converts the shape array to a POCO JSON array object.
             */
-            Poco::JSON::Array::Ptr encode_shape()
+            Poco::JSON::Array::Ptr encode_shape() const
             {
                 Poco::JSON::Array::Ptr shape = new Poco::JSON::Array();
-                for (uint8_t i = 0; i < this->shape.size(); i++)
-                    shape->add(this->shape[i]);
+                for (uint8_t i = 0; i < this->m_shape.size(); i++)
+                    shape->add(this->m_shape[i]);
                 return shape;
             };
 
@@ -543,7 +599,7 @@ namespace sal
             /*
             Encodes the data buffer as a base64 string.
             */
-            const string encode_data()
+            const string encode_data() //  reinterpret_cast stop mark this f as const
             {
                 stringstream s;
 #if POCO_VERSION >= 0x01080000
@@ -919,7 +975,7 @@ namespace sal
             /*
             Returns a Poco JSON object representation of the Branch.
             */
-            Poco::JSON::Object::Ptr encode()
+            virtual Poco::JSON::Object::Ptr encode() override
             {
 
                 Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
@@ -930,7 +986,7 @@ namespace sal
                      ++i)
                     value->set(i->first, i->second->encode());
 
-                json->set("type", this->typeName());
+                json->set("type", this->type_name());
                 json->set("value", value);
                 return json;
             };
@@ -963,7 +1019,7 @@ namespace sal
                     for (key = keys.begin(); key != keys.end(); ++key)
                     {
 
-                        // skip null elements
+                        // CONSIDER: Null data object is ready, still skip null elements?
                         if (contents->isNull(*key))
                             continue;
 
@@ -992,7 +1048,7 @@ namespace sal
         */
         Attribute::Ptr decode(Poco::JSON::Object::Ptr json)
         {
-
+            // CONSIDER:  type enum ID is more efficient in comparison then type name
             string id;
 
             try

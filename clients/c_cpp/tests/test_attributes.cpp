@@ -22,7 +22,7 @@ TEST_CASE("Data object Int8 scalar attribute.", "[sal::object::Int8]")
         sal::object::Int8 v;
 
         REQUIRE(v.value() == 0);
-        REQUIRE(v.typeName() == "int8");
+        REQUIRE(v.type_name() == "int8");
     }
 
     SECTION("Initialise with value.")
@@ -30,7 +30,7 @@ TEST_CASE("Data object Int8 scalar attribute.", "[sal::object::Int8]")
         sal::object::Int8 v(-89);
 
         REQUIRE(v.value() == -89);
-        REQUIRE(v.typeName() == "int8");
+        REQUIRE(v.type_name() == "int8");
     }
 
     SECTION("Modify value.")
@@ -67,7 +67,7 @@ TEST_CASE("Data object Int16 scalar attribute.", "[sal::object::Int16]")
         sal::object::Int16 v;
 
         REQUIRE(v.value() == 0);
-        REQUIRE(v.typeName() == "int16");
+        REQUIRE(v.type_name() == "int16");
     }
 
     SECTION("Initialise with value.")
@@ -75,7 +75,7 @@ TEST_CASE("Data object Int16 scalar attribute.", "[sal::object::Int16]")
         sal::object::Int16 v(-6653);
 
         REQUIRE(v.value() == -6653);
-        REQUIRE(v.typeName() == "int16");
+        REQUIRE(v.type_name() == "int16");
     }
 
     SECTION("Modify value.")
@@ -112,7 +112,7 @@ TEST_CASE("Data object Int32 scalar attribute.", "[sal::object::Int32]")
         sal::object::Int32 v;
 
         REQUIRE(v.value() == 0);
-        REQUIRE(v.typeName() == "int32");
+        REQUIRE(v.type_name() == "int32");
     }
 
     SECTION("Initialise with value.")
@@ -120,7 +120,7 @@ TEST_CASE("Data object Int32 scalar attribute.", "[sal::object::Int32]")
         sal::object::Int32 v(-1393553);
 
         REQUIRE(v.value() == -1393553);
-        REQUIRE(v.typeName() == "int32");
+        REQUIRE(v.type_name() == "int32");
     }
 
     SECTION("Modify value.")
@@ -157,7 +157,7 @@ TEST_CASE("Data object Int64 scalar attribute.", "[sal::object::Int64]")
         sal::object::Int64 v;
 
         REQUIRE(v.value() == 0);
-        REQUIRE(v.typeName() == "int64");
+        REQUIRE(v.type_name() == "int64");
     }
 
     SECTION("Initialise with value.")
@@ -165,7 +165,7 @@ TEST_CASE("Data object Int64 scalar attribute.", "[sal::object::Int64]")
         sal::object::Int64 v(-1393553466553);
 
         REQUIRE(v.value() == -1393553466553);
-        REQUIRE(v.typeName() == "int64");
+        REQUIRE(v.type_name() == "int64");
     }
 
     SECTION("Modify value.")
@@ -206,7 +206,7 @@ TEST_CASE("Data object UInt8 scalar attribute.", "[sal::object::UInt8]")
         sal::object::UInt8 v;
 
         REQUIRE(v.value() == 0);
-        REQUIRE(v.typeName() == "uint8");
+        REQUIRE(v.type_name() == "uint8");
     }
 
     SECTION("Initialise with value.")
@@ -214,7 +214,7 @@ TEST_CASE("Data object UInt8 scalar attribute.", "[sal::object::UInt8]")
         sal::object::UInt8 v(89);
 
         REQUIRE(v.value() == 89);
-        REQUIRE(v.typeName() == "uint8");
+        REQUIRE(v.type_name() == "uint8");
     }
 
     SECTION("Modify value.")
@@ -251,7 +251,7 @@ TEST_CASE("Data object UInt16 scalar attribute.", "[sal::object::UInt16]")
         sal::object::UInt16 v;
 
         REQUIRE(v.value() == 0);
-        REQUIRE(v.typeName() == "uint16");
+        REQUIRE(v.type_name() == "uint16");
     }
 
     SECTION("Initialise with value.")
@@ -259,7 +259,7 @@ TEST_CASE("Data object UInt16 scalar attribute.", "[sal::object::UInt16]")
         sal::object::UInt16 v(6653);
 
         REQUIRE(v.value() == 6653);
-        REQUIRE(v.typeName() == "uint16");
+        REQUIRE(v.type_name() == "uint16");
     }
 
     SECTION("Modify value.")
@@ -296,7 +296,7 @@ TEST_CASE("Data object UInt32 scalar attribute.", "[sal::object::UInt32]")
         sal::object::UInt32 v;
 
         REQUIRE(v.value() == 0);
-        REQUIRE(v.typeName() == "uint32");
+        REQUIRE(v.type_name() == "uint32");
     }
 
     SECTION("Initialise with value.")
@@ -304,7 +304,7 @@ TEST_CASE("Data object UInt32 scalar attribute.", "[sal::object::UInt32]")
         sal::object::UInt32 v(1393553);
 
         REQUIRE(v.value() == 1393553);
-        REQUIRE(v.typeName() == "uint32");
+        REQUIRE(v.type_name() == "uint32");
     }
 
     SECTION("Modify value.")
@@ -341,7 +341,7 @@ TEST_CASE("Data object UInt64 scalar attribute.", "[sal::object::UInt64]")
         sal::object::UInt64 v;
 
         REQUIRE(v.value() == 0);
-        REQUIRE(v.typeName() == "uint64");
+        REQUIRE(v.type_name() == "uint64");
     }
 
     SECTION("Initialise with value.")
@@ -349,7 +349,7 @@ TEST_CASE("Data object UInt64 scalar attribute.", "[sal::object::UInt64]")
         sal::object::UInt64 v(1393553466553);
 
         REQUIRE(v.value() == 1393553466553);
-        REQUIRE(v.typeName() == "uint64");
+        REQUIRE(v.type_name() == "uint64");
     }
 
     SECTION("Modify value.")
@@ -390,7 +390,7 @@ TEST_CASE("Data object Float32 scalar attribute.", "[sal::object::Float32]")
         sal::object::Float32 v;
 
         REQUIRE(v.value() == 0);
-        REQUIRE(v.typeName() == "float32");
+        REQUIRE(v.type_name() == "float32");
     }
 
     SECTION("Initialise with value.")
@@ -398,7 +398,7 @@ TEST_CASE("Data object Float32 scalar attribute.", "[sal::object::Float32]")
         sal::object::Float32 v(2.8774e8);
 
         REQUIRE(v.value() == 2.8774e8);
-        REQUIRE(v.typeName() == "float32");
+        REQUIRE(v.type_name() == "float32");
     }
 
     SECTION("Modify value.")
@@ -435,7 +435,7 @@ TEST_CASE("Data object Float64 scalar attribute.", "[sal::object::Float64]")
         sal::object::Float64 v;
 
         REQUIRE(v.value() == 0);
-        REQUIRE(v.typeName() == "float64");
+        REQUIRE(v.type_name() == "float64");
     }
 
     SECTION("Initialise with value.")
@@ -443,7 +443,7 @@ TEST_CASE("Data object Float64 scalar attribute.", "[sal::object::Float64]")
         sal::object::Float64 v(2.875546654e78);
 
         REQUIRE(v.value() == 2.875546654e78);
-        REQUIRE(v.typeName() == "float64");
+        REQUIRE(v.type_name() == "float64");
     }
 
     SECTION("Modify value.")
@@ -471,7 +471,6 @@ TEST_CASE("Data object Float64 scalar attribute.", "[sal::object::Float64]")
     }
 }
 
-
 /*
 Data Object Attributes - Scalar, String and Bool
 */
@@ -484,7 +483,7 @@ TEST_CASE("Data object Bool scalar attribute.", "[sal::object::Bool]")
         sal::object::Bool v;
 
         REQUIRE(v.value() == false);
-        REQUIRE(v.typeName() == "bool");
+        REQUIRE(v.type_name() == "bool");
     }
 
     SECTION("Initialise with value.")
@@ -492,7 +491,7 @@ TEST_CASE("Data object Bool scalar attribute.", "[sal::object::Bool]")
         sal::object::Bool v(true);
 
         REQUIRE(v.value() == true);
-        REQUIRE(v.typeName() == "bool");
+        REQUIRE(v.type_name() == "bool");
     }
 
     SECTION("Modify value.")
@@ -531,7 +530,7 @@ TEST_CASE("Data object String scalar attribute.", "[sal::object::String]")
         sal::object::String v;
 
         REQUIRE(v.value() == "");
-        REQUIRE(v.typeName() == "string");
+        REQUIRE(v.type_name() == "string");
     }
 
     SECTION("Initialise with value.")
@@ -539,7 +538,7 @@ TEST_CASE("Data object String scalar attribute.", "[sal::object::String]")
         sal::object::String v("hello world!");
 
         REQUIRE(v.value() == "hello world!");
-        REQUIRE(v.typeName() == "string");
+        REQUIRE(v.type_name() == "string");
     }
 
     SECTION("Modify value.")
@@ -565,25 +564,30 @@ TEST_CASE("Data object String scalar attribute.", "[sal::object::String]")
 }
 
 /* sal::object::Attribute is abstract, can not been instantiated
-TEST_CASE("Data object null or empty attribute.", "[sal::object::Attribute]") {
+ instead a new derived object Null is created as a special value
+*/
+TEST_CASE("Data object null or empty attribute.", "[sal::object::Attribute]")
+{
 
-    SECTION("Initialise without value.") {
-        sal::object::Attribute v;
+    SECTION("Initialise without value.")
+    {
+        sal::object::Null v;
 
-        //REQUIRE(v.value() == nullptr);
-        REQUIRE(v.typeName() == "null");
+        // REQUIRE(v.value() == nullptr);
+        REQUIRE(v.type_name() == "null");
     }
 
-    SECTION("Encode as JSON.") {
-
-        sal::object::String v("Encode this string.");
+    SECTION("Encode Null object as JSON.")
+    {
+        sal::object::Null v;
         Poco::JSON::Object::Ptr obj = v.encode();
 
-        REQUIRE(obj->get("value").convert<string>() == "Encode this string.");
-        REQUIRE(obj->get("type").convert<string>() == "string");
+        // REQUIRE(obj->get("value").convert<string>() == "null"
+        //    or obj->get("value").convert<string>() == "");
+        REQUIRE(obj->get("type").convert<string>() == "null");
     }
 }
-*/
+
 
 TEST_CASE("Data object Int8 array attribute.", "[sal::object::Int8Array]")
 {
@@ -599,32 +603,28 @@ TEST_CASE("Data object Int8 array attribute.", "[sal::object::Int8Array]")
 
     SECTION("Initialise with array.")
     {
-        sal::object::Int8Array v({89});
+        sal::object::Int8Array v({2, 3});
 
-        REQUIRE(v.size() == 1);
-        // TODO: indexing check
-        REQUIRE(v.typeName() == "array");
+        REQUIRE(v.size() == 2 * 3);
+        REQUIRE(v.dimension() == 2);
+        REQUIRE(v.shape()[0] == 2);
+        REQUIRE(v.type_name() == "array");
+        REQUIRE(v.element_type_name() == "int8");
     }
 
-    //    SECTION("Modify value.") {
-    //        sal::object::Int8 v;
-    //
-    //        v.value() = 67;
-    //        REQUIRE(v.value() == 67);
-    //
-    //        v.value() = -128;
-    //        REQUIRE(v.value() == -128);
-    //
-    //        v.value() = 127;
-    //        REQUIRE(v.value() == 127);
-    //    }
-    //
-    //    SECTION("Encode as JSON.") {
-    //
-    //        sal::object::Int8 v(-42);
-    //        Poco::JSON::Object::Ptr obj = v.encode();
-    //
-    //        REQUIRE(obj->get("value").convert<int8_t>() == -42);
-    //        REQUIRE(obj->get("type").convert<string>() == "int8");
-    //    }
+    SECTION("Test indexing and modify element value")
+    {
+        sal::object::Int8Array v({2, 3});
+
+        int8_t number = 100u;
+        v[0] = number;
+        REQUIRE(v[0] == number);
+        REQUIRE(v(0, 0) == number);
+
+        v[1] = -128;
+        REQUIRE(v[1] == -128);
+
+        v(1, 0) = 127;
+        REQUIRE(v[3] == 127);
+    }
 }
