@@ -181,23 +181,23 @@ namespace sal
         Data Object for Scalar atomic types (JSON number types)
         CONSIDER: rename Scalar into Atomic
         */
-        template <class T, AttributeType TYPE, char const* TYPE_NAME> class Scalar : public Attribute
+        template <class T, AttributeType TYPE, char const* TYPE_NAME> class Atomic : public Attribute
         {
             // TODO: add documentation
             T m_value;
 
         public:
-            typedef Poco::SharedPtr<Scalar<T, TYPE, TYPE_NAME>> Ptr;
+            typedef Poco::SharedPtr<Atomic<T, TYPE, TYPE_NAME>> Ptr;
             /*
             Constructors and destructor.
             */
-            Scalar()
+            Atomic()
                     : Attribute(TYPE, TYPE_NAME)
                     , m_value(T()){}; // using T() as the default value is more general
-            Scalar(T _value)
+            Atomic(T _value)
                     : Attribute(TYPE, TYPE_NAME)
                     , m_value(_value){};
-            virtual ~Scalar(){};
+            virtual ~Atomic(){};
 
 
             inline T value() const
@@ -223,7 +223,7 @@ namespace sal
             /*
             Decodes a Poco JSON object representation of the Scalar and returns a Scalar object.
             */
-            static typename Scalar<T, TYPE, TYPE_NAME>::Ptr decode(Poco::JSON::Object::Ptr json)
+            static typename Atomic<T, TYPE, TYPE_NAME>::Ptr decode(Poco::JSON::Object::Ptr json)
             {
 
                 // treat any failure as a failure to decode
@@ -232,7 +232,7 @@ namespace sal
                     // check sal type is valid for this class
                     if (json->getValue<string>("type") != string(TYPE_NAME))
                         throw std::exception();
-                    return new Scalar<T, TYPE, TYPE_NAME>(json->getValue<T>("value"));
+                    return new Atomic<T, TYPE, TYPE_NAME>(json->getValue<T>("value"));
                 }
                 catch (...)
                 {
@@ -243,80 +243,20 @@ namespace sal
         };
 
 
-        typedef Scalar<int8_t, ATTR_INT8, TYPE_NAME_INT8> Int8;
-        typedef Scalar<int16_t, ATTR_INT16, TYPE_NAME_INT16> Int16;
-        typedef Scalar<int32_t, ATTR_INT32, TYPE_NAME_INT32> Int32;
-        typedef Scalar<int64_t, ATTR_INT64, TYPE_NAME_INT64> Int64;
+        typedef Atomic<int8_t, ATTR_INT8, TYPE_NAME_INT8> Int8;
+        typedef Atomic<int16_t, ATTR_INT16, TYPE_NAME_INT16> Int16;
+        typedef Atomic<int32_t, ATTR_INT32, TYPE_NAME_INT32> Int32;
+        typedef Atomic<int64_t, ATTR_INT64, TYPE_NAME_INT64> Int64;
 
-        typedef Scalar<uint8_t, ATTR_UINT8, TYPE_NAME_UINT8> UInt8;
-        typedef Scalar<uint16_t, ATTR_UINT16, TYPE_NAME_UINT16> UInt16;
-        typedef Scalar<uint32_t, ATTR_UINT32, TYPE_NAME_UINT32> UInt32;
-        typedef Scalar<uint64_t, ATTR_UINT64, TYPE_NAME_UINT64> UInt64;
+        typedef Atomic<uint8_t, ATTR_UINT8, TYPE_NAME_UINT8> UInt8;
+        typedef Atomic<uint16_t, ATTR_UINT16, TYPE_NAME_UINT16> UInt16;
+        typedef Atomic<uint32_t, ATTR_UINT32, TYPE_NAME_UINT32> UInt32;
+        typedef Atomic<uint64_t, ATTR_UINT64, TYPE_NAME_UINT64> UInt64;
 
-        typedef Scalar<float, ATTR_FLOAT32, TYPE_NAME_FLOAT32> Float32;
-        typedef Scalar<double, ATTR_FLOAT64, TYPE_NAME_FLOAT64> Float64;
-        typedef Scalar<bool, ATTR_BOOL, TYPE_NAME_BOOL> Bool;
-
-        /*
-        Data Object String Attribute
-        this may be replace by Scalar<T>,  although they have different default value
-        */
-        typedef Scalar<std::string, ATTR_STRING, TYPE_NAME_STRING> String;
-#if 0    
-        class String : public Attribute
-        {
-
-            // TODO: add documentation
-
-        public:
-            typedef Poco::SharedPtr<String> Ptr;
-
-            string value;
-
-            /*
-            Constructors and destructor.
-            */
-            String()
-                    : Attribute(ATTR_STRING, TYPE_NAME_STRING)
-                    , value(""){};
-            String(string _value)
-                    : Attribute(ATTR_STRING, TYPE_NAME_STRING)
-                    , value(_value){};
-            virtual ~String(){};
-
-            /*
-            Returns a Poco JSON object representation of the String.
-            */
-            Poco::JSON::Object::Ptr encode()
-            {
-                Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
-                json->set("type", this->type);
-                json->set("value", this->value);
-                return json;
-            };
-
-            /*
-            Decodes a Poco JSON object representation of the String and returns a String object.
-            */
-            static String::Ptr decode(Poco::JSON::Object::Ptr json)
-            {
-
-                // treat any failure as a failure to decode
-                try
-                {
-                    // check sal type is valid for this class
-                    if (json->getValue<string>("type") != TYPE_NAME_STRING)
-                        throw std::exception();
-                    return new String(json->getValue<string>("value"));
-                }
-                catch (...)
-                {
-                    // todo: define a sal exception and replace
-                    throw runtime_error("JSON object does not define a valid SAL string attribute.");
-                }
-            };
-        };
-#endif
+        typedef Atomic<float, ATTR_FLOAT32, TYPE_NAME_FLOAT32> Float32;
+        typedef Atomic<double, ATTR_FLOAT64, TYPE_NAME_FLOAT64> Float64;
+        typedef Atomic<bool, ATTR_BOOL, TYPE_NAME_BOOL> Bool;
+        typedef Atomic<std::string, ATTR_STRING, TYPE_NAME_STRING> String;
 
         /*
         It is a multi-dimension array based on std::vector<T>
