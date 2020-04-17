@@ -626,4 +626,21 @@ TEST_CASE("Data object Int8 array attribute.", "[sal::object::Int8Array]")
         v(1, 0) = 127;
         REQUIRE(v[3] == 127);
     }
+
+    SECTION("Test buffer pointer for C-API")
+    {
+        sal::object::Int8Array v({2, 3});
+
+        int8_t number = 100u;
+        v[0] = number;
+
+        // cp is readonly buffer
+        const int8_t* cp = static_cast<const int8_t*>(v.data_pointer());
+        REQUIRE(cp[0] == number);
+
+        int8_t number2 = 20u;
+        int8_t* p = static_cast<int8_t*>(v.data_pointer());
+        p[0] = number2;
+        REQUIRE(v(0, 0) == number2);
+    }
 }

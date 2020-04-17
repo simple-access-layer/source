@@ -179,11 +179,11 @@ namespace sal
 
         /*
         Data Object for Scalar atomic types (JSON number types)
-        CONSIDER: rename Scalar into Atomic
+        REFACTORED: rename Scalar<> into Atomic<>
+        TODO: std::atomic<> to make them atomic as the name suggested
         */
         template <class T, AttributeType TYPE, char const* TYPE_NAME> class Atomic : public Attribute
         {
-            // TODO: add documentation
             T m_value;
 
         public:
@@ -338,12 +338,7 @@ namespace sal
             {
                 return this->data.size();
             };
-#if 0
-            inline size_t byte_size() const
-            {
-                return this->data.size() * size_of(T);
-            };
-#endif
+
             inline vector<uint64_t> shape() const
             {
                 return this->m_shape;
@@ -363,6 +358,27 @@ namespace sal
             {
                 return m_element_type_name;
             }
+
+            /// {@
+            /** infra-structure for C-API */
+            inline size_t byte_size() const
+            {
+                return this->data.size() * sizeof(T);
+            };
+
+            /// read-only pointer to provide read view into the data buffer
+            const void* data_pointer() const
+            {
+                return this->data.data();
+            }
+
+            /// modifiable raw pointer to data buffer, use it with care
+            void* data_pointer()
+            {
+                return this->data.data();
+            }
+            /// @}
+
 
             /*
             Fast element access via direct indexing of the array buffer (flattened ID array).

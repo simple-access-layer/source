@@ -20,6 +20,8 @@ cd build
 CXX=g++-8 cmake .. 
 make -j 4
 
-# test
-cp ../scripts/run_all_tests.sh ./ 
-bash ./run_all_tests.sh
+# test if build succeeded
+if [[ $? == 0 ]]; then
+    cp ../scripts/run_all_tests.sh ./ 
+    bash ./run_all_tests.sh
+fi
