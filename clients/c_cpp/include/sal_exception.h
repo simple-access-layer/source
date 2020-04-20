@@ -5,7 +5,7 @@
 namespace sal
 {
 
-    using namespace std;
+    // using namespace std;
 
     /// The exception namespace is part of sal_core module
     namespace exception
@@ -14,7 +14,7 @@ namespace sal
         /** This general error class can be constructed with message,
            Any exception does not fit SALException derived class should use this.
         */
-        class SALException : public exception
+        class SALException : public std::exception
         {
         protected:
             /** Error message.

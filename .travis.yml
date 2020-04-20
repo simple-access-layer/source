@@ -27,8 +27,6 @@ matrix:
       install:
         - echo "nothing is needed here, PWD = $PWD"
       script:
-        - source "${HOME}/INSTALL/bin/activate"
-        - travis/build_templates.sh
         # multi-line command
         - >-
           cd clients/c_cpp/ && bash scripts/build.sh
@@ -50,7 +48,6 @@ matrix:
       before_install:
         #- echo 'DOCKER_OPTS="-H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock -s devicemapper"' | sudo tee /etc/default/docker > /dev/null
         #- sudo service docker restart
-        - sleep 3
         - sudo docker pull ${DOCKER_IMG}
         # docker -d, --detach Detached mode: run command in the background
         - >-
@@ -62,6 +59,7 @@ matrix:
           --name "${DOCKER_CONTAINER}"
           "${DOCKER_IMG}"
         # docker image is up and running, exec more command inside
+        - sleep 5 # make sure the docker instance has started up and running
         - >-
           sudo docker exec "${DOCKER_CONTAINER}" 
           yum install epel-release -y && 

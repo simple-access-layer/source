@@ -16,9 +16,12 @@
 #include "Poco/SharedPtr.h"
 #include "Poco/Version.h" // #define POCO_VERSION 0x01090000
 
+#include "sal_exception.h"
+
 namespace sal
 {
-    using namespace std;
+    // using namespace std;
+    using namespace exception;
 
     /// TODO: rename namespace object -> namespace data
     namespace object
@@ -40,9 +43,10 @@ namespace sal
             ATTR_FLOAT64,
             ATTR_BOOL,   ///!> JSON bool type
             ATTR_STRING, ///!> JSON string type, UTF8 encoding assumed
-            ATTR_ARRAY,
+            ATTR_ARRAY,  ///!> JSON array type, with same element type
+#if 0
             // as there is element type member, these new array types may not necessary
-            ATTR_INT8_ARRAY, ///!> JSON array type, with same element type
+            ATTR_INT8_ARRAY, 
             ATTR_INT16_ARRAY,
             ATTR_INT32_ARRAY,
             ATTR_INT64_ARRAY,
@@ -53,7 +57,8 @@ namespace sal
             ATTR_FLOAT32_ARRAY,
             ATTR_FLOAT64_ARRAY,
             ATTR_STRING_ARRAY, /// JSON array type for string
-            ATTR_DICTIONARY,   /// JSON object type, container of children json types
+#endif
+            ATTR_DICTIONARY, /// JSON object type, container of children json types
         } AttributeType;
 
         /** attribute identifier strings in serialised objects
@@ -61,6 +66,7 @@ namespace sal
           see: https://numpy.org/devdocs/user/basics.types.html
           Type data are not organized into `std::map<AttributeType, std::string>`,
           because they can be shared by both C adn C++.
+          why not const char*, maybe caused by Poco::JSON
         */
         char TYPE_NAME_NULL[] = "null";
         char TYPE_NAME_INT8[] = "int8";
@@ -90,64 +96,82 @@ namespace sal
         public:
             typedef Poco::SharedPtr<Attribute> Ptr;
 
+            // TODO: needs copy and move constructors, will not them be generated?
+
             /*
             Constructors and destructor.
             */
-            // TODO: needs copy and move constructors, will not them be generated?
-            Attribute(const AttributeType _type, const string _type_name)
+            Attribute(const AttributeType _type, const std::string _type_name)
                     : m_type(_type)
                     , m_typeName(_type_name){};
             virtual ~Attribute(){};
 
             /// from Attribute instance to json, return `Poco::JSON::Object::Ptr`
-            virtual Poco::JSON::Object::Ptr encode() = 0;
-            // TODO: void* data_pointer() = 0;  // for C-API, C user will cast to typed pointer
+            virtual Poco::JSON::Object::Ptr encode() const = 0;
+
+            // CONSIDER buffer pointer interface for C-API, currently implemented for Array only
+            // void* data_pointer() = 0;
+
+            /// must be override by derived classes if data to big to fit into a summary
+            /// corresponding to python DataSummary class
+            /// derived class should call base method as the first line of code
+            virtual std::string summary() const noexcept
+            {
+                std::stringstream ss;
+                auto jp = encode();
+                jp->stringify(ss);
+                return ss.str();
+            }
 
             // consider: method name should be type_name()
-            inline const std::string& type_name() const
+            inline const std::string& type_name() const noexcept
             {
                 return m_typeName;
             }
 
-            inline const AttributeType& type_id() const
+            inline const AttributeType& type_id() const noexcept
             {
                 return m_type;
             }
 
             // consider: method name should be isNull()
-            inline bool is_null() const
+            inline bool is_null() const noexcept
             {
                 return m_type == ATTR_NULL;
             }
             // is bool regarded as scalar?
-            inline bool is_scalar() const
+            inline bool is_scalar() const noexcept
             {
                 return not(is_array() or is_string() or is_null() or is_object());
             }
 
-            inline bool is_atomic() const
+            inline bool is_atomic() const noexcept
             {
                 return not(is_array() or is_object());
             }
 
-            inline bool is_array() const
+            inline bool is_array() const noexcept
             {
                 return m_type == ATTR_ARRAY;
             }
 
-            inline bool is_string() const
+            inline bool is_string() const noexcept
             {
                 return m_type == ATTR_STRING;
             }
 
-            inline bool is_object() const
+            inline bool is_object() const noexcept
             {
                 return m_type == ATTR_DICTIONARY;
             }
 
         protected:
             const AttributeType m_type;
-            string m_typeName;
+            std::string m_typeName;
+            /// constant members from python DataObject ReportSummary
+            const char* GROUP = "core";
+            const static uint64_t VERSION = 1; // static member init of std::string might not supported
+            // CLASS is the typname, it is different for types
         };
 
         /// this class can be merged to the base class  It is a design decision
@@ -166,7 +190,7 @@ namespace sal
                     : Attribute(ATTR_NULL, "null"){};
             virtual ~Null(){};
 
-            virtual Poco::JSON::Object::Ptr encode() override
+            virtual Poco::JSON::Object::Ptr encode() const override
             {
                 Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
                 json->set("type", this->type_name());
@@ -212,7 +236,7 @@ namespace sal
             /*
             Returns a Poco JSON object representation of the Scalar.
             */
-            virtual Poco::JSON::Object::Ptr encode() override
+            virtual Poco::JSON::Object::Ptr encode() const override
             {
                 Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
                 json->set("type", this->type_name());
@@ -230,14 +254,14 @@ namespace sal
                 try
                 {
                     // check sal type is valid for this class
-                    if (json->getValue<string>("type") != string(TYPE_NAME))
+                    if (json->getValue<std::string>("type") != std::string(TYPE_NAME))
                         throw std::exception();
                     return new Atomic<T, TYPE, TYPE_NAME>(json->getValue<T>("value"));
                 }
                 catch (...)
                 {
                     // todo: define a sal exception and replace
-                    throw runtime_error("JSON object does not define a valid SAL scalar attribute.");
+                    throw SALException("JSON object does not define a valid SAL scalar attribute.");
                 }
             };
         };
@@ -290,7 +314,7 @@ namespace sal
                 Float32Array a3({512, 512, 3});
 
             */
-            Array(vector<uint64_t> _shape)
+            Array(std::vector<uint64_t> _shape)
                     : Attribute(ATTR_ARRAY, TYPE_NAME_ARRAY)
                     , m_element_type(TYPE)
                     , m_element_type_name(TYPE_NAME)
@@ -319,14 +343,14 @@ namespace sal
                 this->data.resize(element_size);
             };
 
-            // CONSIDER: disable those constructors
+            // CONSIDER: disable those constructors, force shared_ptr<>
             //            Array(const Array&);
             //            Array& operator= (const Array&);
             //            Array(Array&&);
             //            Array& operator= (Array&&);
 
             /*
-            Destructor
+            virtual destructor
             */
             virtual ~Array(){};
 
@@ -339,7 +363,7 @@ namespace sal
                 return this->data.size();
             };
 
-            inline vector<uint64_t> shape() const
+            inline std::vector<uint64_t> shape() const
             {
                 return this->m_shape;
             };
@@ -354,7 +378,7 @@ namespace sal
                 return m_element_type;
             }
 
-            string element_type_name() const
+            std::string element_type_name() const
             {
                 return m_element_type_name;
             }
@@ -435,11 +459,11 @@ namespace sal
 
                 if (this->m_dimension > 10)
                 {
-                    throw out_of_range("The at() method can only be used with arrays of 10 dimensions of less.");
+                    throw std::out_of_range("The at() method can only be used with arrays of 10 dimensions of less.");
                 }
 
                 // convert the list or arguments to an array for convenience
-                array<int64_t, 10> dim_index = {i0, i1, i2, i3, i4, i5, i6, i7, i8, i9};
+                std::array<int64_t, 10> dim_index = {i0, i1, i2, i3, i4, i5, i6, i7, i8, i9};
 
                 uint64_t element_index = 0;
                 for (uint8_t i = 0; i < this->m_dimension; i++)
@@ -448,7 +472,7 @@ namespace sal
                     // check the indices are inside the array bounds
                     if ((dim_index[i] < 0) || (dim_index[i] > this->m_shape[i] - 1))
                     {
-                        throw out_of_range("An array index is missing or is out of bounds.");
+                        throw std::out_of_range("An array index is missing or is out of bounds.");
                     }
 
                     element_index += dim_index[i] * this->m_strides[i];
@@ -460,7 +484,7 @@ namespace sal
             /*
             Returns a Poco JSON object representation of the Array.
             */
-            virtual Poco::JSON::Object::Ptr encode() override
+            virtual Poco::JSON::Object::Ptr encode() const override
             {
                 // not complete  array_definition is empty
                 Poco::JSON::Object::Ptr array_definition = new Poco::JSON::Object();
@@ -484,8 +508,8 @@ namespace sal
             {
 
                 Poco::JSON::Object::Ptr array_definition;
-                vector<uint64_t> shape;
-                string encoded_data;
+                std::vector<uint64_t> shape;
+                std::string encoded_data;
                 typename Array<T, TYPE, TYPE_NAME>::Ptr array;
 
                 // treat any failure as a failure to decode
@@ -493,16 +517,16 @@ namespace sal
                 {
 
                     // check sal type is valid for this class
-                    if (json->getValue<string>("type") != string(TYPE_NAME_ARRAY))
-                        throw std::exception();
+                    if (json->getValue<std::string>("type") != std::string(TYPE_NAME_ARRAY))
+                        throw SALException("type does not match, array is expected here");
 
                     // extract array definition
                     array_definition = json->getObject("value");
 
                     // check array element type and array encoding are valid for this class
-                    if (array_definition->getValue<string>("type") != string(TYPE_NAME))
+                    if (array_definition->getValue<std::string>("type") != std::string(TYPE_NAME))
                         throw std::exception();
-                    if (array_definition->getValue<string>("encoding") != string("base64"))
+                    if (array_definition->getValue<std::string>("encoding") != std::string("base64"))
                         throw std::exception();
                     if (!array_definition->isArray("shape"))
                         throw std::exception();
@@ -512,23 +536,24 @@ namespace sal
 
                     // create and populate array
                     array = new Array<T, TYPE, TYPE_NAME>(shape);
-                    Array<T, TYPE, TYPE_NAME>::decode_data(array->data, array_definition->getValue<string>("data"));
+                    Array<T, TYPE, TYPE_NAME>::decode_data(array->data,
+                                                           array_definition->getValue<std::string>("data"));
                     return array;
                 }
                 catch (...)
                 {
                     // todo: define a sal exception and replace
-                    throw runtime_error("JSON object does not define a valid SAL Array attribute.");
+                    throw SALException("JSON object does not define a valid SAL Array attribute.");
                 }
             };
 
         protected:
-            const string m_element_type_name;
+            const std::string m_element_type_name;
             const AttributeType m_element_type;
             uint8_t m_dimension; // CONSIDER: size_t otherwise lots of compiler warning
-            vector<uint64_t> m_shape;
-            vector<uint64_t> m_strides;
-            vector<T> data;
+            std::vector<uint64_t> m_shape;
+            std::vector<uint64_t> m_strides;
+            std::vector<T> data;
 
             /*
             Converts the shape array to a POCO JSON array object.
@@ -544,9 +569,9 @@ namespace sal
             /*
             Decodes the shape array from a POCO JSON array object.
             */
-            static vector<uint64_t> decode_shape(Poco::JSON::Array::Ptr encoded)
+            static std::vector<uint64_t> decode_shape(Poco::JSON::Array::Ptr encoded)
             {
-                vector<uint64_t> shape(encoded->size());
+                std::vector<uint64_t> shape(encoded->size());
                 for (uint8_t i = 0; i < encoded->size(); i++)
                     shape[i] = encoded->getElement<uint64_t>(i);
                 return shape;
@@ -555,9 +580,9 @@ namespace sal
             /*
             Encodes the data buffer as a base64 string.
             */
-            const string encode_data() //  reinterpret_cast stop mark this f as const
+            const std::string encode_data() const //  reinterpret_cast stop mark this f as const
             {
-                stringstream s;
+                std::stringstream s;
 #if POCO_VERSION >= 0x01080000
                 // Poco::BASE64_URL_ENCODING is a enum, with value 1
                 Poco::Base64Encoder encoder(s, Poco::BASE64_URL_ENCODING);
@@ -566,17 +591,18 @@ namespace sal
                 Poco::Base64Encoder encoder(s);
 #endif
                 // TODO: why not reinterpret_cast<unsigned char*>
-                encoder.write(reinterpret_cast<char*>(this->data.data()), this->data.size() * sizeof(T));
+                encoder.write(reinterpret_cast<const char*>(this->data.data()), this->data.size() * sizeof(T));
                 encoder.close();
                 return s.str();
             };
 
             /*
             Decodes the data buffer from a base64 string.
+            TODO: const data?
             */
-            static void decode_data(vector<T>& data, const string b64)
+            static void decode_data(std::vector<T>& data, const std::string b64)
             {
-                stringstream s(b64);
+                std::stringstream s(b64);
 #if POCO_VERSION >= 0x01080000
                 // Poco::BASE64_URL_ENCODING is a enum, with value 1
                 Poco::Base64Decoder decoder(s, Poco::BASE64_URL_ENCODING);
@@ -762,16 +788,16 @@ namespace sal
                 {
 
                     // check sal type is valid for this class
-                    if (json->getValue<string>("type") != string(TYPE_NAME_ARRAY))
+                    if (json->getValue<std::string>("type") != string(TYPE_NAME_ARRAY))
                         throw std::exception();
 
                     // extract array definition
                     array_definition = json->getObject("value");
 
                     // check array element type and array encoding are valid for this class
-                    if (array_definition->getValue<string>("type") != string(TYPE_NAME_STRING))
+                    if (array_definition->getValue<std::string>("type") != string(TYPE_NAME_STRING))
                         throw std::exception();
-                    if (array_definition->getValue<string>("encoding") != string("list"))
+                    if (array_definition->getValue<std::string>("encoding") != string("list"))
                         throw std::exception();
                     if (!array_definition->isArray("shape"))
                         throw std::exception();
@@ -789,7 +815,7 @@ namespace sal
                 catch (...)
                 {
                     // todo: define a sal exception and replace
-                    throw runtime_error("JSON object does not define a valid SAL Array attribute.");
+                    throw SALException("JSON object does not define a valid SAL Array attribute.");
                 }
             };
 
@@ -798,7 +824,7 @@ namespace sal
             uint8_t dimensions;
             vector<uint64_t> shape;
             vector<uint64_t> stride;
-            vector<string> data;
+            vector<std::string> data;
 
             /*
             Converts the shape array to a POCO JSON array object.
@@ -864,7 +890,7 @@ namespace sal
                     // innermost array contains strings
                     for (uint64_t i = 0; i < array->shape[dimension]; i++)
                     {
-                        array->data[offset + i] = json->getElement<string>(i);
+                        array->data[offset + i] = json->getElement<std::string>(i);
                     }
                 }
                 else
@@ -903,27 +929,27 @@ namespace sal
 
             // TODO: better exception handling
             // TODO: add documentation
-            Attribute::Ptr& operator[](const string& key)
+            Attribute::Ptr& operator[](const std::string& key)
             {
                 return this->attributes.at(key);
             };
-            Attribute::Ptr& get(const string& key)
+            Attribute::Ptr& get(const std::string& key)
             {
                 return (*this)[key];
             };
-            template <class T> typename T::Ptr get_as(const string& key)
+            template <class T> typename T::Ptr get_as(const std::string& key)
             {
                 return typename T::Ptr(this->get(key).cast<T>());
             };
-            void set(const string& key, const Attribute::Ptr& attribute)
+            void set(const std::string& key, const Attribute::Ptr& attribute)
             {
                 this->attributes[key] = attribute;
             };
-            const bool has(const string& key) const
+            const bool has(const std::string& key) const
             {
                 return this->attributes.count(key);
             };
-            void remove(const string& key)
+            void remove(const std::string& key)
             {
                 this->attributes.erase(key);
             };
@@ -931,15 +957,15 @@ namespace sal
             /*
             Returns a Poco JSON object representation of the Branch.
             */
-            virtual Poco::JSON::Object::Ptr encode() override
+            virtual Poco::JSON::Object::Ptr encode() const override
             {
 
                 Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
                 Poco::JSON::Object::Ptr value = new Poco::JSON::Object();
 
                 // encode each attribute
-                for (map<string, Attribute::Ptr>::iterator i = this->attributes.begin(); i != this->attributes.end();
-                     ++i)
+                for (std::map<std::string, Attribute::Ptr>::const_iterator i = attributes.begin();
+                     i != this->attributes.end(); ++i)
                     value->set(i->first, i->second->encode());
 
                 json->set("type", this->type_name());
@@ -954,8 +980,8 @@ namespace sal
             {
 
                 Poco::JSON::Object::Ptr contents;
-                vector<string> keys;
-                vector<string>::iterator key;
+                std::vector<std::string> keys;
+                std::vector<std::string>::iterator key;
                 Dictionary::Ptr container;
 
                 // treat any failure as a failure to decode
@@ -963,8 +989,8 @@ namespace sal
                 {
 
                     // check sal type is valid for this class
-                    if (json->getValue<string>("type") != TYPE_NAME_DICTIONARY)
-                        throw std::exception();
+                    if (json->getValue<std::string>("type") != TYPE_NAME_DICTIONARY)
+                        throw SALException("data type does not match");
 
                     // extract array definition
                     contents = json->getObject("value");
@@ -991,12 +1017,12 @@ namespace sal
                 catch (...)
                 {
                     // todo: define a sal exception and replace
-                    throw runtime_error("JSON object does not define a valid SAL Array attribute.");
+                    throw SALException("JSON object does not define a valid SAL Array attribute.");
                 }
             };
 
         protected:
-            map<string, Attribute::Ptr> attributes;
+            std::map<std::string, Attribute::Ptr> attributes;
         };
 
         /*
@@ -1004,17 +1030,16 @@ namespace sal
         */
         Attribute::Ptr decode(Poco::JSON::Object::Ptr json)
         {
-            // CONSIDER:  type enum ID is more efficient in comparison then type name
-            string id;
+            // CONSIDER:  type enum  is more efficient in comparison then type name
+            std::string id;
 
             try
             {
-                id = json->getValue<string>("type");
+                id = json->getValue<std::string>("type");
             }
             catch (...)
             {
-                // todo: define a sal exception and replace
-                throw runtime_error("JSON object does not define a valid SAL attribute.");
+                throw SALException("JSON object does not define a valid SAL attribute.");
             }
 
             // containers
@@ -1052,17 +1077,17 @@ namespace sal
             {
 
                 Poco::JSON::Object::Ptr array_definition;
-                string element_id;
+                std::string element_id;
 
                 try
                 {
                     array_definition = json->getObject("value");
-                    element_id = array_definition->getValue<string>("type");
+                    element_id = array_definition->getValue<std::string>("type");
                 }
                 catch (...)
                 {
                     // todo: define a sal exception and replace
-                    throw runtime_error("JSON object does not define a valid SAL attribute.");
+                    throw SALException("JSON object does not define a valid SAL attribute.");
                 }
 
                 if (element_id == TYPE_NAME_INT8)
@@ -1090,7 +1115,7 @@ namespace sal
             }
 
             // todo: define a sal exception and replace
-            throw runtime_error("JSON object does not define a valid SAL attribute.");
+            throw SALException("JSON object does not define a valid SAL attribute.");
         }
 
 
