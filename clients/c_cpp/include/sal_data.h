@@ -356,10 +356,10 @@ namespace sal
         No default constructor without parameter is allowed,
         so shape of the array, as std::vector<uint64_t>,  consistent with python numpy.array
         */
-        template <class T, AttributeType TYPE, char const* TYPE_NAME> class Array : public Attribute
+        template <class T, AttributeType ELEMENT_TYPE, char const* ELEMENT_TYPE_NAME> class Array : public Attribute
         {
         public:
-            typedef Poco::SharedPtr<Array<T, TYPE, TYPE_NAME>> Ptr;
+            typedef Poco::SharedPtr<Array<T, ELEMENT_TYPE, ELEMENT_TYPE_NAME>> Ptr;
 
             /*
             Array constructor.
@@ -385,8 +385,8 @@ namespace sal
             */
             Array(std::vector<uint64_t> _shape)
                     : Attribute(ATTR_ARRAY, TYPE_NAME_ARRAY)
-                    , m_element_type(TYPE)
-                    , m_element_type_name(TYPE_NAME)
+                    , m_element_type(ELEMENT_TYPE)
+                    , m_element_type_name(ELEMENT_TYPE_NAME)
             {
 
                 this->m_dimension = _shape.size();
@@ -586,13 +586,13 @@ namespace sal
             /*
             Decodes a Poco JSON object representation of the Array and returns an Array object.
             */
-            static typename Array<T, TYPE, TYPE_NAME>::Ptr decode(Poco::JSON::Object::Ptr json)
+            static typename Array<T, ELEMENT_TYPE, ELEMENT_TYPE_NAME>::Ptr decode(Poco::JSON::Object::Ptr json)
             {
 
                 Poco::JSON::Object::Ptr array_definition;
                 std::vector<uint64_t> shape;
                 std::string encoded_data;
-                typename Array<T, TYPE, TYPE_NAME>::Ptr array;
+                typename Array<T, ELEMENT_TYPE, ELEMENT_TYPE_NAME>::Ptr array;
 
                 // treat any failure as a failure to decode
                 try
@@ -606,7 +606,7 @@ namespace sal
                     array_definition = json->getObject("value");
 
                     // check array element type and array encoding are valid for this class
-                    if (array_definition->getValue<std::string>("type") != std::string(TYPE_NAME))
+                    if (array_definition->getValue<std::string>("type") != std::string(ELEMENT_TYPE_NAME))
                         throw std::exception();
                     if (array_definition->getValue<std::string>("encoding") != std::string("base64"))
                         throw std::exception();
@@ -614,12 +614,13 @@ namespace sal
                         throw std::exception();
 
                     // decode shape
-                    shape = Array<T, TYPE, TYPE_NAME>::decode_shape(array_definition->getArray("shape"));
+                    shape =
+                        Array<T, ELEMENT_TYPE, ELEMENT_TYPE_NAME>::decode_shape(array_definition->getArray("shape"));
 
                     // create and populate array
-                    array = new Array<T, TYPE, TYPE_NAME>(shape);
-                    Array<T, TYPE, TYPE_NAME>::decode_data(array->data,
-                                                           array_definition->getValue<std::string>("data"));
+                    array = new Array<T, ELEMENT_TYPE, ELEMENT_TYPE_NAME>(shape);
+                    Array<T, ELEMENT_TYPE, ELEMENT_TYPE_NAME>::decode_data(
+                        array->data, array_definition->getValue<std::string>("data"));
                     return array;
                 }
                 catch (...)
@@ -1044,6 +1045,7 @@ namespace sal
                 auto json_obj = encode_header();
                 // new info, only for C++, but comptable with python
                 json_obj->set("count", this->attributes.size());
+                // consider also write an array of keys
                 return json_obj;
             };
 
