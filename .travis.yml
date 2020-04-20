@@ -21,7 +21,7 @@ matrix:
             - libpoco-dev
             - cmake
             - g++-8
-            - doxygen
+            #- doxygen, enable later, once Doxyconfig is ready
       env:
         - GCS_TAG=ubuntu_64bit
       install:
@@ -62,7 +62,7 @@ matrix:
         # docker image is up and running, exec more command inside
         # make sure the docker instance has started up and running
         - >-
-          sudo docker exec "${DOCKER_CONTAINER}" 
+          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" 
           yum install epel-release -y && 
           yum install poco-devel openssl-devel cmake3 -y
         - >-
