@@ -27,6 +27,9 @@ namespace sal
     namespace object
     {
         /// register all the data types, covering all JSON types, to assist serialization
+        /// Type data can be registered to a static data store `std::map<AttributeType, std::string>`
+        /// at compiling time.
+
         // the attribute type enumeration used to identify the type of Attribute object being handled
         typedef enum
         {
@@ -64,7 +67,6 @@ namespace sal
         /** attribute identifier strings in serialised objects
           those type name should equal to `numpy.typename`
           see: https://numpy.org/devdocs/user/basics.types.html
-          Type data are not organized into `std::map<AttributeType, std::string>`,
           because they can be shared by both C adn C++.
           why not const char*, maybe caused by Poco::JSON
         */
@@ -87,11 +89,23 @@ namespace sal
         // forward declaratoin
         class Dictionary;
 
+        /// abstract class corresponding to python DataSummary class.
+        /// Attribute class (base data class) implements this interface,
+        /// to avoid another summary class tree in parallel with data class tree as in Python
+        class SummaryInterface
+        {
+        public:
+            virtual Poco::JSON::Object::Ptr encode_header() const = 0;
+            virtual Poco::JSON::Object::Ptr encode_summary() const = 0;
+            /// stringified json object returned from `encode_summary()`
+            virtual std::string summary() const = 0;
+        };
+
         /// why call Attribute? (data entry), Node class has a dictionary of Attributes
         /// The base data class (without any data) should also have a Type and TypeName
         // Todo: rename to DataObject to align with Python implementation
         // Todo: implement metadata registration to simulate python decorator
-        class Attribute
+        class Attribute : public SummaryInterface
         {
         public:
             typedef Poco::SharedPtr<Attribute> Ptr;
@@ -103,30 +117,16 @@ namespace sal
             */
             Attribute(const AttributeType _type, const std::string _type_name)
                     : m_type(_type)
-                    , m_typeName(_type_name){};
+                    , m_type_name(_type_name){};
             virtual ~Attribute(){};
 
             /// from Attribute instance to json, return `Poco::JSON::Object::Ptr`
             virtual Poco::JSON::Object::Ptr encode() const = 0;
 
-            // CONSIDER buffer pointer interface for C-API, currently implemented for Array only
-            // void* data_pointer() = 0;
-
-            /// must be override by derived classes if data to big to fit into a summary
-            /// corresponding to python DataSummary class
-            /// derived class should call base method as the first line of code
-            virtual std::string summary() const noexcept
-            {
-                std::stringstream ss;
-                auto jp = encode();
-                jp->stringify(ss);
-                return ss.str();
-            }
-
             // consider: method name should be type_name()
             inline const std::string& type_name() const noexcept
             {
-                return m_typeName;
+                return m_type_name;
             }
 
             inline const AttributeType& type_id() const noexcept
@@ -134,20 +134,91 @@ namespace sal
                 return m_type;
             }
 
-            // consider: method name should be isNull()
+            // CONSIDER buffer pointer interface for C-API, currently implemented for Array only
+            // void* data_pointer() = 0;
+
+
+            /// @{ SummaryInterface
+            inline const std::string& description() const noexcept
+            {
+                return m_description;
+            }
+            /// description property setter
+            inline std::string& description() noexcept
+            {
+                return m_description;
+            }
+
+            /// core.dataclass._new_dict() with common header info
+            virtual Poco::JSON::Object::Ptr encode_header() const override final
+            {
+                /// constant members from python DataObject ReportSummary
+                const static std::string GROUP = "core";
+                // static member init of std::string is not supported
+                const static uint64_t VERSION = 1;
+
+                // d['_type'] = TYPE_SUMMARY
+                Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
+#if 0
+                // TODO: to be python compatible, array class name
+                if (is_array())
+                {
+                    json->set("_class", this->type_name() + "_ARRAY");
+                }
+                else
+#endif
+                json->set("_class", this->type_name());
+                json->set("_group", GROUP);
+                json->set("_version", VERSION);
+                json->set("description", this->m_description);
+                return json;
+            }
+
+            /*
+            Returns a Poco JSON object summary of the data object.
+            corresponding to python DataSummary class `to_dict()`
+            only container derived class like Array and Dictionary need to override
+            */
+            virtual Poco::JSON::Object::Ptr encode_summary() const override
+            {
+                auto json = encode_header();
+                // only if value is small, put into summary
+                if (is_atomic())
+                {
+                    const auto j = encode();
+                    json->set("value", j->get("value"));
+                }
+                return json;
+            }
+
+            virtual std::string summary() const override
+            {
+                std::stringstream ss;
+                auto jp = encode_summary(); // TODO: check if derived virtual function invoked?
+                jp->stringify(ss);
+                return ss.str();
+            }
+            /// @}
+
+
+            /// @{
             inline bool is_null() const noexcept
             {
                 return m_type == ATTR_NULL;
             }
-            // is bool regarded as scalar?
-            inline bool is_scalar() const noexcept
+            // bool is not regarded as a scalar
+            inline bool is_number() const noexcept
             {
-                return not(is_array() or is_string() or is_null() or is_object());
+                return not(is_array() or is_string() or is_boolean() or is_null() or is_object());
             }
-
+            // is bool regarded as scalar?
+            inline bool is_boolean() const noexcept
+            {
+                return m_type == ATTR_BOOL;
+            }
             inline bool is_atomic() const noexcept
             {
-                return not(is_array() or is_object());
+                return not(is_array() or is_object() or is_null());
             }
 
             inline bool is_array() const noexcept
@@ -164,14 +235,12 @@ namespace sal
             {
                 return m_type == ATTR_DICTIONARY;
             }
+            /// @}
 
         protected:
             const AttributeType m_type;
-            std::string m_typeName;
-            /// constant members from python DataObject ReportSummary
-            const char* GROUP = "core";
-            const static uint64_t VERSION = 1; // static member init of std::string might not supported
-            // CLASS is the typname, it is different for types
+            std::string m_type_name; // CLASS is the typname, it is different for types
+            std::string m_description;
         };
 
         /// this class can be merged to the base class  It is a design decision
@@ -480,6 +549,19 @@ namespace sal
 
                 return this->data[element_index];
             }
+
+            /*
+            Returns a Poco JSON object summary of the Array.
+            */
+            virtual Poco::JSON::Object::Ptr encode_summary() const override
+            {
+                auto json_obj = encode_header();
+                // to be consistent with python side, no value field
+                json_obj->set("shape", this->encode_shape());
+                // new info, only for C++, but comptable with python
+                json_obj->set("element_type", this->m_element_type_name);
+                return json_obj;
+            };
 
             /*
             Returns a Poco JSON object representation of the Array.
@@ -952,6 +1034,17 @@ namespace sal
             void remove(const std::string& key)
             {
                 this->attributes.erase(key);
+            };
+
+            /*
+            Returns a Poco JSON object summary of the Array.
+            */
+            virtual Poco::JSON::Object::Ptr encode_summary() const override
+            {
+                auto json_obj = encode_header();
+                // new info, only for C++, but comptable with python
+                json_obj->set("count", this->attributes.size());
+                return json_obj;
             };
 
             /*

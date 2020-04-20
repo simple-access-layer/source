@@ -20,7 +20,7 @@ matrix:
             - libboost-dev
             - libpoco-dev
             - cmake
-            - g++-7
+            - g++-8
             - doxygen
       env:
         - GCS_TAG=ubuntu_64bit
@@ -51,15 +51,16 @@ matrix:
         - sudo docker pull ${DOCKER_IMG}
         # docker -d, --detach Detached mode: run command in the background
         - >-
-          sudo docker run -dit
+          sudo docker run -d
           --volume "${PWD}:/mnt/sal"
           --workdir /mnt/sal
           --env DOCKER_USER="${DOCKER_USER}"
           --env TRAVIS_OS_NAME="${TRAVIS_OS_NAME}"
           --name "${DOCKER_CONTAINER}"
           "${DOCKER_IMG}"
+          /bin/sh -c "while true; do sleep 1; done"
         # docker image is up and running, exec more command inside
-        - sleep 5 # make sure the docker instance has started up and running
+        # make sure the docker instance has started up and running
         - >-
           sudo docker exec "${DOCKER_CONTAINER}" 
           yum install epel-release -y && 
@@ -74,11 +75,12 @@ matrix:
       install:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
-          echo "todo deploy the rpm package PWD = ${PWD}"
+          echo "todo: deploy the rpm package, PWD = ${PWD}"
       script:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
           echo "todo, PWD = ${PWD}"
         # Test installing the built rpm (as root)
         - sudo docker exec "${DOCKER_CONTAINER}" echo "todo, PWD = ${PWD}"
+        - sudo docker stop "${DOCKER_CONTAINER}"
       #deploy
