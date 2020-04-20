@@ -1,0 +1,86 @@
+# this CI only test C and C++ code
+sudo: required
+# C and C++ code will be only tested on this branch, before merge to master
+branches:
+  only:
+  - feature/sal_cpp
+  - python_dev
+  - master
+
+# adapted from https://github.com/google/grr/blob/master/.travis.yml
+matrix:
+  include:
+    # 64-bit deb builds
+    - os: linux
+      dist: bionic
+      language: c++
+      addons:
+        apt:
+          packages:
+            - libboost-dev
+            - libpoco-dev
+            - cmake
+            - g++-7
+            - doxygen
+      env:
+        - GCS_TAG=ubuntu_64bit
+      install:
+        - echo "nothing is needed here, PWD = $PWD"
+      script:
+        - source "${HOME}/INSTALL/bin/activate"
+        - travis/build_templates.sh
+        # multi-line command
+        - >-
+          cd clients/c_cpp/ && bash scripts/build.sh
+        - cd build && make package
+      #deploy, is per matrix deployment possible?
+
+    # 64-bit Centos 7 docker container inside an Ubuntu host, for rpm builds
+    - os: linux
+      dist: bionic
+      language: c++
+      services:
+        - docker
+      env:
+        - GCS_TAG=centos_64bit
+        - DOCKER_IMG=centos/devtoolset-7-toolchain-centos7
+        - DOCKER_CONTAINER=centos_64bit_container
+        # todo: default base image has only root user
+        - DOCKER_USER=root
+      before_install:
+        #- echo 'DOCKER_OPTS="-H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock -s devicemapper"' | sudo tee /etc/default/docker > /dev/null
+        #- sudo service docker restart
+        - sleep 3
+        - sudo docker pull ${DOCKER_IMG}
+        # docker -d, --detach Detached mode: run command in the background
+        - >-
+          sudo docker run -dit
+          --volume "${PWD}:/mnt/sal"
+          --workdir /mnt/sal
+          --env DOCKER_USER="${DOCKER_USER}"
+          --env TRAVIS_OS_NAME="${TRAVIS_OS_NAME}"
+          --name "${DOCKER_CONTAINER}"
+          "${DOCKER_IMG}"
+        # docker image is up and running, exec more command inside
+        - >-
+          sudo docker exec "${DOCKER_CONTAINER}" 
+          yum install epel-release -y && 
+          yum install poco-devel openssl-devel cmake3 -y
+        - >-
+          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
+          cd clients/c_cpp/ && mkdir blg && cd blg 
+          && cmake3 .. 
+          && make
+          && make package
+          && cp ../scripts/run_all_tests.sh
+      install:
+        - >-
+          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
+          echo "todo deploy the rpm package PWD = ${PWD}"
+      script:
+        - >-
+          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
+          echo "todo, PWD = ${PWD}"
+        # Test installing the built rpm (as root)
+        - sudo docker exec "${DOCKER_CONTAINER}" echo "todo, PWD = ${PWD}"
+      #deploy
