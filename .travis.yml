@@ -28,8 +28,8 @@ matrix:
         - echo "nothing is needed here, PWD = $PWD"
       script:
         # multi-line command
-        - >-
-          cd clients/c_cpp/ && bash scripts/build.sh
+        - cd clients/c_cpp/ && bash scripts/build.sh
+        - cd build && bash ../scripts/run_all_tests.sh
         - cd build && make package
       #deploy, is per matrix deployment possible?
 
@@ -63,7 +63,7 @@ matrix:
         # make sure the docker instance has started up and running
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" 
-          /bin/sh -c "yum install epel-release -y && yum install poco-devel openssl-devel cmake3 -y"
+          /bin/sh -c "yum install epel-release -y && yum install poco-devel openssl-devel cmake3 rpm-build -y"
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
           /bin/sh -c "
@@ -71,7 +71,8 @@ matrix:
           && cmake3 .. 
           && make
           && make package
-          && cp ../scripts/run_all_tests.sh"
+          && cp ../scripts/run_all_tests.sh ./
+          && bash run_all_tests.sh"
       install:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"

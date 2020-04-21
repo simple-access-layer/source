@@ -34,8 +34,10 @@ namespace sal
         // the attribute type enumeration used to identify the type of Attribute object being handled
         typedef enum
         {
-            ATTR_NULL, ///!> empty (uninitialized, null state), JSON null type
-            ATTR_INT8, ///!> JSON number type
+            ATTR_NULL,   ///!> empty (uninitialized, null state), JSON null type
+            ATTR_SCALAR, ///!> JSON scalar number type + boolean = SAL scalar class
+            // consider: split dtype out as DTYPE
+            ATTR_INT8, ///!> JSON scalar number type
             ATTR_INT16,
             ATTR_INT32,
             ATTR_INT64,
@@ -45,7 +47,8 @@ namespace sal
             ATTR_UINT64,
             ATTR_FLOAT32,
             ATTR_FLOAT64,
-            ATTR_BOOL,   ///!> JSON bool type
+            ATTR_BOOL, ///!> JSON bool type
+
             ATTR_STRING, ///!> JSON string type, UTF8 encoding assumed
             ATTR_ARRAY,  ///!> JSON array type, with same element type
 #if 0
@@ -62,7 +65,8 @@ namespace sal
             ATTR_FLOAT64_ARRAY,
             ATTR_STRING_ARRAY, /// JSON array type for string
 #endif
-            ATTR_DICTIONARY, /// JSON object type, container of children json types
+            ATTR_DICTIONARY, ///!> JSON object type, container of children json types
+            ATTR_SIGNAL,     ///!> customized JSON object type for SAL physical pulse signal
         } AttributeType;
 
         /** attribute identifier strings in serialised objects
@@ -72,6 +76,9 @@ namespace sal
           why not const char*, maybe caused by Poco::JSON
         */
         char TYPE_NAME_NULL[] = "null";
+        char TYPE_NAME_SCALAR[] = "scalar";
+        // numpy.dtype 's typename
+        // consider split dtype out as DTYPE_NAME
         char TYPE_NAME_INT8[] = "int8";
         char TYPE_NAME_INT16[] = "int16";
         char TYPE_NAME_INT32[] = "int32";
@@ -83,9 +90,11 @@ namespace sal
         char TYPE_NAME_FLOAT32[] = "float32";
         char TYPE_NAME_FLOAT64[] = "float64";
         char TYPE_NAME_BOOL[] = "bool";
+
         char TYPE_NAME_STRING[] = "string";
         char TYPE_NAME_ARRAY[] = "array"; /// has extra class member element_type_name
         char TYPE_NAME_DICTIONARY[] = "dictionary";
+        char TYPE_NAME_SIGNAL[] = "signal";
 
         // forward declaratoin
         class Dictionary;
@@ -131,12 +140,14 @@ namespace sal
             /// from Attribute instance to json, return `Poco::JSON::Object::Ptr`
             virtual Poco::JSON::Object::Ptr encode() const = 0;
 
-            // consider: method name should be type_name()
+            /// consider: this member method and variable name should be class_name(),
+            /// map to python class member variable `CLASS`
             inline const std::string& type_name() const noexcept
             {
                 return m_type_name;
             }
 
+            /// no corresponding on python side, maybe useful to
             inline const AttributeType& type_id() const noexcept
             {
                 return m_type;
@@ -147,14 +158,21 @@ namespace sal
 
 
             /// @{ SummaryInterface
-            bool is_summary()
+            /// for complex data type, there is no data available
+            /// is_summary() true if the instance is created by decode_summary()
+            bool is_summary() const noexcept
             {
                 return m_is_summary;
             };
 
             inline const std::string& description() const noexcept
             {
-                return m_description;
+                if (m_description.size())
+                    return m_description;
+                else
+                {
+                    return m_type_name;
+                }
             }
             /// description property setter
             inline std::string& description() noexcept
@@ -172,15 +190,15 @@ namespace sal
 
                 // d['_type'] = TYPE_SUMMARY
                 Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
-#if 0
-                // TODO: to be python compatible, array class name
-                if (is_array())
+
+                // to be python compatible, remove this block after further refactoring,
+                if (is_number())
                 {
-                    json->set("_class", this->type_name() + "_ARRAY");
+                    json->set("_class", "scalar");
                 }
                 else
-#endif
-                json->set("_class", this->type_name());
+                    json->set("_class", this->type_name());
+
                 json->set("_group", GROUP);
                 json->set("_version", VERSION);
                 json->set("description", this->m_description);
@@ -291,21 +309,22 @@ namespace sal
         Data Object for Scalar atomic types (JSON number types)
         REFACTORED: rename Scalar<> into Atomic<>
         TODO: std::atomic<> to make them atomic as the name suggested
+        CONSIDER: type_name (CLASS name) == SCALAR, to be consistent with python
         */
-        template <class T, AttributeType TYPE, char const* TYPE_NAME> class Atomic : public Attribute
+        template <class T, AttributeType DTYPE, char const* DTYPE_NAME> class Atomic : public Attribute
         {
             T m_value;
 
         public:
-            typedef Poco::SharedPtr<Atomic<T, TYPE, TYPE_NAME>> Ptr;
+            typedef Poco::SharedPtr<Atomic<T, DTYPE, DTYPE_NAME>> Ptr;
             /*
             Constructors and destructor.
             */
             Atomic()
-                    : Attribute(TYPE, TYPE_NAME)
+                    : Attribute(DTYPE, DTYPE_NAME)
                     , m_value(T()){}; // using T() as the default value is more general
             Atomic(T _value)
-                    : Attribute(TYPE, TYPE_NAME)
+                    : Attribute(DTYPE, DTYPE_NAME)
                     , m_value(_value){};
             virtual ~Atomic(){};
 
@@ -333,16 +352,16 @@ namespace sal
             /*
             Decodes a Poco JSON object representation of the Scalar and returns a Scalar object.
             */
-            static typename Atomic<T, TYPE, TYPE_NAME>::Ptr decode(Poco::JSON::Object::Ptr json)
+            static typename Atomic<T, DTYPE, DTYPE_NAME>::Ptr decode(Poco::JSON::Object::Ptr json)
             {
 
                 // treat any failure as a failure to decode
                 try
                 {
                     // check sal type is valid for this class
-                    if (json->getValue<std::string>("type") != std::string(TYPE_NAME))
+                    if (json->getValue<std::string>("type") != std::string(DTYPE_NAME))
                         throw std::exception();
-                    return new Atomic<T, TYPE, TYPE_NAME>(json->getValue<T>("value"));
+                    return new Atomic<T, DTYPE, DTYPE_NAME>(json->getValue<T>("value"));
                 }
                 catch (...)
                 {
@@ -352,7 +371,7 @@ namespace sal
             };
         };
 
-
+        /// TODO: using scalar as CLASS type, map to python sal implementation
         typedef Atomic<int8_t, ATTR_INT8, TYPE_NAME_INT8> Int8;
         typedef Atomic<int16_t, ATTR_INT16, TYPE_NAME_INT16> Int16;
         typedef Atomic<int32_t, ATTR_INT32, TYPE_NAME_INT32> Int32;
@@ -366,10 +385,14 @@ namespace sal
         typedef Atomic<float, ATTR_FLOAT32, TYPE_NAME_FLOAT32> Float32;
         typedef Atomic<double, ATTR_FLOAT64, TYPE_NAME_FLOAT64> Float64;
         typedef Atomic<bool, ATTR_BOOL, TYPE_NAME_BOOL> Bool;
+
+        // TODO: specialization String to have different CLASS name
+        // std::string is also not support atomic operation
         typedef Atomic<std::string, ATTR_STRING, TYPE_NAME_STRING> String;
 
         /// a typedef to ease future refactoring on data structure
         using ShapeType = std::vector<uint64_t>;
+
         /*
         It is a multi-dimension array based on std::vector<T>
         No default constructor without parameter is allowed,
@@ -1185,7 +1208,7 @@ namespace sal
             if (id == TYPE_NAME_STRING)
                 return String::decode(json);
 
-            // arrays
+            // TODO: split into another
             if (id == TYPE_NAME_ARRAY)
             {
 

@@ -52,9 +52,9 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cMake")
 
 
 # it can be used by subdirectory cmakelist.txt
-include_directories("./include")
-# for json, must be run before include App subfolder
-include_directories("${PROJECT_SOURCE_DIR}/third-party") 
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
+# for json.hpp, catch.h
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/third-party") 
 
 
 ## put all targets in bin and lib
