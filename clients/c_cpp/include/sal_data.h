@@ -30,6 +30,7 @@ namespace sal
         /// Type data can be registered to a static data store `std::map<AttributeType, std::string>`
         /// at compiling time.
 
+        /// C language comptable
         // the attribute type enumeration used to identify the type of Attribute object being handled
         typedef enum
         {
@@ -92,13 +93,20 @@ namespace sal
         /// abstract class corresponding to python DataSummary class.
         /// Attribute class (base data class) implements this interface,
         /// to avoid another summary class tree in parallel with data class tree as in Python
+        /// static SummaryInterface::Ptr decode_summary(Poco::JSON::Object::Ptr json)
         class SummaryInterface
         {
         public:
+            typedef Poco::SharedPtr<SummaryInterface> Ptr;
             virtual Poco::JSON::Object::Ptr encode_header() const = 0;
             virtual Poco::JSON::Object::Ptr encode_summary() const = 0;
+
             /// stringified json object returned from `encode_summary()`
+            /// C API can get `const char*` string buffer
+            /// consider: return std::shared_ptr<std::string> for better performance
             virtual std::string summary() const = 0;
+
+        protected:
         };
 
         /// why call Attribute? (data entry), Node class has a dictionary of Attributes
@@ -139,6 +147,11 @@ namespace sal
 
 
             /// @{ SummaryInterface
+            bool is_summary()
+            {
+                return m_is_summary;
+            };
+
             inline const std::string& description() const noexcept
             {
                 return m_description;
@@ -240,6 +253,9 @@ namespace sal
         protected:
             const AttributeType m_type;
             std::string m_type_name; // CLASS is the typname, it is different for types
+
+            /// member for summary interface
+            bool m_is_summary;
             std::string m_description;
         };
 
@@ -269,6 +285,7 @@ namespace sal
                 return json;
             };
         };
+
 
         /*
         Data Object for Scalar atomic types (JSON number types)
@@ -351,6 +368,8 @@ namespace sal
         typedef Atomic<bool, ATTR_BOOL, TYPE_NAME_BOOL> Bool;
         typedef Atomic<std::string, ATTR_STRING, TYPE_NAME_STRING> String;
 
+        /// a typedef to ease future refactoring on data structure
+        using ShapeType = std::vector<uint64_t>;
         /*
         It is a multi-dimension array based on std::vector<T>
         No default constructor without parameter is allowed,
@@ -383,7 +402,7 @@ namespace sal
                 Float32Array a3({512, 512, 3});
 
             */
-            Array(std::vector<uint64_t> _shape)
+            Array(ShapeType _shape)
                     : Attribute(ATTR_ARRAY, TYPE_NAME_ARRAY)
                     , m_element_type(ELEMENT_TYPE)
                     , m_element_type_name(ELEMENT_TYPE_NAME)
@@ -432,7 +451,7 @@ namespace sal
                 return this->data.size();
             };
 
-            inline std::vector<uint64_t> shape() const
+            inline ShapeType shape() const
             {
                 return this->m_shape;
             };
@@ -590,7 +609,7 @@ namespace sal
             {
 
                 Poco::JSON::Object::Ptr array_definition;
-                std::vector<uint64_t> shape;
+                ShapeType shape;
                 std::string encoded_data;
                 typename Array<T, ELEMENT_TYPE, ELEMENT_TYPE_NAME>::Ptr array;
 
@@ -634,8 +653,8 @@ namespace sal
             const std::string m_element_type_name;
             const AttributeType m_element_type;
             uint8_t m_dimension; // CONSIDER: size_t otherwise lots of compiler warning
-            std::vector<uint64_t> m_shape;
-            std::vector<uint64_t> m_strides;
+            ShapeType m_shape;
+            ShapeType m_strides;
             std::vector<T> data;
 
             /*
@@ -652,9 +671,9 @@ namespace sal
             /*
             Decodes the shape array from a POCO JSON array object.
             */
-            static std::vector<uint64_t> decode_shape(Poco::JSON::Array::Ptr encoded)
+            static ShapeType decode_shape(Poco::JSON::Array::Ptr encoded)
             {
-                std::vector<uint64_t> shape(encoded->size());
+                ShapeType shape(encoded->size());
                 for (uint8_t i = 0; i < encoded->size(); i++)
                     shape[i] = encoded->getElement<uint64_t>(i);
                 return shape;
@@ -673,7 +692,6 @@ namespace sal
                 // POCO 1.6 on Centos7 does not have such
                 Poco::Base64Encoder encoder(s);
 #endif
-                // TODO: why not reinterpret_cast<unsigned char*>
                 encoder.write(reinterpret_cast<const char*>(this->data.data()), this->data.size() * sizeof(T));
                 encoder.close();
                 return s.str();
