@@ -63,15 +63,15 @@ matrix:
         # make sure the docker instance has started up and running
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" 
-          yum install epel-release -y && 
-          yum install poco-devel openssl-devel cmake3 -y
+          /bin/sh -c "yum install epel-release -y && yum install poco-devel openssl-devel cmake3 -y"
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
+          /bin/sh -c "
           cd clients/c_cpp/ && mkdir blg && cd blg 
           && cmake3 .. 
           && make
           && make package
-          && cp ../scripts/run_all_tests.sh
+          && cp ../scripts/run_all_tests.sh"
       install:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
