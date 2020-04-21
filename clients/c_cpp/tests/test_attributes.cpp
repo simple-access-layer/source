@@ -588,6 +588,27 @@ TEST_CASE("Data object null or empty attribute.", "[sal::object::Attribute]")
 }
 
 
+TEST_CASE("Data object summary", "[sal::object::SummaryInterface]")
+{
+    SECTION("scalar summary")
+    {
+        sal::object::Int32 v{100};
+        Poco::JSON::Object::Ptr obj = v.encode_summary();
+        REQUIRE(obj->get("value").convert<int32_t>() == 100);
+    }
+
+    SECTION("array summary")
+    {
+        sal::object::Int8Array v({2, 3});
+        Poco::JSON::Object::Ptr obj = v.encode_summary();
+
+        // obj->stringify(cout);
+        Poco::Dynamic::Array shape = *(obj->getArray("shape"));
+        REQUIRE(shape[0] == 2);
+        REQUIRE(shape[1] == 3);
+    }
+}
+
 TEST_CASE("Data object Int8 array attribute.", "[sal::object::Int8Array]")
 {
 
