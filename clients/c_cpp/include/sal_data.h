@@ -24,6 +24,7 @@ namespace sal
     using namespace exception;
 
     /// TODO: rename namespace object -> namespace data
+    /// responding to pyton sal.dataclass.core module
     namespace object
     {
         /// register all the data types, covering all JSON types, to assist serialization
@@ -66,7 +67,7 @@ namespace sal
             ATTR_STRING_ARRAY, /// JSON array type for string
 #endif
             ATTR_DICTIONARY, ///!> JSON object type, container of children json types
-            ATTR_SIGNAL,     ///!> customized JSON object type for SAL physical pulse signal
+            ATTR_SIGNAL,     ///!> high level data model for SAL physical pulse signal
         } AttributeType;
 
         /** attribute identifier strings in serialised objects
@@ -102,12 +103,11 @@ namespace sal
         /// abstract class corresponding to python DataSummary class.
         /// Attribute class (base data class) implements this interface,
         /// to avoid another summary class tree in parallel with data class tree as in Python
-        /// static SummaryInterface::Ptr decode_summary(Poco::JSON::Object::Ptr json)
+        /// static Attribute::Ptr decode_summary(Poco::JSON::Object::Ptr json)
         class SummaryInterface
         {
         public:
             typedef Poco::SharedPtr<SummaryInterface> Ptr;
-            virtual Poco::JSON::Object::Ptr encode_header() const = 0;
             virtual Poco::JSON::Object::Ptr encode_summary() const = 0;
 
             /// stringified json object returned from `encode_summary()`
@@ -116,12 +116,14 @@ namespace sal
             virtual std::string summary() const = 0;
 
         protected:
+            virtual Poco::JSON::Object::Ptr encode_header(bool _is_summary = false) const = 0;
         };
 
-        /// why call Attribute? (data entry), Node class has a dictionary of Attributes
+        /// It is low-level data entry, data.signal is high-level data container
+        //  Node class has a dictionary of Attributes
         /// The base data class (without any data) should also have a Type and TypeName
-        // Todo: rename to DataObject to align with Python implementation
-        // Todo: implement metadata registration to simulate python decorator
+        // SKIP: rename to DataObject to align with Python implementation
+        // SKIP: implement metadata registration to simulate python decorator
         class Attribute : public SummaryInterface
         {
         public:
@@ -147,13 +149,13 @@ namespace sal
                 return m_type_name;
             }
 
-            /// no corresponding on python side, maybe useful to
+            /// no corresponding on python side, maybe useful for quick type comparison
             inline const AttributeType& type_id() const noexcept
             {
                 return m_type;
             }
 
-            // CONSIDER buffer pointer interface for C-API, currently implemented for Array only
+            // CONSIDER: buffer pointer interface for C-API, currently implemented for Array only
             // void* data_pointer() = 0;
 
 
@@ -181,11 +183,12 @@ namespace sal
             }
 
             /// core.dataclass._new_dict() with common header info
-            virtual Poco::JSON::Object::Ptr encode_header() const override final
+            virtual Poco::JSON::Object::Ptr encode_header(bool _is_summary = false) const override final
             {
                 /// constant members from python DataObject ReportSummary
-                const static std::string GROUP = "core";
+
                 // static member init of std::string is not supported
+                // todo: make a new function
                 const static uint64_t VERSION = 1;
 
                 // d['_type'] = TYPE_SUMMARY
@@ -197,9 +200,18 @@ namespace sal
                     json->set("_class", "scalar");
                 }
                 else
+                {
                     json->set("_class", this->type_name());
+                }
 
-                json->set("_group", GROUP);
+                if (_is_summary)
+                    json->set("_type", "summary");
+                else
+                {
+                    json->set("_type", "object");
+                }
+
+                json->set("_group", m_group_name);
                 json->set("_version", VERSION);
                 json->set("description", this->m_description);
                 return json;
@@ -212,8 +224,10 @@ namespace sal
             */
             virtual Poco::JSON::Object::Ptr encode_summary() const override
             {
-                auto json = encode_header();
-                // only if value is small, put into summary
+                auto json = encode_header(false);
+
+                json->set("type", this->type_name());
+                // only if data value is small, put into summary, not compatible with python
                 if (is_atomic())
                 {
                     const auto j = encode();
@@ -237,7 +251,7 @@ namespace sal
             {
                 return m_type == ATTR_NULL;
             }
-            // bool is not regarded as a scalar
+            // bool is regarded as a arithmetic in C++
             inline bool is_number() const noexcept
             {
                 return not(is_array() or is_string() or is_boolean() or is_null() or is_object());
@@ -270,7 +284,8 @@ namespace sal
 
         protected:
             const AttributeType m_type;
-            std::string m_type_name; // CLASS is the typname, it is different for types
+            std::string m_type_name;  // CLASS is the typename, it is different for types
+            std::string m_group_name; // GROUP
 
             /// member for summary interface
             bool m_is_summary;
@@ -344,7 +359,9 @@ namespace sal
             virtual Poco::JSON::Object::Ptr encode() const override
             {
                 Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
-                json->set("type", this->type_name());
+                if (is_summary())
+                    throw SALException("this is an summary without data");
+                json->set("type", "object"); // full object not summary
                 json->set("value", this->m_value);
                 return json;
             };
@@ -739,6 +756,8 @@ namespace sal
         };
 
         /// naming as Javascript TypedArray
+        /// TODO: ATTR_INT8, TYPE_NAME_INT8 should be decided by compiler
+        /// std::map<type_index, const char*>, to simplify coding in higher level signal class
         typedef Array<int8_t, ATTR_INT8, TYPE_NAME_INT8> Int8Array;
         typedef Array<int16_t, ATTR_INT16, TYPE_NAME_INT16> Int16Array;
         typedef Array<int32_t, ATTR_INT32, TYPE_NAME_INT32> Int32Array;
@@ -1161,6 +1180,46 @@ namespace sal
             std::map<std::string, Attribute::Ptr> attributes;
         };
 
+        static Attribute::Ptr decode_array(Poco::JSON::Object::Ptr json)
+        {
+            Poco::JSON::Object::Ptr array_definition;
+            std::string element_id;
+
+            try
+            {
+                array_definition = json->getObject("value");
+                element_id = array_definition->getValue<std::string>("type");
+            }
+            catch (...)
+            {
+                // todo: define a sal exception and replace
+                throw SALException("JSON object does not define a valid SAL attribute.");
+            }
+
+            if (element_id == TYPE_NAME_INT8)
+                return Int8Array::decode(json);
+            if (element_id == TYPE_NAME_INT16)
+                return Int16Array::decode(json);
+            if (element_id == TYPE_NAME_INT32)
+                return Int32Array::decode(json);
+            if (element_id == TYPE_NAME_INT64)
+                return Int64Array::decode(json);
+            if (element_id == TYPE_NAME_UINT8)
+                return UInt8Array::decode(json);
+            if (element_id == TYPE_NAME_UINT16)
+                return UInt16Array::decode(json);
+            if (element_id == TYPE_NAME_UINT32)
+                return UInt32Array::decode(json);
+            if (element_id == TYPE_NAME_UINT64)
+                return UInt64Array::decode(json);
+            if (element_id == TYPE_NAME_FLOAT32)
+                return Float32Array::decode(json);
+            if (element_id == TYPE_NAME_FLOAT64)
+                return Float64Array::decode(json);
+            if (element_id == TYPE_NAME_STRING)
+                return StringArray::decode(json);
+        }
+
         /*
         Attempts to decode a JSON object into a SAL object attribute.
         */
@@ -1181,6 +1240,9 @@ namespace sal
             // containers
             if (id == TYPE_NAME_DICTIONARY)
                 return Dictionary::decode(json);
+
+            if (id == TYPE_NAME_ARRAY)
+                return decode_array(json);
 
             // atomic
             if (id == TYPE_NAME_INT8)
@@ -1208,49 +1270,6 @@ namespace sal
             if (id == TYPE_NAME_STRING)
                 return String::decode(json);
 
-            // TODO: split into another
-            if (id == TYPE_NAME_ARRAY)
-            {
-
-                Poco::JSON::Object::Ptr array_definition;
-                std::string element_id;
-
-                try
-                {
-                    array_definition = json->getObject("value");
-                    element_id = array_definition->getValue<std::string>("type");
-                }
-                catch (...)
-                {
-                    // todo: define a sal exception and replace
-                    throw SALException("JSON object does not define a valid SAL attribute.");
-                }
-
-                if (element_id == TYPE_NAME_INT8)
-                    return Int8Array::decode(json);
-                if (element_id == TYPE_NAME_INT16)
-                    return Int16Array::decode(json);
-                if (element_id == TYPE_NAME_INT32)
-                    return Int32Array::decode(json);
-                if (element_id == TYPE_NAME_INT64)
-                    return Int64Array::decode(json);
-                if (element_id == TYPE_NAME_UINT8)
-                    return UInt8Array::decode(json);
-                if (element_id == TYPE_NAME_UINT16)
-                    return UInt16Array::decode(json);
-                if (element_id == TYPE_NAME_UINT32)
-                    return UInt32Array::decode(json);
-                if (element_id == TYPE_NAME_UINT64)
-                    return UInt64Array::decode(json);
-                if (element_id == TYPE_NAME_FLOAT32)
-                    return Float32Array::decode(json);
-                if (element_id == TYPE_NAME_FLOAT64)
-                    return Float64Array::decode(json);
-                if (element_id == TYPE_NAME_STRING)
-                    return StringArray::decode(json);
-            }
-
-            // todo: define a sal exception and replace
             throw SALException("JSON object does not define a valid SAL attribute.");
         }
 
@@ -1264,5 +1283,6 @@ namespace sal
         {
             return typename T::Ptr(decode(json).cast<T>());
         };
+
     } // namespace object
 } // namespace sal

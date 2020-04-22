@@ -30,7 +30,7 @@ matrix:
         # multi-line command
         - cd clients/c_cpp/ && bash scripts/build.sh
         - cd build && bash ../scripts/run_all_tests.sh
-        - cd build && make package
+        - cd make package
       #deploy, is per matrix deployment possible?
 
     # 64-bit Centos 7 docker container inside an Ubuntu host, for rpm builds
