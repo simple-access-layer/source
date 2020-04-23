@@ -97,6 +97,42 @@ namespace sal
         char TYPE_NAME_DICTIONARY[] = "dictionary";
         char TYPE_NAME_SIGNAL[] = "signal";
 
+        /// if constexpr (), only for C++17
+        /// decay() from pointer or reference to type
+        /// std::enable_if<>, std::byte, std::complex
+        template <typename DT> const char* to_dtype_name()
+        {
+            // using DT = std::remove_cv<DType>::type;
+            if constexpr (std::is_same<DT, int64_t>::value)
+                return "int64";
+            else if constexpr (std::is_same<DT, int32_t>::value)
+                return "int32";
+            else if (std::is_same<DT, int16_t>::value)
+                return "int16";
+            else if (std::is_same<DT, int8_t>::value)
+                return "int8";
+            else if (std::is_same<DT, uint64_t>::value)
+                return "uint64";
+            else if (std::is_same<DT, uint32_t>::value)
+                return "uint32";
+            else if (std::is_same<DT, uint16_t>::value)
+                return "uint16";
+            else if (std::is_same<DT, uint8_t>::value)
+                return "uint8";
+            else if (std::is_same<DT, float>::value)
+                return "float32";
+            else if (std::is_same<DT, double>::value)
+                return "float64";
+            else if (std::is_same<DT, bool>::value)
+                return "bool";
+            else if (std::is_same<DT, std::string>::value)
+                return "string";
+            else
+            {
+                return "";
+            }
+        }
+
         // forward declaratoin
         class Dictionary;
 
@@ -413,11 +449,12 @@ namespace sal
         It is a multi-dimension array based on std::vector<T>
         No default constructor without parameter is allowed,
         so shape of the array, as std::vector<uint64_t>,  consistent with python numpy.array
+        TODO: proxy pattern for m_data, so big data can not fit into memory can be supported.
         */
-        template <class T, AttributeType ELEMENT_TYPE, char const* ELEMENT_TYPE_NAME> class Array : public Attribute
+        template <class T> class Array : public Attribute
         {
         public:
-            typedef Poco::SharedPtr<Array<T, ELEMENT_TYPE, ELEMENT_TYPE_NAME>> Ptr;
+            typedef Poco::SharedPtr<Array<T>> Ptr;
 
             /*
             Array constructor.
@@ -443,8 +480,8 @@ namespace sal
             */
             Array(ShapeType _shape)
                     : Attribute(ATTR_ARRAY, TYPE_NAME_ARRAY)
-                    , m_element_type(ELEMENT_TYPE)
-                    , m_element_type_name(ELEMENT_TYPE_NAME)
+                    //, m_element_type(ELEMENT_TYPE)
+                    , m_element_type_name(to_dtype_name<T>())
             {
 
                 this->m_dimension = _shape.size();
@@ -500,11 +537,12 @@ namespace sal
                 return this->m_shape.size();
             };
 
-            AttributeType element_type() const
-            {
-                return m_element_type;
-            }
-
+            /*
+                    AttributeType element_type() const
+                    {
+                        return m_element_type;
+                    }
+        */
             std::string element_type_name() const
             {
                 return m_element_type_name;
@@ -646,13 +684,13 @@ namespace sal
             /*
             Decodes a Poco JSON object representation of the Array and returns an Array object.
             */
-            static typename Array<T, ELEMENT_TYPE, ELEMENT_TYPE_NAME>::Ptr decode(Poco::JSON::Object::Ptr json)
+            static typename Array<T>::Ptr decode(Poco::JSON::Object::Ptr json)
             {
 
                 Poco::JSON::Object::Ptr array_definition;
                 ShapeType shape;
                 std::string encoded_data;
-                typename Array<T, ELEMENT_TYPE, ELEMENT_TYPE_NAME>::Ptr array;
+                typename Array<T>::Ptr array;
 
                 // treat any failure as a failure to decode
                 try
@@ -666,7 +704,7 @@ namespace sal
                     array_definition = json->getObject("value");
 
                     // check array element type and array encoding are valid for this class
-                    if (array_definition->getValue<std::string>("type") != std::string(ELEMENT_TYPE_NAME))
+                    if (array_definition->getValue<std::string>("type") != to_dtype_name<T>())
                         throw std::exception();
                     if (array_definition->getValue<std::string>("encoding") != std::string("base64"))
                         throw std::exception();
@@ -674,13 +712,11 @@ namespace sal
                         throw std::exception();
 
                     // decode shape
-                    shape =
-                        Array<T, ELEMENT_TYPE, ELEMENT_TYPE_NAME>::decode_shape(array_definition->getArray("shape"));
+                    shape = Array<T>::decode_shape(array_definition->getArray("shape"));
 
                     // create and populate array
-                    array = new Array<T, ELEMENT_TYPE, ELEMENT_TYPE_NAME>(shape);
-                    Array<T, ELEMENT_TYPE, ELEMENT_TYPE_NAME>::decode_data(
-                        array->data, array_definition->getValue<std::string>("data"));
+                    array = new Array<T>(shape);
+                    Array<T>::decode_data(array->data, array_definition->getValue<std::string>("data"));
                     return array;
                 }
                 catch (...)
@@ -692,7 +728,7 @@ namespace sal
 
         protected:
             const std::string m_element_type_name;
-            const AttributeType m_element_type;
+            // const AttributeType m_element_type;
             uint8_t m_dimension; // CONSIDER: size_t otherwise lots of compiler warning
             ShapeType m_shape;
             ShapeType m_strides;
@@ -759,22 +795,22 @@ namespace sal
         /// naming as Javascript TypedArray
         /// TODO: ATTR_INT8, TYPE_NAME_INT8 should be decided by compiler
         /// std::map<type_index, const char*>, to simplify coding in higher level signal class
-        typedef Array<int8_t, ATTR_INT8, TYPE_NAME_INT8> Int8Array;
-        typedef Array<int16_t, ATTR_INT16, TYPE_NAME_INT16> Int16Array;
-        typedef Array<int32_t, ATTR_INT32, TYPE_NAME_INT32> Int32Array;
-        typedef Array<int64_t, ATTR_INT64, TYPE_NAME_INT64> Int64Array;
+        typedef Array<int8_t> Int8Array;
+        typedef Array<int16_t> Int16Array;
+        typedef Array<int32_t> Int32Array;
+        typedef Array<int64_t> Int64Array;
 
-        typedef Array<uint8_t, ATTR_UINT8, TYPE_NAME_UINT8> UInt8Array;
-        typedef Array<uint16_t, ATTR_UINT16, TYPE_NAME_UINT16> UInt16Array;
-        typedef Array<uint32_t, ATTR_UINT32, TYPE_NAME_UINT32> UInt32Array;
-        typedef Array<uint64_t, ATTR_UINT64, TYPE_NAME_UINT64> UInt64Array;
+        typedef Array<uint8_t> UInt8Array;
+        typedef Array<uint16_t> UInt16Array;
+        typedef Array<uint32_t> UInt32Array;
+        typedef Array<uint64_t> UInt64Array;
 
-        typedef Array<float, ATTR_FLOAT32, TYPE_NAME_FLOAT32> Float32Array;
-        typedef Array<double, ATTR_FLOAT64, TYPE_NAME_FLOAT64> Float64Array;
+        typedef Array<float> Float32Array;
+        typedef Array<double> Float64Array;
 
-        typedef Array<bool, ATTR_BOOL, TYPE_NAME_BOOL> BoolArray;
+        typedef Array<bool> BoolArray;
 #if 1
-        typedef Array<std::string, ATTR_STRING, TYPE_NAME_STRING> StringArray;
+        typedef Array<std::string> StringArray;
 
 #else
         /*
@@ -1181,6 +1217,7 @@ namespace sal
             std::map<std::string, Attribute::Ptr> attributes;
         };
 
+        /// TODO: this can be removed if Array<T> is working
         static Attribute::Ptr decode_array(Poco::JSON::Object::Ptr json)
         {
             Poco::JSON::Object::Ptr array_definition;
@@ -1197,28 +1234,33 @@ namespace sal
                 throw SALException("JSON object does not define a valid SAL attribute.");
             }
 
+            // this can be removed if Array<T> is working
             if (element_id == TYPE_NAME_INT8)
                 return Int8Array::decode(json);
-            if (element_id == TYPE_NAME_INT16)
+            else if (element_id == TYPE_NAME_INT16)
                 return Int16Array::decode(json);
-            if (element_id == TYPE_NAME_INT32)
+            else if (element_id == TYPE_NAME_INT32)
                 return Int32Array::decode(json);
-            if (element_id == TYPE_NAME_INT64)
+            else if (element_id == TYPE_NAME_INT64)
                 return Int64Array::decode(json);
-            if (element_id == TYPE_NAME_UINT8)
+            else if (element_id == TYPE_NAME_UINT8)
                 return UInt8Array::decode(json);
-            if (element_id == TYPE_NAME_UINT16)
+            else if (element_id == TYPE_NAME_UINT16)
                 return UInt16Array::decode(json);
-            if (element_id == TYPE_NAME_UINT32)
+            else if (element_id == TYPE_NAME_UINT32)
                 return UInt32Array::decode(json);
-            if (element_id == TYPE_NAME_UINT64)
+            else if (element_id == TYPE_NAME_UINT64)
                 return UInt64Array::decode(json);
-            if (element_id == TYPE_NAME_FLOAT32)
+            else if (element_id == TYPE_NAME_FLOAT32)
                 return Float32Array::decode(json);
-            if (element_id == TYPE_NAME_FLOAT64)
+            else if (element_id == TYPE_NAME_FLOAT64)
                 return Float64Array::decode(json);
-            if (element_id == TYPE_NAME_STRING)
-                return StringArray::decode(json);
+            // else if (element_id == TYPE_NAME_BOOL)
+            //    return BoolArray::decode(json);  // TODO: compiling error, needs std::enable_if<>
+            else if (element_id == TYPE_NAME_STRING)
+                return StringArray::decode(json); // TODO: decoding may not working, needs std::enable_if<>
+            else
+                throw SALException("data type string `" + element_id + "` is not supported");
         }
 
         /*
