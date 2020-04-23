@@ -95,8 +95,11 @@ namespace sal
 
         };
 
-        node::NodeObject::Ptr list(const string path) const {
+        node::NodeObject::Ptr list(const string path) const
+        {
             // TODO:
+            node::NodeObject::Ptr json;
+            return json;
         };
 
         object::Attribute::Ptr get(const string path, bool summary = false) const

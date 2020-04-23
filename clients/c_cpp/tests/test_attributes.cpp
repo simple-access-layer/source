@@ -6,7 +6,9 @@ These tests use a the Catch2 header only c++ test framework: https://github.com/
 #include "catch.h"
 
 #include "sal.h"
+
 #include <cfloat>
+#include <limits>
 
 using namespace std;
 
@@ -130,11 +132,11 @@ TEST_CASE("Data object Int32 scalar attribute.", "[sal::object::Int32]")
         v.value() = 623007;
         REQUIRE(v.value() == 623007);
 
-        v.value() = -2147483648;
-        REQUIRE(v.value() == -2147483648);
+        v.value() = std::numeric_limits<int32_t>::min();
+        REQUIRE(v.value() == std::numeric_limits<int32_t>::min());
 
-        v.value() = 2147483647;
-        REQUIRE(v.value() == 2147483647);
+        v.value() = std::numeric_limits<int32_t>::max();
+        REQUIRE(v.value() == std::numeric_limits<int32_t>::max());
     }
 
     SECTION("Encode as JSON.")
@@ -175,20 +177,19 @@ TEST_CASE("Data object Int64 scalar attribute.", "[sal::object::Int64]")
         v.value() = 6233230466047;
         REQUIRE(v.value() == 6233230466047);
 
-        v.value() = -9223372036854775808;
-        REQUIRE(v.value() == -9223372036854775808);
+        v.value() = std::numeric_limits<int64_t>::min();
+        REQUIRE(v.value() == std::numeric_limits<int64_t>::min());
 
-        v.value() = 9223372036854775807;
-        REQUIRE(v.value() == 9223372036854775807);
+        v.value() = std::numeric_limits<int64_t>::max();
+        REQUIRE(v.value() == std::numeric_limits<int64_t>::max());
     }
 
     SECTION("Encode as JSON.")
     {
-
-        sal::object::Int64 v(-77375993827738483);
+        sal::object::Int64 v(std::numeric_limits<int64_t>::min());
         Poco::JSON::Object::Ptr obj = v.encode();
 
-        REQUIRE(obj->get("value").convert<int64_t>() == -77375993827738483);
+        REQUIRE(obj->get("value").convert<int64_t>() == std::numeric_limits<int64_t>::min());
         REQUIRE(obj->get("type").convert<string>() == "int64");
     }
 }
@@ -323,7 +324,6 @@ TEST_CASE("Data object UInt32 scalar attribute.", "[sal::object::UInt32]")
 
     SECTION("Encode as JSON.")
     {
-
         sal::object::UInt32 v(783433);
         Poco::JSON::Object::Ptr obj = v.encode();
 
@@ -354,6 +354,7 @@ TEST_CASE("Data object UInt64 scalar attribute.", "[sal::object::UInt64]")
 
     SECTION("Modify value.")
     {
+        uint64_t uint64_max = std::numeric_limits<uint64_t>::max();
         sal::object::UInt64 v;
 
         v.value() = 6233230466047;
@@ -362,17 +363,17 @@ TEST_CASE("Data object UInt64 scalar attribute.", "[sal::object::UInt64]")
         v.value() = 0;
         REQUIRE(v.value() == 0);
 
-        v.value() = 18446744073709551615;
-        REQUIRE(v.value() == 18446744073709551615);
+        v.value() = uint64_max;
+        REQUIRE(v.value() == uint64_max);
     }
 
     SECTION("Encode as JSON.")
     {
-
-        sal::object::UInt64 v(77375993827738483);
+        uint64_t uint64_max = std::numeric_limits<uint64_t>::max();
+        sal::object::UInt64 v(uint64_max);
         Poco::JSON::Object::Ptr obj = v.encode();
 
-        REQUIRE(obj->get("value").convert<uint64_t>() == 77375993827738483);
+        REQUIRE(obj->get("value").convert<uint64_t>() == uint64_max);
         REQUIRE(obj->get("type").convert<string>() == "uint64");
     }
 }
@@ -417,7 +418,6 @@ TEST_CASE("Data object Float32 scalar attribute.", "[sal::object::Float32]")
 
     SECTION("Encode as JSON.")
     {
-
         sal::object::Float32 v(8.273);
         Poco::JSON::Object::Ptr obj = v.encode();
 
@@ -466,7 +466,27 @@ TEST_CASE("Data object Float64 scalar attribute.", "[sal::object::Float64]")
         sal::object::Float64 v(8.273);
         Poco::JSON::Object::Ptr obj = v.encode();
 
-        REQUIRE(obj->get("value").convert<double>() == 8.273d);
+        REQUIRE(obj->get("value").convert<double>() == 8.273);
+        REQUIRE(obj->get("type").convert<string>() == "float64");
+    }
+
+    SECTION("Encode as JSON for float point infinity")
+    {
+
+        sal::object::Float64 v(std::numeric_limits<double>::infinity());
+        Poco::JSON::Object::Ptr obj = v.encode();
+        // inf can be compared by equalness
+        REQUIRE(obj->get("value").convert<double>() > std::numeric_limits<double>::max());
+        REQUIRE(obj->get("type").convert<string>() == "float64");
+    }
+
+    SECTION("Encode as JSON for float point infinity")
+    {
+
+        sal::object::Float64 v(std::numeric_limits<double>::quiet_NaN());
+        Poco::JSON::Object::Ptr obj = v.encode();
+        // inf can be compared by equalness
+        REQUIRE(std::isnan(obj->get("value").convert<double>()));
         REQUIRE(obj->get("type").convert<string>() == "float64");
     }
 }

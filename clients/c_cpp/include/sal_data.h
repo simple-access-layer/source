@@ -103,9 +103,9 @@ namespace sal
         template <typename DT> const char* to_dtype_name()
         {
             // using DT = std::remove_cv<DType>::type;
-            if constexpr (std::is_same<DT, int64_t>::value)
+            if (std::is_same<DT, int64_t>::value)
                 return "int64";
-            else if constexpr (std::is_same<DT, int32_t>::value)
+            else if (std::is_same<DT, int32_t>::value)
                 return "int32";
             else if (std::is_same<DT, int16_t>::value)
                 return "int16";
@@ -608,6 +608,10 @@ namespace sal
             /*
             Access an element of the array.
 
+            std::vector<T> has two versions
+            reference at (size_type n);
+            const_reference at (size_type n) const;
+
             This method performs bounds checking and accepts a variable
             number of array indices corresponding to the dimensionality of
             the array.
@@ -618,8 +622,8 @@ namespace sal
             Due to the method of implementing this functionality in C++, it
             only supports arrays with a maximum of 10 dimensions.
             */
-            const T& at(int i0, int64_t i1 = -1, int64_t i2 = -1, int64_t i3 = -1, int64_t i4 = -1, int64_t i5 = -1,
-                        int64_t i6 = -1, int64_t i7 = -1, int64_t i8 = -1, int64_t i9 = -1) const throw()
+            T& at(int i0, int64_t i1 = -1, int64_t i2 = -1, int64_t i3 = -1, int64_t i4 = -1, int64_t i5 = -1,
+                  int64_t i6 = -1, int64_t i7 = -1, int64_t i8 = -1, int64_t i9 = -1) throw()
             {
 
                 if (this->m_dimension > 10)
