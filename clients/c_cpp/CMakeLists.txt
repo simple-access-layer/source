@@ -225,7 +225,7 @@ endif()
 if( CPACK_GENERATOR MATCHES ".*RPM.*" )
     # c and c++ runtime should be skipped:  libstdc++6 >= 4.4.0, libc6 >= 2.3, libgcc >= 4.1.1, libgomp >= 4.2.1
     set( CPACK_RPM_PACKAGE_REQUIRES "poco-devel")
-    set( CPACK_RPM_PACKAGE_SUGGESTS "boost-devel")
+    #set( CPACK_RPM_PACKAGE_SUGGESTS "boost-devel")
 	set( CPACK_RPM_PACKAGE_PROVIDES ${SAL_PACKAGE_PROVIDES})
 	set( CPACK_PACKAGE_RELOCATABLE "FALSE" )
 	if( BIT_LENGTH EQUAL 64 )

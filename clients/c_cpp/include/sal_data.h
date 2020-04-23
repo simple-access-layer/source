@@ -288,7 +288,7 @@ namespace sal
             std::string m_group_name; // GROUP
 
             /// member for summary interface
-            bool m_is_summary;
+            bool m_is_summary = false;
             std::string m_description;
         };
 
@@ -359,9 +359,8 @@ namespace sal
             virtual Poco::JSON::Object::Ptr encode() const override
             {
                 Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
-                if (is_summary())
-                    throw SALException("this is an summary without data");
-                json->set("type", "object"); // full object not summary
+
+                json->set("type", this->type_name());
                 json->set("value", this->m_value);
                 return json;
             };
@@ -627,14 +626,16 @@ namespace sal
             */
             virtual Poco::JSON::Object::Ptr encode() const override
             {
-                // not complete  array_definition is empty
-                Poco::JSON::Object::Ptr array_definition = new Poco::JSON::Object();
-                Poco::JSON::Object::Ptr json_obj = new Poco::JSON::Object();
+                Poco::JSON::Object::Ptr json_obj = encode_summary();
 
+                Poco::JSON::Object::Ptr array_definition = new Poco::JSON::Object();
                 array_definition->set("type", this->m_element_type_name);
                 array_definition->set("shape", this->encode_shape());
-                array_definition->set("encoding", "base64");
+                array_definition->set("encoding", "base64"); // todo: make encoding more general
                 array_definition->set("data", this->encode_data());
+
+                if (is_summary())
+                    throw SALException("this is an summary without data");
 
                 json_obj->set("type", this->type_name());
                 json_obj->set("value", array_definition);
