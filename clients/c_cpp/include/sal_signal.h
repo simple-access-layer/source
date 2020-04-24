@@ -53,6 +53,7 @@ namespace sal
             // TODO: units and datatype compatible check
         protected:
             std::string m_dtype;
+            // CONSIDER: keep path name here to identify this unique signal
         };
 
         /** status ,  Mask is really bad name, it is SignalQuality
@@ -169,8 +170,8 @@ namespace sal
             std::string m_units;
             std::string m_dtype;
 
-            Attribute::Ptr m_data; // Array type, todo: waiting for `Array<DType>` refacotring is completed
-            bool m_is_calcuated;
+            Array<DType>::Ptr m_data; // Array type, todo: waiting for `Array<DType>` refacotring is completed
+            bool m_is_calculated;
         };
 
         /// default template type = float64

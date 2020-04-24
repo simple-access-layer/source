@@ -53,7 +53,9 @@ namespace sal
             ATTR_STRING,     ///!> JSON string type, UTF8 encoding assumed
             ATTR_ARRAY,      ///!> JSON array type, with same element type
             ATTR_DICTIONARY, ///!> JSON object type, container of children json types
-            ATTR_SIGNAL,     ///!> high level data model for SAL physical pulse signal
+
+            ATTR_SIGNAL, ///!> high level data model for SAL physical pulse signal
+            ATTR_NODE    ///!> high level data model for tree node
         } AttributeType;
 
         /** attribute identifier strings in serialised objects

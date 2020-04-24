@@ -102,7 +102,7 @@ namespace sal
             return json;
         };
 
-        object::Attribute::Ptr get(const string path, bool summary = false) const
+        node::NodeObject::Ptr get(const string path, bool summary = false) const
         {
             // TODO: convert sal path to uri
             string sal_path = path;
@@ -115,7 +115,7 @@ namespace sal
             Poco::JSON::Object::Ptr obj = this->make_get_request(node_uri);
             obj->stringify(cout, 2);
             // TODO:  why static decode method, not base class function?
-            return node::decode_object(obj);
+            return node::decode(obj);
         };
 
         void put(const string path, const node::NodeObject obj) const {};
@@ -194,7 +194,7 @@ namespace sal
             return parser.parse(json).extract<Poco::JSON::Object::Ptr>();
         };
 
-        //            string serialise(node::Object obj);
-        //            node::Object deserialise(string json);
+        //            string serialise(node::NodeObject obj);
+        //            node::NodeObject deserialise(string json);
     };
 } // namespace sal
