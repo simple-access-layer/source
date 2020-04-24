@@ -50,22 +50,8 @@ namespace sal
             ATTR_FLOAT64,
             ATTR_BOOL, ///!> JSON bool type
 
-            ATTR_STRING, ///!> JSON string type, UTF8 encoding assumed
-            ATTR_ARRAY,  ///!> JSON array type, with same element type
-#if 0
-            // as there is element type member, these new array types may not necessary
-            ATTR_INT8_ARRAY, 
-            ATTR_INT16_ARRAY,
-            ATTR_INT32_ARRAY,
-            ATTR_INT64_ARRAY,
-            ATTR_UINT8_ARRAY,
-            ATTR_UINT16_ARRAY,
-            ATTR_UINT32_ARRAY,
-            ATTR_UINT64_ARRAY,
-            ATTR_FLOAT32_ARRAY,
-            ATTR_FLOAT64_ARRAY,
-            ATTR_STRING_ARRAY, /// JSON array type for string
-#endif
+            ATTR_STRING,     ///!> JSON string type, UTF8 encoding assumed
+            ATTR_ARRAY,      ///!> JSON array type, with same element type
             ATTR_DICTIONARY, ///!> JSON object type, container of children json types
             ATTR_SIGNAL,     ///!> high level data model for SAL physical pulse signal
         } AttributeType;
@@ -76,33 +62,33 @@ namespace sal
           because they can be shared by both C adn C++.
           why not const char*, maybe caused by Poco::JSON
         */
-        char TYPE_NAME_NULL[] = "null";
-        char TYPE_NAME_SCALAR[] = "scalar";
+        static char TYPE_NAME_NULL[] = "null";
+        static char TYPE_NAME_SCALAR[] = "scalar";
         // numpy.dtype 's typename
         // consider split dtype out as DTYPE_NAME
-        char TYPE_NAME_INT8[] = "int8";
-        char TYPE_NAME_INT16[] = "int16";
-        char TYPE_NAME_INT32[] = "int32";
-        char TYPE_NAME_INT64[] = "int64";
-        char TYPE_NAME_UINT8[] = "uint8";
-        char TYPE_NAME_UINT16[] = "uint16";
-        char TYPE_NAME_UINT32[] = "uint32";
-        char TYPE_NAME_UINT64[] = "uint64";
-        char TYPE_NAME_FLOAT32[] = "float32";
-        char TYPE_NAME_FLOAT64[] = "float64";
-        char TYPE_NAME_BOOL[] = "bool";
+        static char TYPE_NAME_INT8[] = "int8";
+        static char TYPE_NAME_INT16[] = "int16";
+        static char TYPE_NAME_INT32[] = "int32";
+        static char TYPE_NAME_INT64[] = "int64";
+        static char TYPE_NAME_UINT8[] = "uint8";
+        static char TYPE_NAME_UINT16[] = "uint16";
+        static char TYPE_NAME_UINT32[] = "uint32";
+        static char TYPE_NAME_UINT64[] = "uint64";
+        static char TYPE_NAME_FLOAT32[] = "float32";
+        static char TYPE_NAME_FLOAT64[] = "float64";
+        static char TYPE_NAME_BOOL[] = "bool";
+        // end of numpy.dtype 's typename
+        static char TYPE_NAME_STRING[] = "string";
+        static char TYPE_NAME_ARRAY[] = "array"; /// has extra class member element_type_name
+        static char TYPE_NAME_DICTIONARY[] = "dictionary";
+        static char TYPE_NAME_SIGNAL[] = "signal";
 
-        char TYPE_NAME_STRING[] = "string";
-        char TYPE_NAME_ARRAY[] = "array"; /// has extra class member element_type_name
-        char TYPE_NAME_DICTIONARY[] = "dictionary";
-        char TYPE_NAME_SIGNAL[] = "signal";
-
-        /// if constexpr (), only for C++17
+        /// `if constexpr ()` is only for C++17
         /// decay() from pointer or reference to type
         /// std::enable_if<>, std::byte, std::complex
         template <typename DT> const char* to_dtype_name()
         {
-            // using DT = std::remove_cv<DType>::type;
+            // TODO: using DT = std::remove_cv<DType>::type;
             if (std::is_same<DT, int64_t>::value)
                 return "int64";
             else if (std::is_same<DT, int32_t>::value)
@@ -362,20 +348,20 @@ namespace sal
         TODO: std::atomic<> to make them atomic as the name suggested
         CONSIDER: type_name (CLASS name) == SCALAR, to be consistent with python
         */
-        template <class T, AttributeType DTYPE, char const* DTYPE_NAME> class Atomic : public Attribute
+        template <class T, AttributeType DTYPE> class Atomic : public Attribute
         {
             T m_value;
 
         public:
-            typedef Poco::SharedPtr<Atomic<T, DTYPE, DTYPE_NAME>> Ptr;
+            typedef Poco::SharedPtr<Atomic<T, DTYPE>> Ptr;
             /*
             Constructors and destructor.
             */
             Atomic()
-                    : Attribute(DTYPE, DTYPE_NAME)
+                    : Attribute(DTYPE, to_dtype_name<T>())
                     , m_value(T()){}; // using T() as the default value is more general
             Atomic(T _value)
-                    : Attribute(DTYPE, DTYPE_NAME)
+                    : Attribute(DTYPE, to_dtype_name<T>())
                     , m_value(_value){};
             virtual ~Atomic(){};
 
@@ -404,16 +390,16 @@ namespace sal
             /*
             Decodes a Poco JSON object representation of the Scalar and returns a Scalar object.
             */
-            static typename Atomic<T, DTYPE, DTYPE_NAME>::Ptr decode(Poco::JSON::Object::Ptr json)
+            static typename Atomic<T, DTYPE>::Ptr decode(Poco::JSON::Object::Ptr json)
             {
 
                 // treat any failure as a failure to decode
                 try
                 {
                     // check sal type is valid for this class
-                    if (json->getValue<std::string>("type") != std::string(DTYPE_NAME))
-                        throw std::exception();
-                    return new Atomic<T, DTYPE, DTYPE_NAME>(json->getValue<T>("value"));
+                    if (json->getValue<std::string>("type") != std::string(to_dtype_name<T>()))
+                        throw SALException("type name in json does not match template datatype");
+                    return new Atomic<T, DTYPE>(json->getValue<T>("value"));
                 }
                 catch (...)
                 {
@@ -424,23 +410,23 @@ namespace sal
         };
 
         /// TODO: using scalar as CLASS type, map to python sal implementation
-        typedef Atomic<int8_t, ATTR_INT8, TYPE_NAME_INT8> Int8;
-        typedef Atomic<int16_t, ATTR_INT16, TYPE_NAME_INT16> Int16;
-        typedef Atomic<int32_t, ATTR_INT32, TYPE_NAME_INT32> Int32;
-        typedef Atomic<int64_t, ATTR_INT64, TYPE_NAME_INT64> Int64;
+        typedef Atomic<int8_t, ATTR_INT8> Int8;
+        typedef Atomic<int16_t, ATTR_INT16> Int16;
+        typedef Atomic<int32_t, ATTR_INT32> Int32;
+        typedef Atomic<int64_t, ATTR_INT64> Int64;
 
-        typedef Atomic<uint8_t, ATTR_UINT8, TYPE_NAME_UINT8> UInt8;
-        typedef Atomic<uint16_t, ATTR_UINT16, TYPE_NAME_UINT16> UInt16;
-        typedef Atomic<uint32_t, ATTR_UINT32, TYPE_NAME_UINT32> UInt32;
-        typedef Atomic<uint64_t, ATTR_UINT64, TYPE_NAME_UINT64> UInt64;
+        typedef Atomic<uint8_t, ATTR_UINT8> UInt8;
+        typedef Atomic<uint16_t, ATTR_UINT16> UInt16;
+        typedef Atomic<uint32_t, ATTR_UINT32> UInt32;
+        typedef Atomic<uint64_t, ATTR_UINT64> UInt64;
 
-        typedef Atomic<float, ATTR_FLOAT32, TYPE_NAME_FLOAT32> Float32;
-        typedef Atomic<double, ATTR_FLOAT64, TYPE_NAME_FLOAT64> Float64;
-        typedef Atomic<bool, ATTR_BOOL, TYPE_NAME_BOOL> Bool;
+        typedef Atomic<float, ATTR_FLOAT32> Float32;
+        typedef Atomic<double, ATTR_FLOAT64> Float64;
+        typedef Atomic<bool, ATTR_BOOL> Bool;
 
         // TODO: specialization String to have different CLASS name
         // std::string is also not support atomic operation
-        typedef Atomic<std::string, ATTR_STRING, TYPE_NAME_STRING> String;
+        typedef Atomic<std::string, ATTR_STRING> String;
 
         /// a typedef to ease future refactoring on data structure
         using ShapeType = std::vector<uint64_t>;
@@ -780,7 +766,7 @@ namespace sal
 
             /*
             Decodes the data buffer from a base64 string.
-            TODO: const data?
+            `const std::vector<T>& data` is not possible
             */
             static void decode_data(std::vector<T>& data, const std::string b64)
             {
@@ -812,9 +798,9 @@ namespace sal
         typedef Array<float> Float32Array;
         typedef Array<double> Float64Array;
 
-        typedef Array<bool> BoolArray;
+        typedef Array<bool> BoolArray; // has error decoding
 #if 1
-        typedef Array<std::string> StringArray;
+        typedef Array<std::string> StringArray; // has different encoding "list"
 
 #else
         /*
