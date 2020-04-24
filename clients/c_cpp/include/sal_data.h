@@ -534,6 +534,15 @@ namespace sal
                 return m_element_type_name;
             }
 
+            std::string encoding() const
+            {
+                if (std::is_same<std::string, T>::value)
+                    return "list"; // TODO: I do not know why?
+                else
+                {
+                    return "base64";
+                }
+            }
             /// {@
             /** infra-structure for C-API */
             inline size_t byte_size() const
@@ -659,7 +668,7 @@ namespace sal
                 Poco::JSON::Object::Ptr array_definition = new Poco::JSON::Object();
                 array_definition->set("type", this->m_element_type_name);
                 array_definition->set("shape", this->encode_shape());
-                array_definition->set("encoding", "base64"); // todo: make encoding more general
+                array_definition->set("encoding", this->encoding());
                 array_definition->set("data", this->encode_data());
 
                 if (is_summary())
@@ -685,7 +694,6 @@ namespace sal
                 // treat any failure as a failure to decode
                 try
                 {
-
                     // check sal type is valid for this class
                     if (json->getValue<std::string>("type") != std::string(TYPE_NAME_ARRAY))
                         throw SALException("type does not match, array is expected here");
@@ -696,10 +704,11 @@ namespace sal
                     // check array element type and array encoding are valid for this class
                     if (array_definition->getValue<std::string>("type") != to_dtype_name<T>())
                         throw std::exception();
-                    if (array_definition->getValue<std::string>("encoding") != std::string("base64"))
-                        throw std::exception();
+                    auto _encoding = array_definition->getValue<std::string>("encoding");
+                    if (_encoding != "base64" or _encoding != "list") // TODO: supported_encodings()
+                        throw SALException("encoding is not supported");
                     if (!array_definition->isArray("shape"))
-                        throw std::exception();
+                        throw SALException("decoded shape is not an array");
 
                     // decode shape
                     shape = Array<T>::decode_shape(array_definition->getArray("shape"));
@@ -748,6 +757,7 @@ namespace sal
 
             /*
             Encodes the data buffer as a base64 string.
+            but not for std::string data type
             */
             const std::string encode_data() const //  reinterpret_cast stop mark this f as const
             {
@@ -798,283 +808,9 @@ namespace sal
         typedef Array<float> Float32Array;
         typedef Array<double> Float64Array;
 
-        typedef Array<bool> BoolArray; // has error decoding
-#if 1
+        // std::vector<bool> is a specialized std::vector<>
+        typedef Array<bool> BoolArray;          // has error decoding, different allocator
         typedef Array<std::string> StringArray; // has different encoding "list"
-
-#else
-        /*
-        Data Object String Array Attribute
-        // TODO: use Array<std::string> instead
-        derived from  Array<std::string, ATTR_STRING, TYPE_NAME_STRING>
-        */
-        class StringArray : public Attribute
-        {
-
-        public:
-            typedef Poco::SharedPtr<StringArray> Ptr;
-
-            /*
-            StringArray constructor.
-
-            Initialises an array with the specified dimensions (shape). The
-            array shape is a vector defining the length of each dimensions
-            of the array. The number of elements in the shape vector
-            defines the number of dimensions.
-            */
-            StringArray(vector<uint64_t> shape)
-                    : Attribute(ATTR_ARRAY, TYPE_NAME_ARRAY)
-                    , element_type_name(TYPE_NAME_STRING)
-            {
-
-                this->dimensions = shape.size();
-                this->shape = shape;
-                this->stride.resize(this->dimensions);
-
-                // calculate strides
-                int16_t i = this->dimensions - 1;
-                this->stride[i--] = 1;
-                while (i >= 0)
-                {
-                    this->stride[i] = this->stride[i + 1] * this->shape[i + 1];
-                    i--;
-                }
-
-                // calculate array buffer length
-                uint64_t size = 1;
-                for (uint64_t d : this->shape)
-                    size *= d;
-
-                // create buffer
-                this->data.resize(size);
-            };
-
-            //            StringArray(const StringArray&);
-            //            StringArray& operator= (const StringArray&);
-            //            StringArray(StringArray&&);
-            //            StringArray& operator= (StringArray&&);
-
-            /*
-            Destructor
-            */
-            virtual ~StringArray(){};
-
-            /*
-            Returns the length of the array buffer.
-            */
-            uint64_t size() const
-            {
-                return this->data.size();
-            };
-
-            /*
-            Fast element access via direct indexing of the array buffer.
-
-            The Array holds the data in a 1D strided array. Indexing into
-            multidimensional arrays therefore requires the user to
-            appropriately stride across the data. See the stride attribute.
-
-            No bounds checking is performed.
-            */
-            string& operator[](uint64_t index)
-            {
-                return this->data[index];
-            };
-
-            /*
-            Access an element of the array.
-
-            This method performs bounds checking and accepts a variable
-            number of array indices corresponding to the dimensionality of
-            the array.
-
-            Data access is slower than direct buffer indexing, however it
-            handles striding for the user.
-
-            Due to the method of implementing this functionality in C++, it
-            only supports arrays with a maximum of 10 dimensions.
-            */
-            string& at(int i0, int64_t i1 = -1, int64_t i2 = -1, int64_t i3 = -1, int64_t i4 = -1, int64_t i5 = -1,
-                       int64_t i6 = -1, int64_t i7 = -1, int64_t i8 = -1, int64_t i9 = -1)
-            {
-
-                if (this->dimensions > 10)
-                {
-                    throw out_of_range("The at() method can only be used with arrays of 10 dimensions of less.");
-                }
-
-                // convert the list or arguments to an array for convenience
-                array<int64_t, 10> dim_index = {i0, i1, i2, i3, i4, i5, i6, i7, i8, i9};
-
-                uint64_t element_index = 0;
-                for (uint8_t i = 0; i < this->dimensions; i++)
-                {
-
-                    // check the indices are inside the array bounds
-                    if ((dim_index[i] < 0) || (dim_index[i] > this->shape[i] - 1))
-                    {
-                        throw out_of_range("An array index is missing or is out of bounds.");
-                    }
-
-                    element_index += dim_index[i] * this->stride[i];
-                }
-
-                return this->data[element_index];
-            }
-
-            /*
-            Returns a Poco JSON object representation of the Array.
-            */
-            Poco::JSON::Object::Ptr encode()
-            {
-
-                Poco::JSON::Object::Ptr array_definition = new Poco::JSON::Object();
-                Poco::JSON::Object::Ptr attribute = new Poco::JSON::Object();
-
-                array_definition->set("type", this->element_type_name);
-                array_definition->set("shape", this->encode_shape());
-                array_definition->set("encoding", "list");
-                array_definition->set("data", this->encode_data());
-
-                attribute->set("type", this->type);
-                attribute->set("value", array_definition);
-
-                return attribute;
-            };
-
-            /*
-            Decodes a Poco JSON object representation of the Array and returns a StringArray object.
-            */
-            static StringArray::Ptr decode(Poco::JSON::Object::Ptr json)
-            {
-
-                Poco::JSON::Object::Ptr array_definition;
-                vector<uint64_t> shape;
-                string encoded_data;
-                typename StringArray::Ptr array;
-
-                // treat any failure as a failure to decode
-                try
-                {
-
-                    // check sal type is valid for this class
-                    if (json->getValue<std::string>("type") != string(TYPE_NAME_ARRAY))
-                        throw std::exception();
-
-                    // extract array definition
-                    array_definition = json->getObject("value");
-
-                    // check array element type and array encoding are valid for this class
-                    if (array_definition->getValue<std::string>("type") != string(TYPE_NAME_STRING))
-                        throw std::exception();
-                    if (array_definition->getValue<std::string>("encoding") != string("list"))
-                        throw std::exception();
-                    if (!array_definition->isArray("shape"))
-                        throw std::exception();
-                    if (!array_definition->isArray("data"))
-                        throw std::exception();
-
-                    // decode shape
-                    shape = StringArray::decode_shape(array_definition->getArray("shape"));
-
-                    // create and populate array
-                    array = new StringArray(shape);
-                    StringArray::decode_data(array, array_definition->getArray("data"));
-                    return array;
-                }
-                catch (...)
-                {
-                    // todo: define a sal exception and replace
-                    throw SALException("JSON object does not define a valid SAL Array attribute.");
-                }
-            };
-
-        protected:
-            const string element_type_name;
-            uint8_t dimensions;
-            vector<uint64_t> shape;
-            vector<uint64_t> stride;
-            vector<std::string> data;
-
-            /*
-            Converts the shape array to a POCO JSON array object.
-            */
-            Poco::JSON::Array::Ptr encode_shape()
-            {
-                Poco::JSON::Array::Ptr json = new Poco::JSON::Array();
-                for (uint8_t i = 0; i < this->shape.size(); i++)
-                    json->add(this->shape[i]);
-                return json;
-            };
-
-            /*
-            Decodes the shape array from a POCO JSON array object.
-            */
-            static vector<uint64_t> decode_shape(Poco::JSON::Array::Ptr json)
-            {
-                vector<uint64_t> shape(json->size());
-                for (uint8_t i = 0; i < json->size(); i++)
-                    shape[i] = json->getElement<uint64_t>(i);
-                return shape;
-            };
-
-            /*
-            Encodes the string vector as a nested Poco Array of strings.
-            */
-            Poco::JSON::Array::Ptr encode_data(uint8_t dimension = 0, uint64_t offset = 0)
-            {
-
-                Poco::JSON::Array::Ptr json = new Poco::JSON::Array();
-
-                if (dimension == (this->dimensions - 1))
-                {
-
-                    // populate innermost array with the strings
-                    for (uint64_t i = 0; i < this->shape[dimension]; i++)
-                    {
-                        json->add(this->data[offset + i]);
-                    }
-                }
-                else
-                {
-
-                    // create nested array objects
-                    for (uint64_t i = 0; i < this->shape[dimension]; i++)
-                    {
-                        json->add(encode_data(dimension + 1, offset + i * this->stride[dimension]));
-                    }
-                }
-                return json;
-            };
-
-            /*
-            Decodes a nested Poco Array into a string vector.
-            */
-            static void decode_data(StringArray::Ptr array, const Poco::JSON::Array::Ptr json, uint8_t dimension = 0,
-                                    uint64_t offset = 0)
-            {
-
-                if (dimension == (array->dimensions - 1))
-                {
-
-                    // innermost array contains strings
-                    for (uint64_t i = 0; i < array->shape[dimension]; i++)
-                    {
-                        array->data[offset + i] = json->getElement<std::string>(i);
-                    }
-                }
-                else
-                {
-
-                    // decode nested array objects
-                    for (uint64_t i = 0; i < array->shape[dimension]; i++)
-                    {
-                        decode_data(array, json->getArray(i), dimension + 1, offset + i * array->stride[dimension]);
-                    }
-                }
-            };
-        };
-#endif
 
         // forward declare decode()
         Attribute::Ptr decode(Poco::JSON::Object::Ptr json);
