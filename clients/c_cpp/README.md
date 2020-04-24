@@ -1,4 +1,6 @@
 # C and C++ client for Simple Access Layer (SAL)
+[![Build Status](https://travis-ci.org/simple-access-layer/source.svg?branch=feature/sal_cpp)](https://travis-ci.org/simple-access-layer/source)
+<br />
 
 License: European Union Public License 1.2, the same as the SAL project
 
