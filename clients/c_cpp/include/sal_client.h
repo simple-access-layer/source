@@ -2,6 +2,7 @@
 
 #include "sal_core.h"
 #include "sal_data.h"
+#include "sal_signal.h"
 
 #include "Poco/Net/HTTPRequest.h"
 #include "Poco/Net/HTTPResponse.h"
