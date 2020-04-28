@@ -23,10 +23,16 @@ set(PACKAGE_VERSION_NAME ${PACKAGE_VERSION_MAJOR}.${PACKAGE_VERSION_MINOR})
 set(PROJECT_VERSION ${PACKAGE_VERSION_MAJOR}.${PACKAGE_VERSION_MINOR})
 
 ##############################################################
-# to user other compiler,  `CXX=clang++  cmake ..`
+# supply env variable to cmake for other parameters:  `CXX=clang++  cmake ..`
 # std can and should be applied to target only
-set(CMAKE_CXX_STANDARD 11)
+if (NOT DEFINED CMAKE_CXX_STANDARD)
+    set(CMAKE_CXX_STANDARD 11)
+endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if (NOT DEFINED CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+endif()
 
 # this seems only for GCC and CLANG compiler
 # if((${CMAKE_CXX_STANDARD} GREATER 17)  OR  (${CMAKE_CXX_STANDARD} EQUAL 17))
@@ -43,6 +49,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(SAL_USE_TYPE "use type system in base modlule" ON)
 option(SAL_USE_EIGEN "use Eigen represent multi-dimension array" OFF)
+option(SAL_USE_VTK "export signal as VTK data object for viz in paraView " OFF)
 option(SAL_USE_TEST "use unit test module" ON)
 
 ####################################################
@@ -94,8 +101,21 @@ if(SAL_USE_EIGEN)
         message("found Eigen version: ${EIGEN3_VERSION}")
         include_directories(${EIGEN3_INCLUDE_DIRS})  # already on system include path
         #target_link_directories()  # or it is header only lib
+        add_definitions("-DSAL_USE_EIGEN")
     else()
         ## may download to third-party from git
+    endif()
+endif()
+
+if(SAL_USE_VTK)
+    find_package(VTK 7)
+    if(VTK_FOUND)
+        message(STUTAS "found VTK version: ${VTK_VERSION}")
+        add_definitions("-DSAL_USE_VTK")
+        include_directories(${VTK_INCLUDE_DIRS})  # already on system include path
+    else()
+        message(STUTAS "VTK is not found, ignore this optional feature")
+        set(SAL_USE_VTK OFF)
     endif()
 endif()
 
