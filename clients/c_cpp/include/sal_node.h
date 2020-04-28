@@ -78,12 +78,19 @@ namespace sal
             }
         };
 
-        ///  map to std::filesystem::perms
-        /// OPC-UA AccessLevel, may be implemented at client class is easier
-        /// this should be a member of NodeObject
+        ///  map to std::filesystem::perms or  OPC-UA AccessLevel, UserAccessLevel
+        /// RolePermissions
+        /// https://github.com/FreeOpcUa/python-opcua/blob/master/opcua/ua/uatypes.py
+        /// this should be a member of NodeObject, may be implemented at client class is easier
         enum PermissionFlag : uint32_t
         {
-
+            CurrentRead = 0,
+            CurrentWrite = 1,
+            HistoryRead = 2,
+            HistoryWrite = 3,
+            SemanticChange = 4,
+            StatusWrite = 5,
+            TimestampWrite = 6
         };
 
         /// std::filesystem can only check `last_write_time()`
@@ -183,15 +190,16 @@ namespace sal
             TimeInfo m_timeInfo;
             RevisionInfo m_revisionInfo;
             // status, error, etc
-            std::string m_name;
-            std::string m_url; // URL as UUID
+            std::string m_display_name;
+            std::string m_url; // URL as NodeId or UUID as in OpcUa
 
             // if NodeObject does not derive from Attribute
             std::string m_description;
+            NodeObject(){};
 
         public:
             typedef Poco::SharedPtr<NodeObject> Ptr;
-            NodeObject(){};
+
             NodeObject(const NodeInfo& _nodeInfo, const string _description)
                     : m_nodeInfo(_nodeInfo)
                     //, object::Attribute(object::ATTR_NODE, _description)
@@ -223,18 +231,18 @@ namespace sal
 
             std::string name() const
             {
-                return m_name;
+                return m_display_name;
             }
             std::string& name()
             {
-                return m_name;
+                return m_display_name;
             }
 
             virtual Poco::JSON::Object::Ptr encode() const
             {
                 Poco::JSON::Object::Ptr j;
                 auto oj = m_nodeInfo.encode();
-                oj->set("name", m_name);
+                oj->set("name", m_display_name);
                 j->set("object", oj); // object is not a good name -> metadata
                 j->set("revision", m_revisionInfo.encode());
                 j->set("timestamp", m_timeInfo.timestamp());
@@ -254,7 +262,7 @@ namespace sal
             void decode_report(const Poco::JSON::Object::Ptr j)
             {
                 this->m_nodeInfo = NodeInfo::decode(j->getObject("object"));
-                this->m_name = name_from_url(j->getValue<std::string>("url"));
+                this->m_display_name = name_from_url(j->getValue<std::string>("url"));
                 this->m_revisionInfo = RevisionInfo::decode(j->getObject("revision"));
                 this->m_timeInfo = TimeInfo::decode(j->getObject("timestamp"));
                 this->m_description = j->getValue<std::string>("description");
@@ -281,6 +289,11 @@ namespace sal
             /// Object::Dictionary holds only value types, this holds ptr
             map<string, object::Attribute::Ptr> attributes;
 
+            object::Attribute::Ptr m_data; // ptr to Signal or Dictionary Attribute class
+            std::string m_data_type_name;  // dictionary | signal
+
+            Leaf(){};
+
         public:
             typedef Poco::SharedPtr<Leaf> Ptr;
 
@@ -294,11 +307,21 @@ namespace sal
             }
             virtual ~Leaf(){};
 
+            bool is_full_object() const
+            {
+                return false;
+            }
 
-            /*
-            Constructors and destructor.
+            /**
+            from a SAL data object to a Poco JSON object representation.
             */
+            virtual Poco::JSON::Object::Ptr encode() const
+            {
+                Poco::JSON::Object::Ptr j = NodeObject::encode();
+                return j;
+            }
 
+#if 0
             // code duplication, leave contains only one object::Dictionary instance
             object::Attribute::Ptr& operator[](const string& key)
             {
@@ -324,15 +347,6 @@ namespace sal
             {
                 this->attributes.erase(key);
             };
-
-            /**
-            from a SAL data object to a Poco JSON object representation.
-            */
-            virtual Poco::JSON::Object::Ptr encode() const
-            {
-                Poco::JSON::Object::Ptr j = NodeObject::encode();
-                return j;
-            }
 
             // meta data and description have been constructed as member variable
             // consider move all meta data into a Dictionary data object
@@ -394,6 +408,23 @@ namespace sal
                     throw runtime_error("JSON object does not define a valid SAL data object.");
                 }
             };
+#endif
+            static Leaf::Ptr decode(Poco::JSON::Object::Ptr json)
+            {
+                Leaf::Ptr leaf;
+                // treat any failure as a failure to decode
+                try
+                {
+                    leaf = new Leaf();
+                    leaf->decode_report(json);
+                    // no other content for leaf in report mode
+                }
+                catch (...)
+                {
+                    throw SALException("JSON object does not define a valid SAL node object.");
+                }
+                return leaf;
+            };
 
         }; // namespace node
 
@@ -404,17 +435,18 @@ namespace sal
             vector<std::string> branches;
             vector<NodeObject::Ptr> leaves;
 
+            Branch()
+            {
+                m_node_type = NODE_BRANCH;
+                // m_is_summary = true;
+            }
+
         public:
             typedef Poco::SharedPtr<Branch> Ptr;
 
             /**
             Constructors and destructor.
             */
-            Branch()
-            {
-                m_node_type = NODE_BRANCH;
-                // m_is_summary = true;
-            }
             Branch(const NodeInfo& nInfo, const string desc)
                     : NodeObject(nInfo, desc)
             {
