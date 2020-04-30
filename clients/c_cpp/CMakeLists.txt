@@ -47,12 +47,13 @@ endif()
 # options are cached, `rm -rf build` dir and start freshly
 ###################### module selection ##########################
 
-option(SAL_USE_TYPE "use type system in base modlule" ON)
+option(CODE_COVERAGE "Enable coverage reporting" OFF)
 option(SAL_USE_EIGEN "use Eigen represent multi-dimension array" OFF)
 option(SAL_USE_VTK "export signal as VTK data object for viz in paraView " OFF)
 option(SAL_USE_TEST "use unit test module" ON)
 
-####################################################
+######################################################
+
 
 # extra search path provided by this project, such OCCT SMesh
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cMake")
@@ -89,7 +90,7 @@ if (UNIX)
     if (NOT DEFINED Poco_LIBRARIES})     # use FindPoco.cmake provided in this repo
         message(STATUS "Poco_LIBRARIES = ${Poco_LIBRARIES}")
     else()    # system provided Poco::JSON, to make it compatible with Poco_LIBRARIES
-        set(Poco_LIBRARIES "-lPocoNet -lPocoNetSSL -lPocoFoundation -lPocoJSON")
+        set(Poco_LIBRARIES "-lPocoNet -lPocoNetSSL -lPocoFoundation -lPocoJSON -lPocoUtil")
         message(STATUS "Poco_LIBRARIES = ${Poco_LIBRARIES}")
     endif()
 endif()
