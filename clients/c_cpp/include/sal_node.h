@@ -7,15 +7,10 @@
 
 namespace sal
 {
-    using namespace std;
-
-    /// tree-node structure supports string path like in file system
+    /// tree-node structure supports std::string path like in file system
     /// is there any third-party library provide this data structure?
     namespace node
     {
-        /// valid char used in node path
-        char VALID_CHARS[] = "abcdefghijklmnopqrstuvwxyz0123456789-_.";
-
         typedef enum
         {
             NODE_BRANCH,
@@ -40,14 +35,14 @@ namespace sal
             // TODO: set a proper default values for members
             NodeInfo()
                     : version(SAL_API_VERSION){};
-            NodeInfo(const string _cls, const string _group, const uint64_t _version)
+            NodeInfo(const std::string _cls, const std::string _group, const uint64_t _version)
                     : cls(_cls)
                     , group(_group)
                     , version(_version){};
 
-            string cls;       /// todo: make them const
-            string group;     /// permission
-            uint64_t version; // API version ?
+            std::string cls;   /// todo: make them const
+            std::string group; /// permission
+            uint64_t version;  // API version ?
 
             Poco::JSON::Object::Ptr encode() const
             {
@@ -141,7 +136,7 @@ namespace sal
             RevisionInfo(){}; // TODO: proper default member values
             uint64_t current;
             uint64_t latest;
-            vector<uint64_t> version_history;
+            std::vector<uint64_t> version_history;
 
             Poco::JSON::Object::Ptr encode() const
             {
@@ -171,9 +166,9 @@ namespace sal
             ~Report();
 
             const NodeType type;
-            const string timestamp;        // todo: use something better std::chrono::time_point?
-            const vector<string> branches; // string should be node::Path typedef
-            const vector<NodeInfo> leaves; // the only place use LeafType, move to Branch class
+            const std::string timestamp;        // todo: use something better std::chrono::time_point?
+            const std::vector<std::string> branches; // std::string should be node::Path typedef
+            const std::vector<NodeInfo> leaves; // the only place use LeafType, move to Branch class
 
             // needs copy and move constructors
         };
@@ -200,7 +195,7 @@ namespace sal
         public:
             typedef Poco::SharedPtr<NodeObject> Ptr;
 
-            NodeObject(const NodeInfo& _nodeInfo, const string _description)
+            NodeObject(const NodeInfo& _nodeInfo, const std::string _description)
                     : m_nodeInfo(_nodeInfo)
                     //, object::Attribute(object::ATTR_NODE, _description)
                     , m_node_type(NODE_LEAF){};
@@ -287,7 +282,7 @@ namespace sal
         class Leaf : public NodeObject
         {
             /// Object::Dictionary holds only value types, this holds ptr
-            map<string, object::Attribute::Ptr> attributes;
+            std::map<std::string, object::Attribute::Ptr> attributes;
 
             object::Attribute::Ptr m_data; // ptr to Signal or Dictionary Attribute class
             std::string m_data_type_name;  // dictionary | signal
@@ -300,7 +295,7 @@ namespace sal
             /*
             Constructors and destructor.
             */
-            Leaf(const NodeInfo& nInfo, const string desc, bool _is_summary = true)
+            Leaf(const NodeInfo& nInfo, const std::string desc, bool _is_summary = true)
                     : NodeObject(nInfo, desc)
             {
                 // m_is_summary = true;
@@ -323,27 +318,27 @@ namespace sal
 
 #if 0
             // code duplication, leave contains only one object::Dictionary instance
-            object::Attribute::Ptr& operator[](const string& key)
+            object::Attribute::Ptr& operator[](const std::string& key)
             {
                 return this->attributes.at(key);
             };
-            object::Attribute::Ptr& get(const string& key)
+            object::Attribute::Ptr& get(const std::string& key)
             {
                 return (*this)[key];
             };
-            template <class T> typename T::Ptr get_as(const string& key)
+            template <class T> typename T::Ptr get_as(const std::string& key)
             {
                 return typename T::Ptr(this->get(key).cast<T>());
             };
-            void set(const string& key, const object::Attribute::Ptr& attribute)
+            void set(const std::string& key, const object::Attribute::Ptr& attribute)
             {
                 this->attributes[key] = attribute;
             };
-            const bool has(const string& key) const
+            const bool has(const std::string& key) const
             {
                 return this->attributes.count(key);
             };
-            void remove(const string& key)
+            void remove(const std::string& key)
             {
                 this->attributes.erase(key);
             };
@@ -366,7 +361,7 @@ namespace sal
             */
             static Leaf::Ptr decode(const Poco::JSON::Object::Ptr json)
             {
-                vector<string> keys;
+                std::vector<std::string> keys;
                 Leaf::Ptr obj;
 
                 // treat any failure as a failure to decode
@@ -384,14 +379,14 @@ namespace sal
                     obj = new Leaf(nInfo, description->value(), type->value() == OBJ_TYPE_SUMMARY);
 
                     json->getNames(keys);
-                    for (vector<string>::iterator key = keys.begin(); key != keys.end(); ++key)
+                    for (vector<std::string>::iterator key = keys.begin(); key != keys.end(); ++key)
                     {
                         // skip null elements
                         if (json->isNull(*key))
                             continue;
 
                         if (!json->isObject(*key))
-                            throw SALException("all valid attributes must be JSON object not number or string");
+                            throw SALException("all valid attributes must be JSON object not number or std::string");
 
                         // dispatch object to the appropriate decoder and add to container
                         obj->set(*key, sal::object::decode(json->getObject(*key)));
@@ -405,7 +400,7 @@ namespace sal
                 catch (...)
                 {
                     // todo: define a sal exception and replace
-                    throw runtime_error("JSON object does not define a valid SAL data object.");
+                    throw SALException("JSON object does not define a valid SAL data object.");
                 }
             };
 #endif
@@ -432,8 +427,8 @@ namespace sal
         class Branch : public NodeObject
         {
             // full object, empty if constructed from summary json
-            vector<std::string> branches;
-            vector<NodeObject::Ptr> leaves;
+            std::vector<std::string> branches;
+            std::vector<NodeObject::Ptr> leaves;
 
             Branch()
             {
@@ -447,7 +442,7 @@ namespace sal
             /**
             Constructors and destructor.
             */
-            Branch(const NodeInfo& nInfo, const string desc)
+            Branch(const NodeInfo& nInfo, const std::string desc)
                     : NodeObject(nInfo, desc)
             {
                 m_node_type = NODE_BRANCH;
@@ -521,13 +516,13 @@ namespace sal
                 // treat any failure as a failure to decode
                 try
                 {
-                    // string description = json->getValue<string>("description");
+                    // std::string description = json->getValue<std::string>("description");
                     // NodeInfo nInfo = NodeInfo::decode(json);
                     // branch = new Branch(nInfo, description);
                     branch = new Branch();
                     branch->decode_report(json);
 
-                    // std::string content_type = json->getValue<string>("summary");
+                    // std::string content_type = json->getValue<std::string>("summary");
                     // if (content_type == "report") // todo: check the name
 
                     branch->decode_content(json);
@@ -555,16 +550,16 @@ namespace sal
         NodeObject::Ptr decode(Poco::JSON::Object::Ptr json)
         {
 
-            string content_type;
-            string node_type;
-            string url;
+            std::string content_type;
+            std::string node_type;
+            std::string url;
             Poco::JSON::Object::Ptr object;
 
             try
             {
-                content_type = json->getValue<string>("content");
+                content_type = json->getValue<std::string>("content");
 
-                node_type = json->getValue<string>("type");
+                node_type = json->getValue<std::string>("type");
 
                 if (!json->isObject("object"))
                     throw std::exception();
@@ -577,14 +572,14 @@ namespace sal
             }
             catch (...)
             {
-                // todo: define a sal exception and replace
-                throw runtime_error("JSON object does not define a valid SAL object.");
+                // todo: define a more specific sal exception and replace
+                throw SALException("JSON object does not define a valid SAL object.");
             }
 
             if (content_type == "object")
             {
                 /*
-                string data_type;
+                std::string data_type;
                 data_type = object->getValue<std::string>("_class");
 
                 if (node_type == "leaf")
@@ -600,7 +595,7 @@ namespace sal
             }
             else
             {
-                throw runtime_error("content type is unkown in json data");
+                throw SALException("content type is unkown in json data");
             }
 
             throw SALException("JSON object does not define a valid SAL object.");

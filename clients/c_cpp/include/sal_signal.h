@@ -37,11 +37,13 @@ namespace sal
 
         /// there is no need to implement derived class
         /// consider: named as SignalBase
+        /// member naming can map to OPC-UA attributeIDss
+        /// https://github.com/FreeOpcUa/python-opcua/blob/master/opcua/ua/attribute_ids.py
         class DataObject : public Attribute
         {
         public:
             typedef Poco::SharedPtr<DataObject> Ptr;
-            DataObject(const string _dtype_name)
+            DataObject(const std::string _dtype_name)
                     : Attribute(ATTR_SIGNAL, _dtype_name)
             //, m_group_name("signal")
             {
@@ -175,7 +177,7 @@ namespace sal
         };
 
         /// default template type = float64
-        template <class DType> class Signal : public DataObject
+        template <typename DType = double> class Signal : public DataObject
         {
             /// non public constructor, instance must be created from the static `decode()` factory method
             Signal()
