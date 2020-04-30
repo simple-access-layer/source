@@ -1351,14 +1351,103 @@ csal_bool_t csal_client_is_auth_required( csal_client_t* self )
 int csal_client_authenticate( csal_client_t* self, const char* pszuser, const char* pszpasswd )
 {
 	int err = 0;
+
+	self->sal_client->authenticate( pszuser, pszpasswd );
+
 	return err;
 }
-
+#if 0
 int csal_client_attrib_get( csal_client_t* self, const char* pszpath, csal_bool_t summary )
 {
 	int err = 0;
 
 	sal::object::Attribute::Ptr sal_at = self->sal_client->get( pszpath, summary );
+
+	return err;
+}
+#endif
+int csal_client_list( csal_client_t* self, const char* pszpath, csal_node_object_t** ppnodeobj )
+{
+	int err = 0;
+
+	sal::node::NodeObject::Ptr sal_node_ptr = self->sal_client->list( pszpath );
+
+	csal_node_object_t* csal_node_ptr = new csal_node_object_t;
+
+	csal_node_ptr->sal_nodeobj_ptr = sal_node_ptr;
+
+	*ppnodeobj = csal_node_ptr;
+
+	return err;
+}
+
+
+int csal_client_get( csal_client_t* self, const char* pszpath, csal_bool_t summary, csal_attrib_t** pcsal_attrib_ptr )
+{
+	int err = 0;
+
+	std::string path = pszpath;
+	bool sal_summary = summary ? true : false;
+
+	sal::object::Attribute::Ptr sal_attrib_ptr = self->sal_client->get( path, sal_summary );
+
+
+	csal_attrib_t* csal_attrib_ptr = new csal_attrib_t;
+	csal_attrib_ptr->sal_at_ptr = sal_attrib_ptr;
+
+	*pcsal_attrib_ptr = csal_attrib_ptr;
+
+	return err;
+}
+
+int csal_client_put( csal_client_t* self, const char* pszpath, csal_node_object_t* csal_nodeobj_ptr )
+{
+	int err = 0;
+
+	sal::node::NodeObject::Ptr sal_nodeobj_ptr = csal_nodeobj_ptr->sal_nodeobj_ptr;
+
+	try
+	{
+		std::string path = pszpath;
+		//self->sal_client->put( path, sal_nodeobj_ptr );
+		throw  sal::SALException( "FIX ME");
+	}
+	catch(sal::SALException& e )
+	{
+		err = 1;
+	}
+
+	return err;
+}
+
+
+int csal_client_copy( csal_client_t* self, const char* psztarget, const char* pszsource )
+{
+	int err = 0;
+
+	try
+	{
+		throw sal::SALException( "FIXME" );
+	}
+	catch( sal::SALException& e )
+	{
+		err = 1;
+	}
+
+	return err;
+}
+
+int csal_client_del( csal_client_t* self, const char* pszpath )
+{
+	int err = 0;
+	try
+	{
+		throw sal::SALException( "FIXME" );
+	}
+	catch( sal::SALException& e )
+	{
+		err = 1;
+	}
 
 	return err;
 }
