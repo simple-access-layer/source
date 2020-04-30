@@ -18,6 +18,8 @@
 
 #include "sal_exception.h"
 
+static const uint64_t SAL_API_VERSION = 1;
+
 namespace sal
 {
     // using namespace std;
@@ -31,9 +33,9 @@ namespace sal
         /// Type data can be registered to a static data store `std::map<AttributeType, std::string>`
         /// at compiling time.
 
-        /// C language comptable
-        // the attribute type enumeration used to identify the type of Attribute object being handled
-        typedef enum
+        /// the attribute type enumeration used to identify the type of Attribute object being handled
+        /// https://en.wikipedia.org/wiki/OPC_Unified_Architecture#Built-in_data_types
+        typedef enum // C language comptable
         {
             ATTR_NULL,   ///!> empty (uninitialized, null state), JSON null type
             ATTR_SCALAR, ///!> JSON scalar number type + boolean = SAL scalar class
@@ -53,7 +55,9 @@ namespace sal
             ATTR_STRING,     ///!> JSON string type, UTF8 encoding assumed
             ATTR_ARRAY,      ///!> JSON array type, with same element type
             ATTR_DICTIONARY, ///!> JSON object type, container of children json types
-            ATTR_SIGNAL,     ///!> high level data model for SAL physical pulse signal
+
+            ATTR_SIGNAL, ///!> high level data model for SAL physical pulse signal
+            // ATTR_NODE    ///!> high level data model for tree node
         } AttributeType;
 
         /** attribute identifier strings in serialised objects
@@ -209,10 +213,6 @@ namespace sal
             {
                 /// constant members from python DataObject ReportSummary
 
-                // static member init of std::string is not supported
-                // todo: make a new function
-                const static uint64_t VERSION = 1;
-
                 // d['_type'] = TYPE_SUMMARY
                 Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
 
@@ -234,7 +234,7 @@ namespace sal
                 }
 
                 json->set("_group", m_group_name);
-                json->set("_version", VERSION);
+                json->set("_version", SAL_API_VERSION);
                 json->set("description", this->m_description);
                 return json;
             }
@@ -996,7 +996,6 @@ namespace sal
         {
             // CONSIDER:  type enum  is more efficient in comparison then type name
             std::string id;
-
             try
             {
                 id = json->getValue<std::string>("type");

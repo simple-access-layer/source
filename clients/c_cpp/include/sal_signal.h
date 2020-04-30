@@ -20,7 +20,7 @@ namespace sal
         // consider: merge with AttributeType,  or at least, shift value
         typedef enum
         {
-            Signal = 30,
+            SignalSignal = 30,
             ConstantError,
             SymmetricError,
             AsymmetricError,     // consider merge with SymmetricError,  into ArrayError
@@ -41,10 +41,9 @@ namespace sal
         {
         public:
             typedef Poco::SharedPtr<DataObject> Ptr;
-            DataObject()
-                    : Attribute(ATTR_SIGNAL, TYPE_NAME_SIGNAL)
+            DataObject(const string _dtype_name)
+                    : Attribute(ATTR_SIGNAL, _dtype_name)
             //, m_group_name("signal")
-
             {
                 m_group_name = "signal";
             }
@@ -53,6 +52,7 @@ namespace sal
             // TODO: units and datatype compatible check
         protected:
             std::string m_dtype;
+            // CONSIDER: keep path name here to identify this unique signal
         };
 
         /** status ,  Mask is really bad name, it is SignalQuality
@@ -65,10 +65,10 @@ namespace sal
         public:
             typedef Poco::SharedPtr<Mask> Ptr;
             Mask()
-                    : Attribute(ATTR_SIGNAL, TYPE_NAME_SIGNAL)
-                    , m_dtype(DTYPE_NAME)
+                    : DataObject("signal_mask")
             {
                 m_group_name = "signal_mask";
+                m_dtype = to_dtype_name<DType>();
             }
 
             // override encode() to be compatible with python, diff _class
@@ -86,21 +86,22 @@ namespace sal
             typedef Poco::SharedPtr<Error> Ptr;
             // Asymmetric error constructor
             Error(DType lower, DType upper, bool is_relative)
-                    : Attribute(ATTR_SIGNAL, TYPE_NAME_SIGNAL)
-                    , m_dtype(DTYPE_NAME)
-                    , m_is_symmetric(false)
+                    : DataObject("signal_error")
             {
                 m_group_name = "signal_error";
+                m_dtype = to_dtype_name<DType>();
+                m_is_symmetric = false;
             }
             // symmetric error constructor
             Error(DType amplitude, bool is_relative)
                     : Error(amplitude, amplitude, is_relative)
-                    , m_is_symmetric(true)
             {
+                m_is_symmetric = true;
             }
 
             virtual bool shape_compatible(ShapeType shape) const override
             {
+                return true;
             }
 
             // override encode_summary() to be compatible with python, diff _class
@@ -118,7 +119,7 @@ namespace sal
             //    const DType& amplitude() const
             bool relative() const
             {
-                return is_relative;
+                return m_is_relative;
             }
 
             bool constant() const
@@ -142,18 +143,18 @@ namespace sal
         /// temporal or spatial dimension for multiple-dimension data array
         /// to build up coordinate system
         /// TODO: there are two types of dimension, calculated or 1D array
-        template <class DType, char const* DTYPE_NAME> class Dimension : public DataObject
+        template <class DType> class Dimension : public DataObject
         {
         public:
             typedef Poco::SharedPtr<Dimension> Ptr;
             Dimension(DType start, DType length, DType step, std::string units)
-                    : Attribute(ATTR_SIGNAL, TYPE_NAME_SIGNAL_DIMENSION)
+                    : DataObject(TYPE_NAME_SIGNAL_DIMENSION)
                     , m_start(start)
                     , m_length(length)
                     , m_step(step)
-                    , m_dtype(DTYPE_NAME)
             {
                 m_group_name = "signal_dimension";
+                m_dtype = to_dtype_name<DType>();
             }
 
             // TODO:
@@ -169,15 +170,18 @@ namespace sal
             std::string m_units;
             std::string m_dtype;
 
-            Attribute::Ptr m_data; // Array type, todo: waiting for `Array<DType>` refacotring is completed
-            bool m_is_calcuated;
+            typename Array<DType>::Ptr m_data;
+            bool m_is_calculated;
         };
 
         /// default template type = float64
         template <class DType> class Signal : public DataObject
         {
-            /// disable constructor, instance must be created from the static `decode()` factory method
-            Signal() = delete;
+            /// non public constructor, instance must be created from the static `decode()` factory method
+            Signal()
+                    : DataObject("signal")
+            {
+            }
 
         public:
             typedef Poco::SharedPtr<Signal> Ptr;
@@ -194,7 +198,7 @@ namespace sal
             // to_mesh() // need to be override in derived class like for JET reactor
 
         protected:
-            std::vector<Dimension> m_dimensions;
+            std::vector<Dimension<DType>> m_dimensions;
             std::string units;
             Array<DType> m_data;
             Poco::Nullable<Error<DType>> m_error; // std::optional<>

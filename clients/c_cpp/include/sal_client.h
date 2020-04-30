@@ -1,7 +1,8 @@
 #pragma once
 
-#include "sal_core.h"
 #include "sal_data.h"
+#include "sal_node.h"
+#include "sal_signal.h"
 
 #include "Poco/Net/HTTPRequest.h"
 #include "Poco/Net/HTTPResponse.h"
@@ -13,6 +14,7 @@
 namespace sal
 {
     using namespace std;
+    using namespace exception;
     uint32_t SUPPORTED_API_VERSION = 2;
 
     /// Todo: authentication is not implemented
@@ -95,34 +97,63 @@ namespace sal
 
         };
 
-        node::NodeObject::Ptr list(const string path) const
+        /// explore the node path and deserialize into NodeObject
+        node::NodeObject::Ptr list(const string sal_path) const
         {
             // TODO:
-            node::NodeObject::Ptr json;
-            return json;
+            node::NodeObject::Ptr nobj = nullptr;
+            Poco::URI node_uri(this->data_uri, sal_path);
+            auto jobj = make_get_request(node_uri);
+            if (jobj)
+                return node::decode(jobj);
+            return nobj;
         };
 
+        /// deserialized into Signal or Dictionary data attribute/object
+        /// `obj = sal.get(path, summary=False)`
         object::Attribute::Ptr get(const string path, bool summary = false) const
         {
             // TODO: convert sal path to uri
             string sal_path = path;
 
             // todo: kludge
-            Poco::URI node_uri(data_uri, sal_path);
+            Poco::URI node_uri(this->data_uri, sal_path);
 
             cout << node_uri.toString() << endl;
 
             Poco::JSON::Object::Ptr obj = this->make_get_request(node_uri);
-            obj->stringify(cout, 2);
-            // TODO:  why static decode method, not base class function?
-            return node::decode_object(obj);
+
+
+            obj->stringify(cout, 2); // debugging
+
+            return object::decode(obj);
         };
 
-        void put(const string path, const node::NodeObject obj) const {};
+        // if data type has been knowned from list(), directly cast to type
 
-        void copy(const string target, const string source) const {};
+        /// push modified data to server,
+        /// also needs to check permission
+        void put(const string path, const node::NodeObject obj) const
+        {
+            // todo: first of all, make/register an explorable node  on the back end
+            // then push full data to the backend and store
+            throw SALException("this method is currently not supported by server backend.");
+        };
 
-        void del(const string path) const {};
+        /// this works like copy file, providing the source path and target path
+        /// todo: very weird API, switch T and S the parameter position
+        void copy(const string target, const string source) const
+        {
+            // todo: send request, and check http STATUS
+            throw SALException("this method is currently not supported by server backend.");
+        }
+
+        /// todo: user must have the permission to delete any node object
+        void del(const string path) const
+        {
+            // todo: send request, and check http STATUS
+            throw SALException("not implemented yet");
+        };
 
     protected:
         bool auth_required;
@@ -148,13 +179,11 @@ namespace sal
 
                 if (this->verify_https_cert)
                 {
-
                     // https session, checking certificate is valid
                     return new HTTPSClientSession(uri.getHost(), uri.getPort());
                 }
                 else
                 {
-
                     // https session, ignoring invalid certificates
                     return new HTTPSClientSession(uri.getHost(), uri.getPort(),
                                                   new Context(Context::CLIENT_USE, "", Context::VERIFY_NONE));
@@ -164,6 +193,7 @@ namespace sal
                 throw Poco::UnknownURISchemeException();
         };
 
+        /// return nullptr if failed, embrace all code in try block
         Poco::JSON::Object::Ptr make_get_request(const Poco::URI uri) const
         {
 
@@ -184,17 +214,28 @@ namespace sal
                 path = "/";
 
             // make request
-            // todo: handle errors
+
             HTTPRequest request(HTTPRequest::HTTP_GET, path, HTTPMessage::HTTP_1_1);
             session->sendRequest(request);
+            // todo: handle errors: NodeNotFound
             StreamCopier::copyToString(session->receiveResponse(response), json);
 
             // decode json
-            // todo: handle exceptions
+            // todo: handle exceptions: parsing error, return nullptr if failed?
             return parser.parse(json).extract<Poco::JSON::Object::Ptr>();
         };
 
-        //            string serialise(node::Object obj);
-        //            node::Object deserialise(string json);
+        Poco::JSON::Object::Ptr make_post_request(const Poco::URI uri) const
+        {
+            return nullptr;
+        }
+
+        Poco::JSON::Object::Ptr make_del_request(const Poco::URI uri) const
+        {
+            return nullptr;
+        }
+
+        //            string serialise(node::NodeObject obj);
+        //            node::NodeObject deserialise(string json);
     };
 } // namespace sal
