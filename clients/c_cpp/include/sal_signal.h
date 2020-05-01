@@ -20,7 +20,7 @@ namespace sal
         // consider: merge with AttributeType,  or at least, shift value
         typedef enum
         {
-            SignalSignal = 30,
+            SignalBase = 30,
             ConstantError,
             SymmetricError,
             AsymmetricError,     // consider merge with SymmetricError,  into ArrayError
@@ -57,7 +57,8 @@ namespace sal
             // CONSIDER: keep path name here to identify this unique signal
         };
 
-        /** status ,  Mask is really bad name, it is SignalQuality
+        /** Mask is really bad name, it is SignalQuality in the current python code
+         * in the future, more meta data, misc data may needed
          * so is the the member `key`, it is just string name list of quality
         status: uint8 = 0
         key: array<string> = ["unvalidated", "good", "medium", "poor", "unusable"]
@@ -202,7 +203,7 @@ namespace sal
         protected:
             std::vector<Dimension<DType>> m_dimensions;
             std::string units;
-            Array<DType> m_data;
+            IArray::Ptr m_data;
             Poco::Nullable<Error<DType>> m_error; // std::optional<>
             Poco::Nullable<Mask<DType>> m_mast;
 

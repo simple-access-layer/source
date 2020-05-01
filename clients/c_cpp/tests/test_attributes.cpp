@@ -480,7 +480,7 @@ TEST_CASE("Data object Float64 scalar attribute.", "[sal::object::Float64]")
         REQUIRE(obj->get("type").convert<string>() == "float64");
     }
 
-    SECTION("Encode as JSON for float point infinity")
+    SECTION("Encode as JSON for float point NaN")
     {
 
         sal::object::Float64 v(std::numeric_limits<double>::quiet_NaN());
@@ -629,6 +629,8 @@ TEST_CASE("Data object summary", "[sal::object::SummaryInterface]")
     }
 }
 
+
+/// catch2 template test case should be used
 TEST_CASE("Data object Int8 array attribute.", "[sal::object::Int8Array]")
 {
 
@@ -648,8 +650,17 @@ TEST_CASE("Data object Int8 array attribute.", "[sal::object::Int8Array]")
         REQUIRE(v.size() == 2 * 3);
         REQUIRE(v.dimension() == 2);
         REQUIRE(v.shape()[0] == 2);
+    }
+
+    SECTION("Initialise with array.")
+    {
+        using namespace sal::object;
+        sal::object::Int8Array v({2, 3});
+
         REQUIRE(v.type_name() == "array");
         REQUIRE(v.element_type_name() == "int8");
+        REQUIRE(v.type() == AttributeType::ATTR_ARRAY);
+        REQUIRE(v.element_type() == AttributeType::ATTR_INT8);
     }
 
     SECTION("Test indexing and modify element value")
@@ -665,9 +676,39 @@ TEST_CASE("Data object Int8 array attribute.", "[sal::object::Int8Array]")
         REQUIRE(v[1] == -128);
 
         v(1, 0) = 127;
-        REQUIRE(v[3] == 127);
+        REQUIRE(v(1, 0) == 127);
+    }
+}
+
+TEST_CASE("Data object string array attribute.", "[sal::object::StringArray]")
+{
+
+    SECTION("Initialise with array.")
+    {
+        sal::object::StringArray v({2, 3});
+
+        REQUIRE(v.size() == 2 * 3);
+        REQUIRE(v.dimension() == 2);
+        REQUIRE(v.shape()[0] == 2);
+        REQUIRE(v.type_name() == "array");
+        REQUIRE(v.element_type_name() == "string");
     }
 
+    SECTION("Test indexing and modify element value")
+    {
+        sal::object::StringArray v({2, 3});
+
+        std::string value = "Hello";
+        v[0] = value;
+        REQUIRE(v[0] == value);
+        REQUIRE(v(0, 0) == value);
+    }
+}
+
+/// todo: BoolArray and StringArray
+
+TEST_CASE("Array<T> buffer API", "[sal::object::Array<T>]")
+{
     SECTION("Test buffer pointer for C-API")
     {
         sal::object::Int8Array v({2, 3});
@@ -683,5 +724,36 @@ TEST_CASE("Data object Int8 array attribute.", "[sal::object::Int8Array]")
         int8_t* p = static_cast<int8_t*>(v.data_pointer());
         p[0] = number2;
         REQUIRE(v(0, 0) == number2);
+    }
+}
+
+TEST_CASE("Array interface test", "[sal::object::IArray]")
+{
+    using namespace sal::object;
+    typedef int DT;
+    Int32Array arr({2, 3});
+    DT number = 100;
+    arr[0] = number;
+    IArray& v = arr;
+
+    SECTION("Test IArray readonly properties")
+    {
+        REQUIRE(v.size() == 2 * 3);
+        REQUIRE(v.dimension() == 2);
+        REQUIRE(v.shape()[0] == 2);
+        REQUIRE(v.type_name() == "array");
+        REQUIRE(v.element_type_name() == "string");
+    }
+
+    SECTION("Test buffer pointer and element pointer for C-API")
+    {
+        // cp is readonly buffer
+        const DT* cp = static_cast<const DT*>(v.data_pointer());
+        REQUIRE(cp[0] == number);
+
+        DT number1 = 20;
+        DT* p = static_cast<DT*>(v.data_pointer());
+        p[1] = number1;
+        REQUIRE(*static_cast<DT*>(v.data_at(1)) == number1);
     }
 }
