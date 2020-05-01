@@ -84,6 +84,144 @@ struct _csal_attrib_string_t
     _csal_attrib_t base;
 };
 
+struct _csal_attrib_array_t
+{
+	_csal_attrib_t base;
+};
+
+int csal_attrib_cast( csal_attrib_t* self, CSAL_ATTRIBUTE_TYPE at_type, void** ppv )
+{
+	switch( at_type )
+	{
+		case CSAL_ATTR_INT8:
+			{
+			auto sal_ptr = self->sal_at_ptr.cast< sal::object::Int8 > ();
+			if( sal_ptr )
+			{
+				*ppv = self;
+			}
+			}
+			break;
+		case CSAL_ATTR_INT16:
+			{
+			auto sal_ptr = self->sal_at_ptr.cast< sal::object::Int16 > ();
+			if( sal_ptr )
+			{
+				*ppv = self;
+			}
+			}
+
+			break;
+		case CSAL_ATTR_INT32:
+			{
+			auto sal_ptr = self->sal_at_ptr.cast< sal::object::Int32 > ();
+			if( sal_ptr )
+			{
+				*ppv = self;
+			}
+			}
+
+			break;
+		case CSAL_ATTR_INT64:
+			{
+			auto sal_ptr = self->sal_at_ptr.cast< sal::object::Int64 > ();
+			if( sal_ptr )
+			{
+				*ppv = self;
+			}
+			}
+
+			break;
+
+		case CSAL_ATTR_UINT8:
+			{
+			auto sal_ptr = self->sal_at_ptr.cast< sal::object::UInt8 > ();
+			if( sal_ptr )
+			{
+				*ppv = self;
+			}
+			}
+
+			break;
+		case CSAL_ATTR_UINT16:
+			{
+			auto sal_ptr = self->sal_at_ptr.cast< sal::object::UInt16 > ();
+			if( sal_ptr )
+			{
+				*ppv = self;
+			}
+			}
+
+
+			break;
+		case CSAL_ATTR_UINT32:
+			{
+			auto sal_ptr = self->sal_at_ptr.cast< sal::object::UInt32 > ();
+			if( sal_ptr )
+			{
+				*ppv = self;
+			}
+			}
+
+
+			break;
+		case CSAL_ATTR_UINT64:
+			{
+			auto sal_ptr = self->sal_at_ptr.cast< sal::object::UInt64 > ();
+			if( sal_ptr )
+			{
+				*ppv = self;
+			}
+			}
+
+
+			break;
+		case CSAL_ATTR_FLOAT32:
+			{
+			auto sal_ptr = self->sal_at_ptr.cast< sal::object::Float32 > ();
+			if( sal_ptr )
+			{
+				*ppv = self;
+			}
+			}
+
+
+			break;
+		case CSAL_ATTR_FLOAT64:
+			{
+			auto sal_ptr = self->sal_at_ptr.cast< sal::object::Float64 > ();
+			if( sal_ptr )
+			{
+				*ppv = self;
+			}
+			}
+
+
+			break;
+		case CSAL_ATTR_STRING:
+			{
+			auto sal_ptr = self->sal_at_ptr.cast< sal::object::String > ();
+			if( sal_ptr )
+			{
+				*ppv = self;
+			}
+			}
+
+
+			break;
+
+
+		case CSAL_ATTR_ARRAY:
+			{
+				assert(0);
+			}
+
+
+			break;
+	}
+}
+
+
 struct _csal_attrib_array_int8_t
 {
     _csal_attrib_t base;
@@ -663,6 +801,24 @@ int csal_attrib_branch_remove( csal_attrib_branch_t* self, const char* pszkey )
 
 }
 #endif
+
+
+int csal_attrib_array_shape( csal_attrib_array_t* self, uint64_t* vals, uint64_t* nvals, uint64_t nval_max )
+{
+	int err = 0;
+
+	_csal_attrib_t* csal_at_ptr = &(self->base);
+
+	sal::object::Attribute::Ptr sal_attrib_ptr = self->base.sal_at_ptr;
+
+	//sal::object::Array::Ptr sal_array_ptr = sal_attrib_ptr.cast< sal::object::Array >();
+
+	//std::vector< uint64_t > _vals = self->
+	assert(0);
+
+
+	return err;
+}
 
 extern "C"
 csal_attrib_array_float32_t* csal_attrib_array_float32_create( uint64_t* _shape, uint64_t nshapes )

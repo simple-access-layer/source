@@ -164,6 +164,9 @@ csal_attrib_array_uint8_t* csal_attrib_array_uint8_create( uint64_t* _shape, uin
     const char* csal_attrib_array_eltype( csal_attrib_array_t* self );
 
 
+    int csal_attrib_array_shape( csal_attrib_array_t* self, uint64_t* vals, uint64_t* nvals, uint64_t nval_max );
+
+
 #ifdef __cplusplus
 }
 #endif
