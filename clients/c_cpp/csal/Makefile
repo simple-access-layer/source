@@ -9,9 +9,9 @@ SRCS := csal_attrib.cpp csal_node.cpp
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o) 
 DEPS := $(OBJS:.o=.d)
 
-INC_FLAGS := -I. -I../include
+#INC_FLAGS := -I. -I../include
 
-CFLAGS = -g -Wall -I. -I../include -I$(HOME)/local/include
+CFLAGS = -g -Wall -I. -I./include -I../include -I$(HOME)/local/include
 CPPFLAGS = -std=c++11 -fPIC
 LDFLAGS = -L$(HOME)/local/lib -L../ -L./build -lPocoFoundation -lPocoJSON -lPocoNet -lPocoNetSSL
 

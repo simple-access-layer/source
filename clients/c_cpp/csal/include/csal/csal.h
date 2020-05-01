@@ -181,8 +181,8 @@ extern "C"
 #endif
 
 
-#include "csal_client.h"
-#include "csal_attrib.h"
+#include "csal/detail/csal_client.h"
+#include "csal/detail/csal_attrib.h"
 
 #ifdef __cplusplus
 //#include "sal.h"

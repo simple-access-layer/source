@@ -1,7 +1,7 @@
 #include<stdio.h>
 #include <stdlib.h>
 #include<string.h>
-#include "csal.h"
+#include "csal/csal.h"
 
 #define TF_TEST( tf, expr ) test_frame_test( tf, expr, #expr, __FILE__, __LINE__ )
 

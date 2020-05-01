@@ -1,7 +1,7 @@
 #ifndef __CSAL_CLIENT_H__
 #define __CSAL_CLIENT_H__
 
-#include "csal.h"
+#include "csal/csal.h"
 
 #ifdef __cplusplus
 extern "C"
