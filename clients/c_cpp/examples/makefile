@@ -10,10 +10,10 @@ build: libsal.so
 demo: saldemo libsal.so
 
 libsal.so: ${OBJS}
-	g++ -shared -Wl,-soname,libsal.so -o libsal.so ${OBJS} -lPocoNet -lPocoNetSSL -lPocoFoundation -lPocoJSON
+	g++ -shared -Wl,-soname,libsal.so -o libsal.so ${OBJS} -lPocoNet -lPocoNetSSL -lPocoFoundation -lPocoJSON -lPocoUtil
 
 saldemo: libsal.so demo.cpp
-	g++ -o saldemo demo.cpp -std=c++11 -lPocoNet -lPocoNetSSL -lPocoFoundation -lPocoJSON -lsal -Iinclude -L.
+	g++ -o saldemo demo.cpp -std=c++11 -lPocoNet -lPocoNetSSL -lPocoFoundation -lPocoJSON -lPocoUtil -lsal -Iinclude -L.
 
 %.o: %.cpp
 	g++ -fPIC -std=c++11 -o $@ -c $< -Iinclude

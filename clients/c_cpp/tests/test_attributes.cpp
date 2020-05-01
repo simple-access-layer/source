@@ -726,3 +726,34 @@ TEST_CASE("Array<T> buffer API", "[sal::object::Array<T>]")
         REQUIRE(v(0, 0) == number2);
     }
 }
+
+TEST_CASE("Array interface test", "[sal::object::IArray]")
+{
+    using namespace sal::object;
+    typedef int DT;
+    Int32Array arr({2, 3});
+    DT number = 100;
+    arr[0] = number;
+    IArray& v = arr;
+
+    SECTION("Test IArray readonly properties")
+    {
+        REQUIRE(v.size() == 2 * 3);
+        REQUIRE(v.dimension() == 2);
+        REQUIRE(v.shape()[0] == 2);
+        REQUIRE(v.type_name() == "array");
+        REQUIRE(v.element_type_name() == "string");
+    }
+
+    SECTION("Test buffer pointer and element pointer for C-API")
+    {
+        // cp is readonly buffer
+        const DT* cp = static_cast<const DT*>(v.data_pointer());
+        REQUIRE(cp[0] == number);
+
+        DT number1 = 20;
+        DT* p = static_cast<DT*>(v.data_pointer());
+        p[1] = number1;
+        REQUIRE(*static_cast<DT*>(v.data_at(1)) == number1);
+    }
+}

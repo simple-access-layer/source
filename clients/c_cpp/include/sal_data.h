@@ -96,6 +96,7 @@ namespace sal
 
         // forward declaratoin
         class Dictionary;
+        class IArray;
         class Null;
 
         ///  type trait to get AttributeType at compiling time
@@ -128,23 +129,33 @@ namespace sal
                 return ATTR_STRING;
             else if (std::is_same<DT, Dictionary>::value)
                 return ATTR_DICTIONARY;
+            else if (std::is_base_of<IArray, DT>::value)
+                return ATTR_ARRAY;
             else if (std::is_same<DT, Null>::value)
                 return ATTR_NULL;
             else
             {
-                return ATTR_NULL; // todo: not a good default, Array can not be detected
+                if (std::is_base_of<IArray, DT>::value)
+                    return ATTR_NULL;
+                else
+                {
+                    throw SALException("type is not a derived from Attribute base class");
+                    //#error "type is not derived from Attribute base class"
+                }
             }
         }
 
 
-        /// `if constexpr ()` or constexpr template is only for C++17
-        /// decay() from pointer or reference to type
-        /// std::enable_if<>, std::byte, std::complex
 
-        ///  type trait to get data type name at compiling time
+        ///  type trait to get data type name (numpy.dtype) at compiling time
+        /// used in Array<T> and Atomic<T> instantation
         template <typename DT> const char* to_dtype_name()
         {
-            // TODO: using DT = std::remove_cv<DType>::type;
+            /// TODO: using DT = std::remove_cv<DType>::type;
+            /// decay() from pointer or reference to type
+
+            /// NOTE: std::enable_if<>, std::byte, std::complex, not necessary
+            /// `if constexpr ()` or constexpr template is only for C++17
             if (std::is_same<DT, int64_t>::value)
                 return "int64";
             else if (std::is_same<DT, int32_t>::value)
@@ -171,10 +182,9 @@ namespace sal
                 return "string";
             else
             {
-                return "";
+                throw SALException("data type valid as Array element or Atomic value");
             }
         }
-
 
         /// abstract class corresponding to python DataSummary class.
         /// Attribute class (base data class) implements this interface,
@@ -226,7 +236,7 @@ namespace sal
             }
 
             /// no corresponding on python side, maybe useful for quick type comparison
-            inline const AttributeType& type_id() const noexcept
+            inline const AttributeType& type() const noexcept
             {
                 return m_type;
             }
@@ -481,13 +491,45 @@ namespace sal
         /// a typedef to ease future refactoring on data structure
         using ShapeType = std::vector<uint64_t>;
 
+
+        class IArray : public Attribute
+        {
+        public:
+            typedef Poco::SharedPtr<IArray> Ptr;
+            IArray()
+                    : Attribute(ATTR_ARRAY, TYPE_NAME_ARRAY)
+            {
+            }
+
+            virtual uint64_t size() const = 0;
+            virtual ShapeType shape() const = 0;
+            virtual size_t dimension() const = 0;
+            virtual AttributeType element_type() const = 0;
+            virtual std::string element_type_name() const = 0;
+
+            /// @{
+            /** infra-structure for C-API */
+            virtual size_t byte_size() const = 0;
+
+            /// read-only pointer to provide read view into the data buffer
+            virtual const void* data_pointer() const = 0;
+
+            /// modifiable raw pointer to data buffer, use it with care
+            virtual void* data_pointer() = 0;
+
+            virtual void* data_at(int i0, int64_t i1 = -1, int64_t i2 = -1, int64_t i3 = -1, int64_t i4 = -1,
+                                  int64_t i5 = -1, int64_t i6 = -1, int64_t i7 = -1, int64_t i8 = -1,
+                                  int64_t i9 = -1) = 0;
+            /// @}
+        };
+
         /*
         It is a multi-dimension array based on std::vector<T>
         No default constructor without parameter is allowed,
         so shape of the array, as std::vector<uint64_t>,  consistent with python numpy.array
         TODO: proxy pattern for m_data, so big data can not fit into memory can be supported.
         */
-        template <class T> class Array : public Attribute
+        template <class T> class Array : public IArray
         {
         public:
             typedef Poco::SharedPtr<Array<T>> Ptr;
@@ -515,7 +557,7 @@ namespace sal
 
             */
             Array(ShapeType _shape)
-                    : Attribute(ATTR_ARRAY, TYPE_NAME_ARRAY)
+                    : IArray()
                     , m_element_type(to_dtype<T>())
                     , m_element_type_name(to_dtype_name<T>())
             {
@@ -554,61 +596,61 @@ namespace sal
             */
             virtual ~Array(){};
 
-            /*
-            Returns the length of the array buffer, element_size, not byte size
-            flattened 1D array from all dimensions
-            */
-            inline uint64_t size() const
-            {
-                return this->data.size();
-            };
-
-            inline ShapeType shape() const
+            inline virtual ShapeType shape() const
             {
                 return this->m_shape;
             };
             /// consider: plural name
-            inline size_t dimension() const
+            inline virtual size_t dimension() const
             {
                 return this->m_shape.size();
             };
 
-            AttributeType element_type() const
+            inline virtual AttributeType element_type() const override
             {
                 return m_element_type;
             }
 
-            std::string element_type_name() const
+            inline virtual std::string element_type_name() const
             {
                 return m_element_type_name;
             }
 
-            std::string encoding() const
+            /// @{
+            /*
+            Returns the length of the array buffer, element_size, not byte size
+            flattened 1D array from all dimensions
+            */
+            inline virtual uint64_t size() const
             {
-                if (std::is_same<std::string, T>::value)
-                    return "list"; // TODO: I do not know why?
-                else
-                {
-                    return "base64";
-                }
-            }
-            /// {@
+                return this->data.size();
+            };
+
             /** infra-structure for C-API */
-            inline size_t byte_size() const
+            inline virtual size_t byte_size() const
             {
                 return this->data.size() * sizeof(T);
             };
 
             /// read-only pointer to provide read view into the data buffer
-            const void* data_pointer() const
+            inline virtual const void* data_pointer() const
             {
                 return this->data.data();
             }
 
             /// modifiable raw pointer to data buffer, use it with care
-            void* data_pointer()
+            inline virtual void* data_pointer()
             {
                 return this->data.data();
+            }
+
+            /// todo: more than 5 dim is kind of nonsense,
+            /// using array as index can be more decent
+            inline virtual void* data_at(int i0, int64_t i1 = -1, int64_t i2 = -1, int64_t i3 = -1, int64_t i4 = -1,
+                                         int64_t i5 = -1, int64_t i6 = -1, int64_t i7 = -1, int64_t i8 = -1,
+                                         int64_t i9 = -1) override
+            {
+                return std::addressof(this->at(i0, i1, i2, i3, i4, i5, i6, i7, i8, i9));
             }
             /// @}
 
@@ -666,8 +708,8 @@ namespace sal
             Due to the method of implementing this functionality in C++, it
             only supports arrays with a maximum of 10 dimensions.
             */
-            T& at(int i0, int64_t i1 = -1, int64_t i2 = -1, int64_t i3 = -1, int64_t i4 = -1, int64_t i5 = -1,
-                  int64_t i6 = -1, int64_t i7 = -1, int64_t i8 = -1, int64_t i9 = -1) throw()
+            virtual T& at(int i0, int64_t i1 = -1, int64_t i2 = -1, int64_t i3 = -1, int64_t i4 = -1, int64_t i5 = -1,
+                          int64_t i6 = -1, int64_t i7 = -1, int64_t i8 = -1, int64_t i9 = -1) throw()
             {
 
                 if (this->m_dimension > 10)
@@ -729,6 +771,16 @@ namespace sal
                 return json_obj;
             };
 
+            std::string encoding() const
+            {
+                if (std::is_same<std::string, T>::value)
+                    return "list"; // TODO: I do not know why?
+                else
+                {
+                    return "base64";
+                }
+            }
+
             /*
             Decodes a Poco JSON object representation of the Array and returns an Array object.
             */
@@ -775,6 +827,7 @@ namespace sal
             };
 
         protected:
+            // change element type is not possible without re-create the array object
             const std::string m_element_type_name;
             const AttributeType m_element_type;
             uint8_t m_dimension; // CONSIDER: size_t otherwise lots of compiler warning
@@ -992,50 +1045,50 @@ namespace sal
             std::map<std::string, Attribute::Ptr> attributes;
         };
 
-        /// TODO: this can be removed if Array<T> is working
-        static Attribute::Ptr decode_array(Poco::JSON::Object::Ptr json)
+        ///
+        static IArray::Ptr decode_array(Poco::JSON::Object::Ptr json)
         {
             Poco::JSON::Object::Ptr array_definition;
-            std::string element_id;
+            std::string el_type_name;
 
             try
             {
                 array_definition = json->getObject("value");
-                element_id = array_definition->getValue<std::string>("type");
+                el_type_name = array_definition->getValue<std::string>("type");
             }
             catch (...)
             {
                 // todo: define a sal exception and replace
-                throw SALException("JSON object does not define a valid SAL attribute.");
+                throw SALException("JSON object does not define a valid SAL Array attribute.");
             }
 
             // this can be removed if Array<T> is working
-            if (element_id == TYPE_NAME_INT8)
+            if (el_type_name == TYPE_NAME_INT8)
                 return Int8Array::decode(json);
-            else if (element_id == TYPE_NAME_INT16)
+            else if (el_type_name == TYPE_NAME_INT16)
                 return Int16Array::decode(json);
-            else if (element_id == TYPE_NAME_INT32)
+            else if (el_type_name == TYPE_NAME_INT32)
                 return Int32Array::decode(json);
-            else if (element_id == TYPE_NAME_INT64)
+            else if (el_type_name == TYPE_NAME_INT64)
                 return Int64Array::decode(json);
-            else if (element_id == TYPE_NAME_UINT8)
+            else if (el_type_name == TYPE_NAME_UINT8)
                 return UInt8Array::decode(json);
-            else if (element_id == TYPE_NAME_UINT16)
+            else if (el_type_name == TYPE_NAME_UINT16)
                 return UInt16Array::decode(json);
-            else if (element_id == TYPE_NAME_UINT32)
+            else if (el_type_name == TYPE_NAME_UINT32)
                 return UInt32Array::decode(json);
-            else if (element_id == TYPE_NAME_UINT64)
+            else if (el_type_name == TYPE_NAME_UINT64)
                 return UInt64Array::decode(json);
-            else if (element_id == TYPE_NAME_FLOAT32)
+            else if (el_type_name == TYPE_NAME_FLOAT32)
                 return Float32Array::decode(json);
-            else if (element_id == TYPE_NAME_FLOAT64)
+            else if (el_type_name == TYPE_NAME_FLOAT64)
                 return Float64Array::decode(json);
             // else if (element_id == TYPE_NAME_BOOL)
             //    return BoolArray::decode(json);  // TODO: compiling error, needs std::enable_if<>
-            else if (element_id == TYPE_NAME_STRING)
+            else if (el_type_name == TYPE_NAME_STRING)
                 return StringArray::decode(json); // TODO: decoding may not working, needs std::enable_if<>
             else
-                throw SALException("data type string `" + element_id + "` is not supported");
+                throw SALException("data type string `" + el_type_name + "` is not supported");
         }
 
         /*
