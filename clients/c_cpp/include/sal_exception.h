@@ -49,6 +49,7 @@ namespace sal
         class NodeNotFound : public SALException
         {
         public:
+            using SALException::SALException;
             virtual const char* what() const noexcept override
             {
                 return "The supplied path does not point to a valid node.";
@@ -58,6 +59,7 @@ namespace sal
         class UnsupportedOperation : public SALException
         {
         public:
+            using SALException::SALException;
             virtual const char* what() const noexcept override
             {
                 return "Operation is not supported.";
@@ -67,6 +69,7 @@ namespace sal
         class InvalidRequest : public SALException
         {
         public:
+            using SALException::SALException;
             virtual const char* what() const noexcept override
             {
                 return "The request sent to the server could not be handled.";
@@ -76,6 +79,7 @@ namespace sal
         class AuthenticationFailed : public SALException
         {
         public:
+            using SALException::SALException;
             virtual const char* what() const noexcept override
             {
                 return "Valid authorisation credentials were not supplied";
@@ -85,6 +89,7 @@ namespace sal
         class PermissionDenied : public SALException
         {
         public:
+            using SALException::SALException;
             virtual const char* what() const noexcept override
             {
                 return "The user does not have permission to perform this operation.";
@@ -94,6 +99,7 @@ namespace sal
         class InternalError : public SALException
         {
         public:
+            using SALException::SALException;
             virtual const char* what() const noexcept override
             {
                 return "An error occurred affecting server operation. Please contact your administrator.";
@@ -103,6 +109,7 @@ namespace sal
         class InvalidResponse : public SALException
         {
         public:
+            using SALException::SALException;
             virtual const char* what() const noexcept override
             {
                 return "The response sent by the server could not be interpreted.";

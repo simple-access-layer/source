@@ -16,9 +16,15 @@ if [ ! -d build ]; then
 fi
 cd build
 
-# add this to support cpprestsdk -DCMAKE_PREFIX_PATH=/usr/local/lib/cmake
-CXX=g++-8 cmake .. 
+# add  -DCMAKE_PREFIX_PATH=/usr/local/lib/cmake  to support cpprestsdk 
+# Configure
+#cmake -DCODE_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug ..
+# Build (for Make on Unix equivalent to `make -j $(nproc)`)
+cmake .. 
 make -j 4
+#cmake --build . --config Debug -- -j $(nproc)
+# Test
+#ctest -j $(nproc) --output-on-failure
 
 # test if build succeeded
 #if [[ $? == 0 ]]; then
