@@ -69,7 +69,6 @@ namespace sal
         static char TYPE_NAME_NULL[] = "null";
         static char TYPE_NAME_SCALAR[] = "scalar";
         // numpy.dtype 's typename
-        // consider split dtype out as DTYPE_NAME
         static char TYPE_NAME_INT8[] = "int8";
         static char TYPE_NAME_INT16[] = "int16";
         static char TYPE_NAME_INT32[] = "int32";
@@ -87,9 +86,62 @@ namespace sal
         static char TYPE_NAME_DICTIONARY[] = "dictionary";
         static char TYPE_NAME_SIGNAL[] = "signal";
 
-        /// `if constexpr ()` is only for C++17
+        /// data types that can be element of array type,
+        /// not in used yet, maybe removed later
+        static std::map<std::string, AttributeType> dtype_map = {
+            {"int64", ATTR_INT64},     {"int32", ATTR_INT32},     {"int16", ATTR_INT16},   {"int8", ATTR_INT8},
+            {"uint64", ATTR_UINT64},   {"uint32", ATTR_UINT32},   {"uint16", ATTR_UINT16}, {"uint8", ATTR_UINT8},
+            {"float64", ATTR_FLOAT64}, {"float32", ATTR_FLOAT32}, {"bool", ATTR_BOOL},     {"string", ATTR_STRING},
+        };
+
+        // forward declaratoin
+        class Dictionary;
+        class Null;
+
+        ///  type trait to get AttributeType at compiling time
+        template <typename DT> AttributeType to_dtype()
+        {
+            // TODO: using DT = std::remove_cv<DType>::type;
+            if (std::is_same<DT, int64_t>::value)
+                return ATTR_INT64;
+            else if (std::is_same<DT, int32_t>::value)
+                return ATTR_INT32;
+            else if (std::is_same<DT, int16_t>::value)
+                return ATTR_INT16;
+            else if (std::is_same<DT, int8_t>::value)
+                return ATTR_INT8;
+            else if (std::is_same<DT, uint64_t>::value)
+                return ATTR_UINT64;
+            else if (std::is_same<DT, uint32_t>::value)
+                return ATTR_UINT32;
+            else if (std::is_same<DT, uint16_t>::value)
+                return ATTR_UINT16;
+            else if (std::is_same<DT, uint8_t>::value)
+                return ATTR_UINT8;
+            else if (std::is_same<DT, float>::value)
+                return ATTR_FLOAT32;
+            else if (std::is_same<DT, double>::value)
+                return ATTR_FLOAT64;
+            else if (std::is_same<DT, bool>::value)
+                return ATTR_BOOL;
+            else if (std::is_same<DT, std::string>::value)
+                return ATTR_STRING;
+            else if (std::is_same<DT, Dictionary>::value)
+                return ATTR_DICTIONARY;
+            else if (std::is_same<DT, Null>::value)
+                return ATTR_NULL;
+            else
+            {
+                return ATTR_NULL; // todo: not a good default, Array can not be detected
+            }
+        }
+
+
+        /// `if constexpr ()` or constexpr template is only for C++17
         /// decay() from pointer or reference to type
         /// std::enable_if<>, std::byte, std::complex
+
+        ///  type trait to get data type name at compiling time
         template <typename DT> const char* to_dtype_name()
         {
             // TODO: using DT = std::remove_cv<DType>::type;
@@ -123,8 +175,6 @@ namespace sal
             }
         }
 
-        // forward declaratoin
-        class Dictionary;
 
         /// abstract class corresponding to python DataSummary class.
         /// Attribute class (base data class) implements this interface,
@@ -348,20 +398,20 @@ namespace sal
         TODO: std::atomic<> to make them atomic as the name suggested
         CONSIDER: type_name (CLASS name) == SCALAR, to be consistent with python
         */
-        template <class T, AttributeType DTYPE> class Atomic : public Attribute
+        template <class T> class Atomic : public Attribute
         {
             T m_value;
 
         public:
-            typedef Poco::SharedPtr<Atomic<T, DTYPE>> Ptr;
+            typedef Poco::SharedPtr<Atomic<T>> Ptr;
             /*
             Constructors and destructor.
             */
             Atomic()
-                    : Attribute(DTYPE, to_dtype_name<T>())
+                    : Attribute(to_dtype<T>(), to_dtype_name<T>())
                     , m_value(T()){}; // using T() as the default value is more general
             Atomic(T _value)
-                    : Attribute(DTYPE, to_dtype_name<T>())
+                    : Attribute(to_dtype<T>(), to_dtype_name<T>())
                     , m_value(_value){};
             virtual ~Atomic(){};
 
@@ -390,7 +440,7 @@ namespace sal
             /*
             Decodes a Poco JSON object representation of the Scalar and returns a Scalar object.
             */
-            static typename Atomic<T, DTYPE>::Ptr decode(Poco::JSON::Object::Ptr json)
+            static typename Atomic<T>::Ptr decode(Poco::JSON::Object::Ptr json)
             {
 
                 // treat any failure as a failure to decode
@@ -399,7 +449,7 @@ namespace sal
                     // check sal type is valid for this class
                     if (json->getValue<std::string>("type") != std::string(to_dtype_name<T>()))
                         throw SALException("type name in json does not match template datatype");
-                    return new Atomic<T, DTYPE>(json->getValue<T>("value"));
+                    return new Atomic<T>(json->getValue<T>("value"));
                 }
                 catch (...)
                 {
@@ -410,23 +460,23 @@ namespace sal
         };
 
         /// TODO: using scalar as CLASS type, map to python sal implementation
-        typedef Atomic<int8_t, ATTR_INT8> Int8;
-        typedef Atomic<int16_t, ATTR_INT16> Int16;
-        typedef Atomic<int32_t, ATTR_INT32> Int32;
-        typedef Atomic<int64_t, ATTR_INT64> Int64;
+        typedef Atomic<int8_t> Int8;
+        typedef Atomic<int16_t> Int16;
+        typedef Atomic<int32_t> Int32;
+        typedef Atomic<int64_t> Int64;
 
-        typedef Atomic<uint8_t, ATTR_UINT8> UInt8;
-        typedef Atomic<uint16_t, ATTR_UINT16> UInt16;
-        typedef Atomic<uint32_t, ATTR_UINT32> UInt32;
-        typedef Atomic<uint64_t, ATTR_UINT64> UInt64;
+        typedef Atomic<uint8_t> UInt8;
+        typedef Atomic<uint16_t> UInt16;
+        typedef Atomic<uint32_t> UInt32;
+        typedef Atomic<uint64_t> UInt64;
 
-        typedef Atomic<float, ATTR_FLOAT32> Float32;
-        typedef Atomic<double, ATTR_FLOAT64> Float64;
-        typedef Atomic<bool, ATTR_BOOL> Bool;
+        typedef Atomic<float> Float32;
+        typedef Atomic<double> Float64;
+        typedef Atomic<bool> Bool;
 
         // TODO: specialization String to have different CLASS name
         // std::string is also not support atomic operation
-        typedef Atomic<std::string, ATTR_STRING> String;
+        typedef Atomic<std::string> String;
 
         /// a typedef to ease future refactoring on data structure
         using ShapeType = std::vector<uint64_t>;
@@ -466,7 +516,7 @@ namespace sal
             */
             Array(ShapeType _shape)
                     : Attribute(ATTR_ARRAY, TYPE_NAME_ARRAY)
-                    //, m_element_type(ELEMENT_TYPE)
+                    , m_element_type(to_dtype<T>())
                     , m_element_type_name(to_dtype_name<T>())
             {
 
@@ -523,12 +573,11 @@ namespace sal
                 return this->m_shape.size();
             };
 
-            /*
-                    AttributeType element_type() const
-                    {
-                        return m_element_type;
-                    }
-        */
+            AttributeType element_type() const
+            {
+                return m_element_type;
+            }
+
             std::string element_type_name() const
             {
                 return m_element_type_name;
@@ -727,7 +776,7 @@ namespace sal
 
         protected:
             const std::string m_element_type_name;
-            // const AttributeType m_element_type;
+            const AttributeType m_element_type;
             uint8_t m_dimension; // CONSIDER: size_t otherwise lots of compiler warning
             ShapeType m_shape;
             ShapeType m_strides;
