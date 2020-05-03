@@ -190,7 +190,7 @@ namespace sal
             typedef Poco::SharedPtr<Signal> Ptr;
             const ShapeType shape() const
             {
-                return m_data.shape();
+                return m_data->shape();
             }
 
             // TODO: error, mask, dimensions getter, but no setter!

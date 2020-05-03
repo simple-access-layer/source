@@ -94,12 +94,12 @@ namespace sal
 
                 auth_required = api->getValue<bool>("requires_auth");
             }
-            catch (Poco::JSON::JSONException e)
+            catch (Poco::JSON::JSONException& e)
             {
                 std::string msg = std::string("Failed to parse server JSON response:") + e.what();
                 throw exception::SALException(msg.c_str());
             }
-            catch (std::exception e)
+            catch (std::exception& e)
             {
                 std::string msg = std::string("Failed to set host, please check and try again \n") + e.what();
                 throw exception::SALException(msg.c_str());
@@ -112,7 +112,7 @@ namespace sal
             this->m_data_uri = Poco::URI(uri, "data/");
         };
 
-        const bool is_auth_required() const
+        bool is_auth_required() const
         {
             return this->m_auth_required;
         };
@@ -297,6 +297,7 @@ namespace sal
                 logger().error("HTTP STATUS: " + std::to_string(status) + "\n reason: " + res.getReason());
             }
 #endif
+            return false;
         }
 
         Poco::JSON::Object::Ptr make_post_request(const Poco::URI uri) const

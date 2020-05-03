@@ -66,8 +66,8 @@ namespace sal
           because they can be shared by both C adn C++.
           why not const char*, maybe caused by Poco::JSON
         */
-        static char TYPE_NAME_NULL[] = "null";
-        static char TYPE_NAME_SCALAR[] = "scalar";
+        // static char TYPE_NAME_NULL[] = "null";
+        // static char TYPE_NAME_SCALAR[] = "scalar";
         // numpy.dtype 's typename
         static char TYPE_NAME_INT8[] = "int8";
         static char TYPE_NAME_INT16[] = "int16";
@@ -84,7 +84,7 @@ namespace sal
         static char TYPE_NAME_STRING[] = "string";
         static char TYPE_NAME_ARRAY[] = "array"; /// has extra class member element_type_name
         static char TYPE_NAME_DICTIONARY[] = "dictionary";
-        static char TYPE_NAME_SIGNAL[] = "signal";
+        // static char TYPE_NAME_SIGNAL[] = "signal";
 
         /// data types that can be element of array type,
         /// not in used yet, maybe removed later
@@ -500,8 +500,10 @@ namespace sal
                     : Attribute(ATTR_ARRAY, TYPE_NAME_ARRAY)
             {
             }
-
-            virtual uint64_t size() const = 0;
+            virtual ~IArray() // virtual destructor when virtual functions are present.
+            {
+            }
+            /// those functions below could be made non-virtual for better performance
             virtual ShapeType shape() const = 0;
             virtual size_t dimension() const = 0;
             virtual AttributeType element_type() const = 0;
@@ -509,6 +511,8 @@ namespace sal
 
             /// @{
             /** infra-structure for C-API */
+            virtual uint64_t size() const = 0;
+
             virtual size_t byte_size() const = 0;
 
             /// read-only pointer to provide read view into the data buffer
@@ -711,7 +715,7 @@ namespace sal
             virtual T& at(int i0, int64_t i1 = -1, int64_t i2 = -1, int64_t i3 = -1, int64_t i4 = -1, int64_t i5 = -1,
                           int64_t i6 = -1, int64_t i7 = -1, int64_t i8 = -1, int64_t i9 = -1) throw()
             {
-
+                // NOTE: index are signed integer, assigning -1 means max unsigned interger
                 if (this->m_dimension > 10)
                 {
                     throw std::out_of_range("The at() method can only be used with arrays of 10 dimensions of less.");
@@ -723,9 +727,8 @@ namespace sal
                 uint64_t element_index = 0;
                 for (uint8_t i = 0; i < this->m_dimension; i++)
                 {
-
                     // check the indices are inside the array bounds
-                    if ((dim_index[i] < 0) || (dim_index[i] > this->m_shape[i] - 1))
+                    if ((dim_index[i] < 0) || (static_cast<uint64_t>(dim_index[i]) > this->m_shape[i] - 1UL))
                     {
                         throw std::out_of_range("An array index is missing or is out of bounds.");
                     }
@@ -826,12 +829,38 @@ namespace sal
                 }
             };
 
+#if SAL_USE_EIGEN
+            // return a const view of buffer
+            typedef Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> MatrixType;
+            typedef Eigen::Map<const MatrixType> ConstMatrixView;
+
+            /// a read-only of underlying data an Eigen::Matrix
+            ConstMatrixView to_eigen_matrix() const
+            {
+                if (m_dimension == 2)
+                    return ConstMatrixView(this->data.data(), m_shape[0], m_shape[1]);
+                else
+                    throw SALException("only 2-dim array can expose as constant view of Eigen::Matrix");
+            }
+
+            /// as a writable Map of Eigen::Matrix
+            Eigen::Map<MatrixType> as_eigen()
+            {
+                if (m_dimension == 2)
+                    return Eigen::Map<MatrixType>(this->data.data(), m_shape[0], m_shape[1]);
+                else
+                    throw SALException("only 2-dim array can expose as constant view of Eigen::Matrix");
+            }
+
+#endif
         protected:
             // change element type is not possible without re-create the array object
-            const std::string m_element_type_name;
             const AttributeType m_element_type;
+            const std::string m_element_type_name;
+
             uint8_t m_dimension; // CONSIDER: size_t otherwise lots of compiler warning
             ShapeType m_shape;
+
             ShapeType m_strides;
             std::vector<T> data;
 
@@ -953,7 +982,7 @@ namespace sal
             {
                 this->attributes[key] = attribute;
             };
-            const bool has(const std::string& key) const
+            bool has(const std::string& key) const
             {
                 return this->attributes.count(key);
             };
