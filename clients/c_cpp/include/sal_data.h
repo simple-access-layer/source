@@ -7,6 +7,10 @@
 #include <string>
 #include <vector>
 
+#if SAL_USE_EIGEN
+#include <Eigen/Dense>
+#endif
+
 #include "Poco/Base64Decoder.h"
 #include "Poco/Base64Encoder.h"
 #include "Poco/Dynamic/Var.h"
@@ -680,10 +684,11 @@ namespace sal
 
                 // C++14 provide <T indices ...>
 #if 1
-            /// quick access an element for 2D matrix row and col,  without bound check
-            /// array(row, col), all zero for the first
+            /// quickly access an element for 2D matrix row and col,  without bound check
+            /// `array(row_index, col_index)`  all zero for the first element
             inline T& operator()(const uint64_t row, const uint64_t column)
             {
+                assert(m_dimension == 2);
                 uint64_t index = row * this->m_strides[0] + column;
                 return this->data[index];
             };
@@ -830,12 +835,12 @@ namespace sal
             };
 
 #if SAL_USE_EIGEN
-            // return a const view of buffer
-            typedef Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> MatrixType;
+            // it is crucial to set the storage order to RowMajor
+            typedef Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixType;
             typedef Eigen::Map<const MatrixType> ConstMatrixView;
 
-            /// a read-only of underlying data an Eigen::Matrix
-            ConstMatrixView to_eigen_matrix() const
+            /// a read-only view of the underlying data a const Map<Eigen::Matrix>
+            ConstMatrixView view_as_eigen_matrix() const
             {
                 if (m_dimension == 2)
                     return ConstMatrixView(this->data.data(), m_shape[0], m_shape[1]);
@@ -844,7 +849,8 @@ namespace sal
             }
 
             /// as a writable Map of Eigen::Matrix
-            Eigen::Map<MatrixType> as_eigen()
+            /// https://eigen.tuxfamily.org/dox/group__TutorialMapClass.html
+            Eigen::Map<MatrixType> as_eigen_matrix()
             {
                 if (m_dimension == 2)
                     return Eigen::Map<MatrixType>(this->data.data(), m_shape[0], m_shape[1]);

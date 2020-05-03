@@ -706,6 +706,43 @@ TEST_CASE("Data object string array attribute.", "[sal::object::StringArray]")
 }
 
 /// todo: BoolArray and StringArray
+#if SAL_USE_EIGEN
+#include <Eigen/Dense>
+TEST_CASE("Array<T> exposed as Eigen Matrix", "[sal::object::Array]")
+{
+    using namespace sal::object;
+    typedef int DT;
+    const size_t rows = 2;
+    const size_t cols = 3;
+    Int32Array arr({rows, cols});
+    DT number = 100;
+    arr[0] = number;
+    arr[1] = number + 1;
+    arr[2] = number + 2;
+    arr[cols] = number + cols;
+    arr[cols + 1] = number + cols + 1;
+
+    SECTION("Test Eigen matrix API")
+    {
+        // matrix view to the readonly data buffer
+        auto v = arr.view_as_eigen_matrix();
+        // std::cout << v << std::endl;
+        REQUIRE(v(0, 1) == number + 1);
+        REQUIRE(v(1, 0) == number + cols);
+
+        REQUIRE(arr.at(1, 0) == number + cols);
+        REQUIRE(arr(1, 0) == arr.at(1, 0));
+        REQUIRE(arr[cols] == number + cols);
+
+        int number2 = 20;
+        auto w = arr.as_eigen_matrix();
+        w(0, 2) = number2;
+        // https://eigen.tuxfamily.org/dox/group__TutorialMapClass.html
+        REQUIRE(w(0, 2) == number2);
+        REQUIRE(arr(0, 2) == number2);
+    }
+}
+#endif
 
 TEST_CASE("Array<T> buffer API", "[sal::object::Array<T>]")
 {
@@ -731,9 +768,15 @@ TEST_CASE("Array interface test", "[sal::object::IArray]")
 {
     using namespace sal::object;
     typedef int DT;
-    Int32Array arr({2, 3});
+    const size_t rows = 2;
+    const size_t cols = 3;
+    Int32Array arr({rows, cols});
     DT number = 100;
     arr[0] = number;
+    arr[1] = number + 1;
+    arr[cols] = number + cols;
+    arr[cols + 1] = number + cols + 1;
+
     IArray& v = arr;
 
     SECTION("Test IArray readonly properties")
@@ -750,11 +793,13 @@ TEST_CASE("Array interface test", "[sal::object::IArray]")
         // cp is readonly buffer
         const DT* cp = static_cast<const DT*>(v.data_pointer());
         REQUIRE(cp[0] == number);
+        REQUIRE(cp[cols] == number + cols);
+        REQUIRE(arr(1, 0) == number + cols);
 
         DT number1 = 20;
         DT* p = static_cast<DT*>(v.data_pointer());
         p[1] = number1;
         // std::cout << "p[1]" << p[1] << std::endl;  // fine
-        // REQUIRE(*static_cast<DT*>(v.data_at(1)) == number1);
+        // REQUIRE(*(static_cast<DT*>(v.data_at(1))) == number1);  // failed
     }
 }
