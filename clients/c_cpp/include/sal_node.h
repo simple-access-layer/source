@@ -19,11 +19,11 @@ namespace sal
 
 
         // TODO: those global names should be removed
-        static char JSON_CONTENT_REPORT[] = "report"; // should be named as "summary"
-        static char JSON_CONTENT_OBJECT[] = "object";
+        // static char JSON_CONTENT_REPORT[] = "report"; // should be named as "summary"
+        // static char JSON_CONTENT_OBJECT[] = "object";
 
-        static char OBJ_TYPE_FULL[] = "full";
-        static char OBJ_TYPE_SUMMARY[] = "summary";
+        // static char OBJ_TYPE_FULL[] = "full";
+        // static char OBJ_TYPE_SUMMARY[] = "summary";
 
         /// corresponding to python decorator `dataobject.register()`
         /// Refactored: rename from NodeType to NodeInfo mimic FileInfo class
@@ -196,9 +196,12 @@ namespace sal
             typedef Poco::SharedPtr<NodeObject> Ptr;
 
             NodeObject(const NodeInfo& _nodeInfo, const std::string _description)
-                    : m_nodeInfo(_nodeInfo)
                     //, object::Attribute(object::ATTR_NODE, _description)
-                    , m_node_type(NODE_LEAF){};
+                    : m_node_type(NODE_LEAF)
+                    , m_nodeInfo(_nodeInfo)
+            {
+            }
+
             virtual ~NodeObject() = default;
 
 
@@ -416,7 +419,7 @@ namespace sal
                 }
                 catch (...)
                 {
-                    throw SALException("JSON object does not define a valid SAL node object.");
+                    throw SALException("JSON object does not define a valid SAL leaf node object.");
                 }
                 return leaf;
             };
@@ -530,7 +533,7 @@ namespace sal
                 catch (...)
                 {
                     // todo: define a sal exception and replace
-                    throw SALException("JSON object does not define a valid SAL node object.");
+                    throw SALException("JSON object does not define a valid SAL branch object.");
                 }
                 return branch;
             };
