@@ -699,7 +699,7 @@ namespace sal
             /// `array(row_index, col_index)`  all zero for the first element
             inline T& operator()(const uint64_t row, const uint64_t column)
             {
-                assert(m_dimension == 2);
+                // assert(m_dimension == 2);
                 uint64_t index = row * this->m_strides[0] + column;
                 return this->data[index];
             };
@@ -791,6 +791,8 @@ namespace sal
 
             virtual std::string encoding() const
             {
+                if (this->element_type_name() == "string" || this->element_type_name() == "bool")
+                    return "list"; /// TODO: why list, is that fixed on server side?
                 return "base64";
             }
 
@@ -802,42 +804,34 @@ namespace sal
                 Poco::JSON::Object::Ptr array_definition;
                 ShapeType shape;
                 std::string encoded_data;
-                typename Array<T>::Ptr array;
 
-                // treat any failure as a failure to decode
-                try
-                {
-                    // check sal type is valid for this class
-                    if (json->getValue<std::string>("type") != std::string(TYPE_NAME_ARRAY))
-                        throw SALException("type does not match, array is expected here");
+                // CONSIDER: treat any failure as a failure to decode
+                // diasable try and catch all block
+                // check sal type is valid for this class
+                if (json->getValue<std::string>("type") != std::string(TYPE_NAME_ARRAY))
+                    throw SALException("type does not match, array is expected here");
 
-                    // extract array definition
-                    array_definition = json->getObject("value");
+                // extract array definition
+                array_definition = json->getObject("value");
 
-                    // check array element type and array encoding are valid for this class
-                    if (array_definition->getValue<std::string>("type") != to_dtype_name<T>())
-                        throw std::exception();
-                    auto _encoding = array_definition->getValue<std::string>("encoding");
-                    if (_encoding != "base64" or _encoding != "list") // TODO: supported_encodings()
-                        throw SALException("encoding is not supported");
-                    if (!array_definition->isArray("shape"))
-                        throw SALException("decoded shape is not an array");
+                // check array element type and array encoding are valid for this class
+                if (array_definition->getValue<std::string>("type") != to_dtype_name<T>())
+                    throw std::exception();
+                auto _encoding = array_definition->getValue<std::string>("encoding");
+                if (!(_encoding == "base64" or _encoding == "list")) // TODO: supported_encodings()
+                    throw SALException("encoding is not supported");
+                if (!array_definition->isArray("shape"))
+                    throw SALException("decoded shape is not an array");
 
-                    // decode shape
-                    shape = Array<T>::decode_shape(array_definition->getArray("shape"));
+                // decode shape
+                shape = Array<T>::decode_shape(array_definition->getArray("shape"));
 
-                    // create and populate array
-                    Array<T>::Ptr array = new Array<T>(shape);
-                    auto data_str = array_definition->getValue<std::string>("data");
+                // create and populate array
+                Array<T>::Ptr arr = new Array<T>(shape);
+                auto data_str = array_definition->getValue<std::string>("data");
 
-                    Array<T>::decode_data(array, data_str);
-                    return array;
-                }
-                catch (...)
-                {
-                    // todo: define a sal exception and replace
-                    throw SALException("JSON object does not define a valid SAL Array attribute.");
-                }
+                Array<T>::decode_data(arr, data_str);
+                return arr;
             };
 
 #if SAL_USE_EIGEN
