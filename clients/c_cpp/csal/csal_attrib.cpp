@@ -57,6 +57,27 @@ static int _csal_attrib_float32_cast( csal_attrib_t* self, csal_uuid_t* at_type,
 static int _csal_attrib_float64_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv );
 static int _csal_attrib_string_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv );
 
+
+
+
+
+static int _csal_attrib_array_int8_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv );
+static int _csal_attrib_array_int16_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv );
+static int _csal_attrib_array_int32_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv );
+static int _csal_attrib_array_int64_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv );
+
+static int _csal_attrib_array_uint8_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv );
+static int _csal_attrib_array_uint16_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv );
+static int _csal_attrib_array_uint32_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv );
+static int _csal_attrib_array_uint64_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv );
+
+static int _csal_attrib_array_float32_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv );
+static int _csal_attrib_array_float64_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv );
+static int _csal_attrib_array_string_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv );
+
+
+
+
 static _csal_attrib_vtbl_t _attrib_vtbl_uint8 = {_csal_attrib_uint8_cast };
 static _csal_attrib_vtbl_t _attrib_vtbl_uint16= {_csal_attrib_uint16_cast };
 static _csal_attrib_vtbl_t _attrib_vtbl_uint32= {_csal_attrib_uint32_cast };
@@ -73,19 +94,20 @@ static _csal_attrib_vtbl_t _attrib_vtbl_float64= { _csal_attrib_float64_cast };
 static _csal_attrib_vtbl_t _attrib_vtbl_string= { _csal_attrib_string_cast };
 
 
-static _csal_attrib_vtbl_t _attrib_vtbl_array_uint8;
-static _csal_attrib_vtbl_t _attrib_vtbl_array_uint16;
-static _csal_attrib_vtbl_t _attrib_vtbl_array_uint32;
-static _csal_attrib_vtbl_t _attrib_vtbl_array_uint64;
+static _csal_attrib_vtbl_t _attrib_vtbl_array_uint8= { _csal_attrib_array_uint8_cast };
+static _csal_attrib_vtbl_t _attrib_vtbl_array_uint16 = { _csal_attrib_array_uint16_cast };
+static _csal_attrib_vtbl_t _attrib_vtbl_array_uint32 = { _csal_attrib_array_uint32_cast };
+static _csal_attrib_vtbl_t _attrib_vtbl_array_uint64 = { _csal_attrib_array_uint64_cast };
 
-static _csal_attrib_vtbl_t _attrib_vtbl_array_int8;
-static _csal_attrib_vtbl_t _attrib_vtbl_array_int16;
-static _csal_attrib_vtbl_t _attrib_vtbl_array_int32;
-static _csal_attrib_vtbl_t _attrib_vtbl_array_int64;
+static _csal_attrib_vtbl_t _attrib_vtbl_array_int8 = { _csal_attrib_array_int8_cast };
+static _csal_attrib_vtbl_t _attrib_vtbl_array_int16 = { _csal_attrib_array_int16_cast };
+static _csal_attrib_vtbl_t _attrib_vtbl_array_int32 = { _csal_attrib_array_int32_cast };
+static _csal_attrib_vtbl_t _attrib_vtbl_array_int64 = { _csal_attrib_array_int64_cast };
 
-static _csal_attrib_vtbl_t _attrib_vtbl_array_float32;
-static _csal_attrib_vtbl_t _attrib_vtbl_array_float64;
-static _csal_attrib_vtbl_t _attrib_vtbl_array_string;
+static _csal_attrib_vtbl_t _attrib_vtbl_array_float32 = { _csal_attrib_array_float32_cast };
+static _csal_attrib_vtbl_t _attrib_vtbl_array_float64 = { _csal_attrib_array_float64_cast };
+
+static _csal_attrib_vtbl_t _attrib_vtbl_array_string = { _csal_attrib_array_string_cast };
 
 
 struct _csal_attrib_uint8_t
@@ -222,7 +244,7 @@ int csal_attrib_int8_cast( csal_attrib_int8_t* self, csal_uuid_t* at_type, void*
 		}
 
 	}
-	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
 	{
 		auto sal_ptr = self->base.sal_at_ptr.cast< sal::object::Int8 > ();
 		if( sal_ptr )
@@ -256,7 +278,7 @@ int csal_attrib_int16_cast( csal_attrib_int16_t* self, csal_uuid_t* at_type, voi
 		}
 
 	}
-	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
 	{
 		auto sal_ptr = self->base.sal_at_ptr.cast< sal::object::Int16 > ();
 		if( sal_ptr )
@@ -292,7 +314,7 @@ int csal_attrib_int32_cast( csal_attrib_int32_t* self, csal_uuid_t* at_type, voi
 		}
 
 	}
-	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
 	{
 		auto sal_ptr = self->base.sal_at_ptr.cast< sal::object::Int32 > ();
 		if( sal_ptr )
@@ -328,7 +350,7 @@ int csal_attrib_int64_cast( csal_attrib_int64_t* self, csal_uuid_t* at_type, voi
 		}
 
 	}
-	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
 	{
 		auto sal_ptr = self->base.sal_at_ptr.cast< sal::object::Int64 > ();
 		if( sal_ptr )
@@ -367,7 +389,7 @@ int csal_attrib_float32_cast( csal_attrib_float_t* self, csal_uuid_t* at_type, v
 		}
 
 	}
-	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
 	{
 		auto sal_ptr = self->base.sal_at_ptr.cast< sal::object::Float32 > ();
 		if( sal_ptr )
@@ -402,7 +424,7 @@ int csal_attrib_float64_cast( csal_attrib_double_t* self, csal_uuid_t* at_type, 
 		}
 
 	}
-	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
 	{
 		auto sal_ptr = self->base.sal_at_ptr.cast< sal::object::Float64 > ();
 		if( sal_ptr )
@@ -437,7 +459,7 @@ int csal_attrib_string_cast( csal_attrib_string_t* self, csal_uuid_t* at_type, v
 		}
 
 	}
-	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
 	{
 		auto sal_ptr = self->base.sal_at_ptr.cast< sal::object::String > ();
 		if( sal_ptr )
@@ -502,7 +524,7 @@ int csal_attrib_uint8_cast( csal_attrib_uint8_t* self, csal_uuid_t* at_type, voi
 		}
 
 	}
-	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
 	{
 		auto sal_ptr = self->base.sal_at_ptr.cast< sal::object::UInt8 > ();
 		if( sal_ptr )
@@ -537,7 +559,7 @@ int csal_attrib_uint16_cast( csal_attrib_uint16_t* self, csal_uuid_t* at_type, v
 		}
 
 	}
-	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
 	{
 		auto sal_ptr = self->base.sal_at_ptr.cast< sal::object::UInt16 > ();
 		if( sal_ptr )
@@ -573,7 +595,7 @@ int csal_attrib_uint32_cast( csal_attrib_uint32_t* self, csal_uuid_t* at_type, v
 		}
 
 	}
-	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
 	{
 		auto sal_ptr = self->base.sal_at_ptr.cast< sal::object::UInt32 > ();
 		if( sal_ptr )
@@ -609,7 +631,7 @@ int csal_attrib_uint64_cast( csal_attrib_uint64_t* self, csal_uuid_t* at_type, v
 		}
 
 	}
-	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
 	{
 		auto sal_ptr = self->base.sal_at_ptr.cast< sal::object::UInt64 > ();
 		if( sal_ptr )
@@ -643,102 +665,293 @@ static int _csal_attrib_uint64_cast( csal_attrib_t* self, csal_uuid_t* at_type, 
 
 
 
-
-
-
-
-
-
-int csal_attrib_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv )
+int csal_attrib_array_int8_cast( csal_attrib_array_int8_t* self, csal_uuid_t* at_type, void** ppv )
 {
 	int err = 0;
 
-
-	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_INT8 ) )
+	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY_INT8 ) )
 	{
-		auto sal_ptr = self->sal_at_ptr.cast< sal::object::Int8 > ();
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::Int8Array > ();
 		if( sal_ptr )
 		{
 			*ppv = self;
 		}
 
 	}
-	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_INT16 ) )
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY ) )
 	{
-		auto sal_ptr = self->sal_at_ptr.cast< sal::object::Int16 > ();
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::Int8Array > ();
 		if( sal_ptr )
 		{
 			*ppv = self;
 		}
 	}
-	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_INT32 ) )
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
 	{
-		auto sal_ptr = self->sal_at_ptr.cast< sal::object::Int32 > ();
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::Int8Array > ();
 		if( sal_ptr )
 		{
 			*ppv = self;
 		}
-	}
-	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_INT64 ) )
-	{
-		auto sal_ptr = self->sal_at_ptr.cast< sal::object::Int64 > ();
-		if( sal_ptr )
-		{
-			*ppv = self;
-		}
-	}
-	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_UINT8 ) )
-	{
-		auto sal_ptr = self->sal_at_ptr.cast< sal::object::UInt8 > ();
-		if( sal_ptr )
-		{
-			*ppv = self;
-		}
-	}
-	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_UINT16 ) )
-	{
-		auto sal_ptr = self->sal_at_ptr.cast< sal::object::UInt16 > ();
-		if( sal_ptr )
-		{
-			*ppv = self;
-		}
-	}
-	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_UINT32 ) )
-	{
-		auto sal_ptr = self->sal_at_ptr.cast< sal::object::UInt32 > ();
-		if( sal_ptr )
-		{
-			*ppv = self;
-		}
-	}
-	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_UINT64 ) )
-	{
-		auto sal_ptr = self->sal_at_ptr.cast< sal::object::UInt64 > ();
-		if( sal_ptr )
-		{
-			*ppv = self;
-		}
-	}
 
-	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_FLOAT32 ) )
+	}
+	else
 	{
-		auto sal_ptr = self->sal_at_ptr.cast< sal::object::Float32 > ();
+		*ppv = NULL;
+		err = 1;
+	}
+	return err;
+}
+
+static int _csal_attrib_array_int8_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	return csal_attrib_array_int8_cast( (csal_attrib_array_int8_t*)self, at_type, ppv );
+}
+
+
+
+int csal_attrib_array_int16_cast( csal_attrib_array_int16_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	int err = 0;
+
+	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY_INT16 ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::Int16Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+
+	}
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::Int16Array > ();
 		if( sal_ptr )
 		{
 			*ppv = self;
 		}
 	}
-	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_FLOAT64 ) )
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
 	{
-		auto sal_ptr = self->sal_at_ptr.cast< sal::object::Float64 > ();
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::Int16Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+
+	}
+	else
+	{
+		*ppv = NULL;
+		err = 1;
+	}
+	return err;
+}
+
+static int _csal_attrib_array_int16_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	return csal_attrib_array_int16_cast( (csal_attrib_array_int16_t*)self, at_type, ppv );
+}
+
+
+int csal_attrib_array_int32_cast( csal_attrib_array_int32_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	int err = 0;
+
+	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY_INT32 ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::Int32Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+
+	}
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::Int32Array > ();
 		if( sal_ptr )
 		{
 			*ppv = self;
 		}
 	}
-	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_STRING ) )
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
 	{
-		auto sal_ptr = self->sal_at_ptr.cast< sal::object::String > ();
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::Int32Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+
+	}
+	else
+	{
+		*ppv = NULL;
+		err = 1;
+	}
+	return err;
+}
+
+static int _csal_attrib_array_int32_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	return csal_attrib_array_int32_cast( (csal_attrib_array_int32_t*)self, at_type, ppv );
+}
+
+
+int csal_attrib_array_int64_cast( csal_attrib_array_int64_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	int err = 0;
+
+	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY_INT64 ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::Int64Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+
+	}
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::Int64Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+	}
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::Int64Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+
+	}
+	else
+	{
+		*ppv = NULL;
+		err = 1;
+	}
+	return err;
+}
+
+static int _csal_attrib_array_int64_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	return csal_attrib_array_int64_cast( (csal_attrib_array_int64_t*)self, at_type, ppv );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int csal_attrib_array_uint8_cast( csal_attrib_array_uint8_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	int err = 0;
+
+	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY_UINT8 ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::UInt8Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+
+	}
+	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::UInt8Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+
+	}
+	else
+	{
+		*ppv = NULL;
+		err = 1;
+	}
+	return err;
+}
+
+static int _csal_attrib_array_uint8_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	return csal_attrib_array_uint8_cast( (csal_attrib_array_uint8_t*)self, at_type, ppv );
+}
+
+
+
+int csal_attrib_array_uint16_cast( csal_attrib_array_uint16_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	int err = 0;
+
+	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY_UINT16 ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::UInt16Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+
+	}
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::UInt16Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+	}
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::UInt16Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+
+	}
+	else
+	{
+		*ppv = NULL;
+		err = 1;
+	}
+	return err;
+}
+
+static int _csal_attrib_array_uint16_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	return csal_attrib_array_uint16_cast( (csal_attrib_array_uint16_t*)self, at_type, ppv );
+}
+
+
+int csal_attrib_array_uint32_cast( csal_attrib_array_uint32_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	int err = 0;
+
+	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY_UINT32 ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::UInt32Array > ();
 		if( sal_ptr )
 		{
 			*ppv = self;
@@ -746,7 +959,15 @@ int csal_attrib_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv )
 	}
 	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY ) )
 	{
-		auto sal_ptr = self->sal_at_ptr.cast< sal::object::IArray > ();
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::UInt32Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+	}
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::UInt32Array > ();
 		if( sal_ptr )
 		{
 			*ppv = self;
@@ -757,12 +978,216 @@ int csal_attrib_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv )
 		*ppv = NULL;
 		err = 1;
 	}
-
-
 	return err;
 }
 
+static int _csal_attrib_array_uint32_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	return csal_attrib_array_uint32_cast( (csal_attrib_array_uint32_t*)self, at_type, ppv );
+}
 
+
+int csal_attrib_array_uint64_cast( csal_attrib_array_uint64_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	int err = 0;
+
+	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY_UINT64 ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::UInt64Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+	}
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::UInt64Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+	}
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::UInt64Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+	}
+	else
+	{
+		*ppv = NULL;
+		err = 1;
+	}
+	return err;
+}
+
+static int _csal_attrib_array_uint64_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	return csal_attrib_array_uint64_cast( (csal_attrib_array_uint64_t*)self, at_type, ppv );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int csal_attrib_array_float32_cast( csal_attrib_array_float32_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	int err = 0;
+
+	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY_FLOAT32 ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::Float32Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+	}
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::Float32Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+	}
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::Float32Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+	}
+	else
+	{
+		*ppv = NULL;
+		err = 1;
+	}
+	return err;
+}
+
+static int _csal_attrib_array_float32_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	return csal_attrib_array_float32_cast( (csal_attrib_array_float32_t*)self, at_type, ppv );
+}
+
+
+int csal_attrib_array_float64_cast( csal_attrib_array_float64_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	int err = 0;
+
+	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY_FLOAT64 ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::Float64Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+	}
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::Float64Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+	}
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::Float32Array > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+	}
+	else
+	{
+		*ppv = NULL;
+		err = 1;
+	}
+	return err;
+}
+
+static int _csal_attrib_array_float64_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	return csal_attrib_array_float64_cast( (csal_attrib_array_float64_t*)self, at_type, ppv );
+}
+
+int csal_attrib_array_string_cast( csal_attrib_array_string_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	int err = 0;
+
+	if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY_STRING ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::StringArray > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+	}
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::StringArray > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+	}
+	else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
+	{
+		auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::StringArray > ();
+		if( sal_ptr )
+		{
+			*ppv = self;
+		}
+	}
+	else
+	{
+		*ppv = NULL;
+		err = 1;
+	}
+	return err;
+}
+
+static int _csal_attrib_array_string_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	return csal_attrib_array_string_cast( (csal_attrib_array_string_t*)self, at_type, ppv );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int csal_attrib_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv )
+{
+	return self->vtbl->f_cast( self, at_type, ppv );
+}
+
+#if 0
 int csal_attrib_array_cast( csal_attrib_array_t* self, csal_uuid_t* csal_at_type, void** ppv )
 {
 	int err = 0;
@@ -808,7 +1233,7 @@ int csal_attrib_array_cast( csal_attrib_array_t* self, csal_uuid_t* csal_at_type
 
 	return err;				  
 }
-
+#endif
 
 
 #if 0

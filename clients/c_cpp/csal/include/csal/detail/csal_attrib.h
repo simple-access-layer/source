@@ -90,11 +90,15 @@ extern "C"
 
 
     int csal_attrib_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv );
+#if 0
     int csal_attrib_array_cast( csal_attrib_array_t* self, csal_uuid_t* csal_at_type, void** ppv );
-
+#endif
 
 
     int csal_attrib_int8_cast( csal_attrib_int8_t* self, csal_uuid_t* at_type, void** ppv );
+    int csal_attrib_int16_cast( csal_attrib_int16_t* self, csal_uuid_t* at_type, void** ppv );
+    int csal_attrib_int32_cast( csal_attrib_int32_t* self, csal_uuid_t* at_type, void** ppv );
+    int csal_attrib_int64_cast( csal_attrib_int64_t* self, csal_uuid_t* at_type, void** ppv );
 
 
     CSAL_ATTRIBUTE_TYPE csal_attrib_type( csal_attrib_t* self );

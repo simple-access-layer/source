@@ -287,32 +287,32 @@ int test_int8_array( test_frame_t* tf )
 
 
 
-
-    csal_err = csal_attrib_array_cast( (csal_attrib_array_t*)at_arr, IID_CSAL_ATTRIB_ARRAY_INT8, (void**)(&csal_array_ptr) );
+#if 1
+    csal_err = csal_attrib_cast( (csal_attrib_t*)at_arr, IID_CSAL_ATTRIB_ARRAY_INT8, (void**)(&csal_array_ptr) );
 
     TF_TEST( tf, 0 == csal_err );
     TF_TEST( tf, NULL != csal_array_ptr );
 
-    csal_err = csal_attrib_array_cast( (csal_attrib_array_t*)at_arr, IID_CSAL_ATTRIB_ARRAY_INT16, (void**)(&csal_array_ptr) );
+    csal_err = csal_attrib_cast( (csal_attrib_t*)at_arr, IID_CSAL_ATTRIB_ARRAY_INT16, (void**)(&csal_array_ptr) );
 
     TF_TEST( tf, 1 == csal_err );
     TF_TEST( tf, NULL == csal_array_ptr );
 
-    csal_err = csal_attrib_array_cast( (csal_attrib_array_t*)at_arr, IID_CSAL_ATTRIB_ARRAY_INT32, (void**)(&csal_array_ptr) );
+    csal_err = csal_attrib_cast( (csal_attrib_t*)at_arr, IID_CSAL_ATTRIB_ARRAY_INT32, (void**)(&csal_array_ptr) );
 
     TF_TEST( tf, 1 == csal_err );
     TF_TEST( tf, NULL == csal_array_ptr );
 
-    csal_err = csal_attrib_array_cast( (csal_attrib_array_t*)at_arr, IID_CSAL_ATTRIB_ARRAY_INT64, (void**)(&csal_array_ptr) );
+    csal_err = csal_attrib_cast( (csal_attrib_t*)at_arr, IID_CSAL_ATTRIB_ARRAY_INT64, (void**)(&csal_array_ptr) );
 
     TF_TEST( tf, 1 == csal_err );
     TF_TEST( tf, NULL == csal_array_ptr );
 
-    csal_err = csal_attrib_array_cast( (csal_attrib_array_t*)at_arr, IID_CSAL_ATTRIB_ARRAY_UINT64, (void**)(&csal_array_ptr) );
+    csal_err = csal_attrib_cast( (csal_attrib_t*)at_arr, IID_CSAL_ATTRIB_ARRAY_UINT64, (void**)(&csal_array_ptr) );
 
     TF_TEST( tf, 1 == csal_err );
     TF_TEST( tf, NULL == csal_array_ptr );
-
+#endif
 
 
     csal_attrib_destroy( (csal_attrib_t*)(at_arr) );
@@ -401,12 +401,12 @@ int test_int32_array( test_frame_t* tf )
             TF_TEST( tf, i*j==csal_attrib_array_int32_element_get( at_arr, idxs, ndims) );
         }
     }
-    
-    csal_err = csal_attrib_array_cast( (csal_attrib_array_t*)at_arr, IID_CSAL_ATTRIB_ARRAY_INT32, (void**)(&csal_array_ptr) );
+#if 1 
+    csal_err = csal_attrib_cast( (csal_attrib_t*)at_arr, IID_CSAL_ATTRIB_ARRAY, (void**)(&csal_array_ptr) );
 
     TF_TEST( tf, 0 == csal_err );
     TF_TEST( tf, NULL != csal_array_ptr );
-
+#endif
 
     csal_attrib_destroy( (csal_attrib_t*)(at_arr) );
     return 0;
