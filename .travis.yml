@@ -20,7 +20,8 @@ matrix:
             - libboost-dev
             - libpoco-dev
             - cmake
-            - g++-8
+            - g++
+            - lcov
             #- doxygen, enable later, once Doxyconfig is ready
       env:
         - GCS_TAG=ubuntu_64bit
@@ -28,10 +29,23 @@ matrix:
         - echo "nothing is needed here, PWD = $PWD"
       script:
         # multi-line command
-        - cd clients/c_cpp/ && bash scripts/build.sh
-        - cd build && bash ../scripts/run_all_tests.sh
+        - cd clients/c_cpp/
+        - if [ ! -d build ]; then  mkdir build; fi  && cd build
+        - cmake -DCODE_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug ..
+        - cmake --build . --config Debug -- -j $(nproc)
+        - bash ../scripts/run_all_tests.sh
         - make package
       #deploy, is per matrix deployment possible?
+
+      after_success:
+      # Create lcov report
+      - echo "start coverage collection PWD = ${PWD}"
+      - cd clients/c_cpp/build
+      - lcov --capture --directory ../include --output-file coverage.info
+      - lcov --remove coverage.info '/usr/*' --output-file coverage.info # filter system-files
+      - lcov --list coverage.info # debug info
+      # Uploading report to CodeCov
+      - bash <(curl -s https://codecov.io/bash) -f coverage.info || echo "Codecov did not collect coverage reports"
 
     # 64-bit Centos 7 docker container inside an Ubuntu host, for rpm builds
     - os: linux

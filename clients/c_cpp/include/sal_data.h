@@ -523,14 +523,18 @@ namespace sal
             {
             }
             /// those functions below could be made non-virtual for better performance
-            inline virtual ShapeType shape() const
+            inline ShapeType shape() const
             {
                 return this->m_shape;
             };
             /// consider: plural name
-            inline virtual size_t dimension() const
+            inline size_t dimension() const
             {
                 return this->m_shape.size();
+            };
+            inline ShapeType strides() const
+            {
+                return this->m_strides;
             };
 
             virtual AttributeType element_type() const = 0;
@@ -559,11 +563,11 @@ namespace sal
         };
 
         /*
-        It is a multi-dimension array based on std::vector<T>
-        No default constructor without parameter is allowed,
-        so shape of the array, as std::vector<uint64_t>,  consistent with python numpy.array
-        TODO: proxy pattern for m_data, so big data can not fit into memory can be supported.
-        */
+         It is a multi-dimension array based on std::vector<T>
+         No default constructor without parameter is allowed,
+         so shape of the array, as std::vector<uint64_t>,  consistent with python numpy.array
+         TODO: proxy pattern for m_data, so big data can not fit into memory can be supported.
+         */
         template <class T> class Array : public IArray
         {
         public:
@@ -774,7 +778,7 @@ namespace sal
                 array_definition->set("type", this->m_element_type_name);
                 array_definition->set("shape", this->encode_shape());
                 array_definition->set("encoding", this->encoding());
-                array_definition->set("data", Array<T>::encode_data(this->data));
+                array_definition->set("data", encode_data());
 
                 if (is_summary())
                     throw SALException("this is an summary without data");
@@ -785,14 +789,9 @@ namespace sal
                 return json_obj;
             };
 
-            std::string encoding() const
+            virtual std::string encoding() const
             {
-                if (std::is_same<std::string, T>::value)
-                    return "list"; // TODO: I do not know why?
-                else
-                {
-                    return "base64";
-                }
+                return "base64";
             }
 
             /*
@@ -828,8 +827,10 @@ namespace sal
                     shape = Array<T>::decode_shape(array_definition->getArray("shape"));
 
                     // create and populate array
-                    array = new Array<T>(shape);
-                    Array<T>::decode_data(array->data, array_definition->getValue<std::string>("data"));
+                    Array<T>::Ptr array = new Array<T>(shape);
+                    auto data_str = array_definition->getValue<std::string>("data");
+
+                    Array<T>::decode_data(array, data_str);
                     return array;
                 }
                 catch (...)
@@ -896,37 +897,107 @@ namespace sal
             Encodes the data buffer as a base64 string.
             but not for std::string data type
             */
-            static const std::string encode_data(const std::vector<T>& data)
+            const std::string encode_data() const
             {
-                std::stringstream s;
+                if (element_type_name() == "string")
+                {
+                    return encode_data_to_json_array();
+                }
+                else
+                {
+                    std::stringstream s;
 #if POCO_VERSION >= 0x01080000
-                // Poco::BASE64_URL_ENCODING is a enum, with value 1
-                Poco::Base64Encoder encoder(s, Poco::BASE64_URL_ENCODING);
+                    // Poco::BASE64_URL_ENCODING is a enum, with value 1
+                    Poco::Base64Encoder encoder(s, Poco::BASE64_URL_ENCODING);
 #else
-                // POCO 1.6 on Centos7 does not have such
-                Poco::Base64Encoder encoder(s);
+                    // POCO 1.6 on Centos7 does not have such
+                    Poco::Base64Encoder encoder(s);
 #endif
-                encoder.write(reinterpret_cast<const char*>(data.data()), data.size() * sizeof(T));
-                encoder.close();
-                return s.str();
+
+                    encoder.write(reinterpret_cast<const char*>(this->data.data()), this->data.size() * sizeof(T));
+                    encoder.close();
+                    return s.str();
+                }
             };
 
             /*
-            Decodes the data buffer from a base64 string.
-            `const std::vector<T>& data` is not possible
+            Encodes the string vector as a nested Poco Array of strings.
             */
-            static void decode_data(std::vector<T>& data, const std::string b64)
+            std::string encode_data_to_json_array(uint8_t dimension = 0, uint64_t offset = 0) const
             {
-                std::stringstream s(b64);
-#if POCO_VERSION >= 0x01080000
-                // Poco::BASE64_URL_ENCODING is a enum, with value 1
-                Poco::Base64Decoder decoder(s, Poco::BASE64_URL_ENCODING);
-#else
-                // POCO 1.6 on Centos7 does not have Poco::BASE64_URL_ENCODING enum
-                Poco::Base64Decoder decoder(s);
-#endif
-                decoder.read(reinterpret_cast<char*>(data.data()), data.size() * sizeof(T));
+                std::stringstream ss;
+                Poco::JSON::Array::Ptr json = new Poco::JSON::Array();
+
+                if (dimension == (this->m_dimension - 1))
+                {
+                    // populate innermost array with the strings
+                    for (uint64_t i = 0; i < this->shape()[dimension]; i++)
+                    {
+                        json->add(this->data[offset + i]);
+                    }
+                }
+                else
+                {
+                    // create nested array objects
+                    for (uint64_t i = 0; i < this->shape()[dimension]; i++)
+                    {
+                        json->add(encode_data_to_json_array(dimension + 1, offset + i * this->m_strides[dimension]));
+                    }
+                }
+                json->stringify(ss);
+                return ss.str();
             };
+
+            /*
+            Decodes the numeric data buffer from a base64 string.
+            */
+            static void decode_data(Array<T>::Ptr arr, const std::string& b64)
+            {
+                if (arr->element_type_name() == "string")
+                {
+                    std::cout << "\n === StringArray::decode_data() is called === \n";
+                    auto j = Poco::JSON::Parser().parse(b64);
+                    Poco::JSON::Array::Ptr json = j.extract<Poco::JSON::Array::Ptr>();
+                    decode_data_from_json_array(arr, json);
+                }
+                else
+                {
+                    std::stringstream s(b64);
+#if POCO_VERSION >= 0x01080000
+                    // Poco::BASE64_URL_ENCODING is a enum, with value 1
+                    Poco::Base64Decoder decoder(s, Poco::BASE64_URL_ENCODING);
+#else
+                    // POCO 1.6 on Centos7 does not have Poco::BASE64_URL_ENCODING enum
+                    Poco::Base64Decoder decoder(s);
+#endif
+                    decoder.read(reinterpret_cast<char*>(arr->data_pointer()), arr->size() * sizeof(T));
+                }
+            }
+
+            /**
+            Decodes a nested Poco Array into a string vector, for BoolArray and StringArray
+            */
+            static void decode_data_from_json_array(Array<T>::Ptr array, const Poco::JSON::Array::Ptr json,
+                                                    uint8_t dimension = 0, uint64_t offset = 0)
+            {
+                if (dimension == (array->dimension() - 1))
+                {
+                    // innermost array contains strings
+                    for (uint64_t i = 0; i < array->shape()[dimension]; i++)
+                    {
+                        (*array)[offset + i] = json->getElement<T>(i);
+                    }
+                }
+                else
+                {
+                    // decode nested array objects
+                    for (uint64_t i = 0; i < array->shape()[dimension]; i++)
+                    {
+                        decode_data_from_json_array(array, json->getArray(i), dimension + 1,
+                                                    offset + i * array->strides()[dimension]);
+                    }
+                }
+            }
         };
 
         /// naming as Javascript TypedArray
@@ -945,11 +1016,19 @@ namespace sal
         typedef Array<float> Float32Array;
         typedef Array<double> Float64Array;
 
-        typedef Array<std::string> StringArray; // has different encoding "list"
+
+        /** `typedef Array<std::string> StringArray` will not work properly
+         * `virtual const void* data_pointer() const` method can be overriden by
+         * template member method redefinition. so StringArray is derived from `Array<std::string>`
+         * why StringArray is different from DoubleArray?
+         *  + string array has different encoding "list",
+         *  + data buffer is be not contiguous, so buffer pointer should not exposed to C-API
+         *  + element byte size is not fixed, sizeof(std::string) != std::string::size()
+         * */
+        typedef Array<std::string> StringArray;
 
         // forward declare decode()
         Attribute::Ptr decode(Poco::JSON::Object::Ptr json);
-
 
         /*
         a container of string key and Attribute type data
@@ -1067,9 +1146,10 @@ namespace sal
                     }
                     return container;
                 }
-                catch (...)
+                catch (std::exception& e)
                 {
                     // todo: define a sal exception and replace
+                    std::cout << e.what() << std::endl;
                     throw SALException("JSON object does not define a valid SAL Array attribute.");
                 }
             };
