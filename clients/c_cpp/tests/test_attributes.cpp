@@ -725,23 +725,28 @@ TEST_CASE("Data object string array attribute.", "[sal::object::StringArray]")
     {
         auto jObj = v.encode();
         jObj->stringify(cout);
-        auto dv = StringArray::decode(jObj);
+        cout << endl;
+        auto dv = StringArray::decode(jObj); // Null pointer
         REQUIRE(v(1, 0) == value2);
     }
 }
 
-#if 0
+
 TEST_CASE("Data object bool array attribute.", "[sal::object::BoolArray]")
 {
     using namespace sal::object;
     typedef bool DT;
+    typedef BoolArray ArrayT;
     const size_t rows = 2;
     const size_t cols = 3;
     BoolArray v({rows, cols});
 
+    for (int i = 0; i < v.size(); i++)
+        v[i] = true;
+
     SECTION("Initialise with array.")
     {
-        REQUIRE(v.size() == cols * cols);
+        REQUIRE(v.size() == rows * cols);
         REQUIRE(v.dimension() == 2);
         REQUIRE(v.shape()[0] == rows);
         REQUIRE(v.type_name() == "array");
@@ -750,11 +755,21 @@ TEST_CASE("Data object bool array attribute.", "[sal::object::BoolArray]")
 
     SECTION("Test indexing and modify element value")
     {
-        // v[cols] = false;
-        // REQUIRE(v(1, 0) == false);
+        DT value = false;
+        v[cols] = value;
+        REQUIRE(v(1, 0) == value);
+    }
+
+    SECTION("Test encoding and decoding")
+    {
+        auto jObj = v.encode();
+        jObj->stringify(cout);
+        cout << endl; // correct
+        auto dv = ArrayT::decode(jObj);
+        REQUIRE(v(0, 0) == true);
     }
 }
-#endif
+
 
 /// todo: BoolArray and StringArray
 #if SAL_USE_EIGEN

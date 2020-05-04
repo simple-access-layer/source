@@ -597,9 +597,14 @@ namespace sal
             */
 
             Array(ShapeType _shape)
+                    : Array(_shape, to_dtype<T>(), to_dtype_name<T>())
+            {
+            }
+
+            Array(ShapeType _shape, AttributeType _type, const std::string _type_name)
                     : IArray(_shape)
-                    , m_element_type(to_dtype<T>())
-                    , m_element_type_name(to_dtype_name<T>())
+                    , m_element_type(_type)
+                    , m_element_type_name(_type_name)
             {
                 // calculate array buffer length
                 uint64_t element_size = 1;
@@ -791,8 +796,8 @@ namespace sal
 
             virtual std::string encoding() const
             {
-                if (this->element_type_name() == "string" || this->element_type_name() == "bool")
-                    return "list"; /// TODO: why list, is that fixed on server side?
+                if (this->element_type_name() == "string") // || this->element_type_name() == "bool"
+                    return "list";                         /// TODO: why list, is that fixed on server side?
                 return "base64";
             }
 
@@ -815,8 +820,9 @@ namespace sal
                 array_definition = json->getObject("value");
 
                 // check array element type and array encoding are valid for this class
-                if (array_definition->getValue<std::string>("type") != to_dtype_name<T>())
-                    throw std::exception();
+                auto input_type = array_definition->getValue<std::string>("type");
+                if (input_type != "bool" && input_type != to_dtype_name<T>())
+                    throw SALException("internal element type and input json data type does not match");
                 auto _encoding = array_definition->getValue<std::string>("encoding");
                 if (!(_encoding == "base64" or _encoding == "list")) // TODO: supported_encodings()
                     throw SALException("encoding is not supported");
@@ -893,7 +899,7 @@ namespace sal
             */
             const std::string encode_data() const
             {
-                if (element_type_name() == "string")
+                if (element_type_name() == "string") // || element_type_name() == "bool"
                 {
                     return encode_data_to_json_array();
                 }
@@ -947,9 +953,8 @@ namespace sal
             */
             static void decode_data(Array<T>::Ptr arr, const std::string& b64)
             {
-                if (arr->element_type_name() == "string")
+                if (arr->element_type_name() == "string") // || arr->element_type_name() == "bool"
                 {
-                    std::cout << "\n === StringArray::decode_data() is called === \n";
                     auto j = Poco::JSON::Parser().parse(b64);
                     Poco::JSON::Array::Ptr json = j.extract<Poco::JSON::Array::Ptr>();
                     decode_data_from_json_array(arr, json);
@@ -974,6 +979,7 @@ namespace sal
             static void decode_data_from_json_array(Array<T>::Ptr array, const Poco::JSON::Array::Ptr json,
                                                     uint8_t dimension = 0, uint64_t offset = 0)
             {
+                std::cout << "\n === decode_data_from_json_array() is called === \n";
                 if (dimension == (array->dimension() - 1))
                 {
                     // innermost array contains strings
@@ -1011,15 +1017,46 @@ namespace sal
         typedef Array<double> Float64Array;
 
 
-        /** `typedef Array<std::string> StringArray` will not work properly
-         * `virtual const void* data_pointer() const` method can be overriden by
-         * template member method redefinition. so StringArray is derived from `Array<std::string>`
-         * why StringArray is different from DoubleArray?
+        /** `typedef Array<std::string> StringArray` needs specialization
+         *  why StringArray is different from Array<double>?
          *  + string array has different encoding "list",
          *  + data buffer is be not contiguous, so buffer pointer should not exposed to C-API
-         *  + element byte size is not fixed, sizeof(std::string) != std::string::size()
+         *  + element value/string length is not fixed, sizeof(std::string) != std::string::size()
+         *
+         *  1) Template specialization to some non-virtual function,  a bit ugly
+         *   > `virtual const void* data_pointer() const` method can NOT be overriden by
+         * template member method redefinition.
+         *
+         *  2) StringArray derived from `Array<std::string>`
+         *  > too much work and too much duplicate code
+         *
+         *  solution
+         * 3)  conditionally select decode and encoding method according to data type
+         *
          * */
         typedef Array<std::string> StringArray;
+
+        /** `typedef Array<std::string> StringArray` needs specialization
+         * Reasons
+         * + std::vector<bool> is a specialized std::vector<>, each element use a bit not byte
+         * + all left reference to element will not work/compile, such as `T& operator []`
+         *
+         * Solution: `class BoolArray : public Array<uint8_t>`
+         * override the constructor solved the type name initialization
+         * but server side may have different serialization method, another special decode_data()
+         * is necessary, leave it as future work.
+         * */
+
+        class BoolArray : public Array<uint8_t>
+        {
+        public:
+            BoolArray(const ShapeType _shape)
+                    : Array<uint8_t>(_shape, ATTR_BOOL, "bool")
+            {
+            }
+        };
+        // typedef Array<uint8_t> BoolArray;
+
 
         // forward declare decode()
         Attribute::Ptr decode(Poco::JSON::Object::Ptr json);
@@ -1190,10 +1227,10 @@ namespace sal
                 return Float32Array::decode(json);
             else if (el_type_name == TYPE_NAME_FLOAT64)
                 return Float64Array::decode(json);
-            // else if (el_type_name == TYPE_NAME_BOOL)
-            //    return BoolArray::decode(json); // TODO: compiling error, needs std::enable_if<>
+            else if (el_type_name == TYPE_NAME_BOOL)
+                return BoolArray::decode(json); // TODO: compiling error, needs std::enable_if<>
             else if (el_type_name == TYPE_NAME_STRING)
-                return StringArray::decode(json); // TODO: decoding may not working, need specialization?
+                return StringArray::decode(json);
             else
                 throw SALException("data type string `" + el_type_name + "` is not supported");
         }
