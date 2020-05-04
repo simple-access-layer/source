@@ -223,7 +223,14 @@ int test_branch( test_frame_t* tf )
 int test_int8_array( test_frame_t* tf )
 {
 
+	csal_attrib_array_t* csal_array_ptr = NULL;
+
+	int csal_err = 0;
     uint64_t dims[2];
+    
+    uint64_t shape[2];
+    uint64_t nshape;
+
     uint64_t idxs[2];
     uint64_t ndims=2;
 
@@ -232,11 +239,29 @@ int test_int8_array( test_frame_t* tf )
     dims[0]=3;
     dims[1]=4;
     csal_attrib_array_int8_t* at_arr = csal_attrib_array_int8_create( dims, ndims );
+    
+
+
+
+
+
 
 
     TF_TEST( tf, NULL != at_arr );
 
     TF_TEST( tf, CSAL_ATTR_ARRAY == csal_attrib_type( (csal_attrib_t*)at_arr ) );
+
+    csal_err = csal_attrib_array_shape( (csal_attrib_array_t*)(at_arr), shape, &nshape, 2 );
+
+
+    TF_TEST(tf, 0 == csal_err );
+    TF_TEST(tf, 2 == nshape );
+
+
+
+    csal_err = csal_attrib_array_shape( (csal_attrib_array_t*)(at_arr), shape, &nshape, 1 );
+
+    TF_TEST(tf, 1 == csal_err );
 
     for( i = 0; i < dims[0]; ++i )
     {
@@ -259,6 +284,36 @@ int test_int8_array( test_frame_t* tf )
             TF_TEST( tf, i*j==csal_attrib_array_int8_element_get( at_arr, idxs, ndims) );
         }
     }
+
+
+
+
+    csal_err = csal_attrib_array_cast( (csal_attrib_array_t*)at_arr, IID_CSAL_ATTRIB_ARRAY_INT8, (void**)(&csal_array_ptr) );
+
+    TF_TEST( tf, 0 == csal_err );
+    TF_TEST( tf, NULL != csal_array_ptr );
+
+    csal_err = csal_attrib_array_cast( (csal_attrib_array_t*)at_arr, IID_CSAL_ATTRIB_ARRAY_INT16, (void**)(&csal_array_ptr) );
+
+    TF_TEST( tf, 1 == csal_err );
+    TF_TEST( tf, NULL == csal_array_ptr );
+
+    csal_err = csal_attrib_array_cast( (csal_attrib_array_t*)at_arr, IID_CSAL_ATTRIB_ARRAY_INT32, (void**)(&csal_array_ptr) );
+
+    TF_TEST( tf, 1 == csal_err );
+    TF_TEST( tf, NULL == csal_array_ptr );
+
+    csal_err = csal_attrib_array_cast( (csal_attrib_array_t*)at_arr, IID_CSAL_ATTRIB_ARRAY_INT64, (void**)(&csal_array_ptr) );
+
+    TF_TEST( tf, 1 == csal_err );
+    TF_TEST( tf, NULL == csal_array_ptr );
+
+    csal_err = csal_attrib_array_cast( (csal_attrib_array_t*)at_arr, IID_CSAL_ATTRIB_ARRAY_UINT64, (void**)(&csal_array_ptr) );
+
+    TF_TEST( tf, 1 == csal_err );
+    TF_TEST( tf, NULL == csal_array_ptr );
+
+
 
     csal_attrib_destroy( (csal_attrib_t*)(at_arr) );
 
@@ -313,11 +368,13 @@ int test_int32_array( test_frame_t* tf )
     uint64_t ndims=2;
 
     int i,j;
+    int csal_err = 0;
 
     dims[0]=3;
     dims[1]=4;
 
     csal_attrib_array_int32_t* at_arr = csal_attrib_array_int32_create( dims, ndims );
+    csal_attrib_array_int32_t* csal_array_ptr = NULL;
 
 
     TF_TEST( tf, NULL != at_arr );
@@ -345,6 +402,12 @@ int test_int32_array( test_frame_t* tf )
         }
     }
     
+    csal_err = csal_attrib_array_cast( (csal_attrib_array_t*)at_arr, IID_CSAL_ATTRIB_ARRAY_INT32, (void**)(&csal_array_ptr) );
+
+    TF_TEST( tf, 0 == csal_err );
+    TF_TEST( tf, NULL != csal_array_ptr );
+
+
     csal_attrib_destroy( (csal_attrib_t*)(at_arr) );
     return 0;
 }
