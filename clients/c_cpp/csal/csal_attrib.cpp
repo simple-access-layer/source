@@ -411,7 +411,7 @@ csal_attrib_t* csal_attrib_from_sal( sal::object::Attribute::Ptr sal_ptr )
 {
     csal_factory fac;
 
-    CSAL_ATTRIBUTE_TYPE csal_type =   AttributeType_2_csal( sal_ptr->type_id() );
+    CSAL_ATTRIBUTE_TYPE csal_type =   AttributeType_2_csal( sal_ptr->type() );
 
     csal_attrib_t* csal_at_ptr = fac.create( csal_type );
     csal_at_ptr->sal_at_ptr = sal_ptr;
@@ -432,7 +432,7 @@ CSAL_ATTRIBUTE_TYPE csal_attrib_type( csal_attrib_t* self )
 {
     sal::object::Attribute::Ptr at = self->sal_at_ptr.cast< sal::object::Attribute >();
 
-    CSAL_ATTRIBUTE_TYPE csal_type = AttributeType_2_csal( at->type_id() );
+    CSAL_ATTRIBUTE_TYPE csal_type = AttributeType_2_csal( at->type() );
     return csal_type;
 }
 
