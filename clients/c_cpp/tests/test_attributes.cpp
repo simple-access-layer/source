@@ -643,40 +643,51 @@ TEST_CASE("Data object Int8 array attribute.", "[sal::object::Int8Array]")
     //     //REQUIRE(v.elementTypeName() == "uint8");
     // }
 
+    using namespace sal::object;
+    // make this test more general, to quickly switch between element data type
+    typedef double DT; // int32_t test passed
+    typedef Float64Array ArrayT;
+
+    const size_t rows = 2;
+    const size_t cols = 3;
+    ArrayT v({rows, cols});
+    for (int i = 0; i < v.size(); i++)
+        v[i] = i;
+
     SECTION("Initialise with array.")
     {
-        sal::object::Int8Array v({2, 3});
-
-        REQUIRE(v.size() == 2 * 3);
+        REQUIRE(v.size() == rows * cols);
         REQUIRE(v.dimension() == 2);
-        REQUIRE(v.shape()[0] == 2);
+        REQUIRE(v.shape()[0] == rows);
     }
 
     SECTION("Initialise with array.")
     {
-        using namespace sal::object;
-        sal::object::Int8Array v({2, 3});
-
         REQUIRE(v.type_name() == "array");
-        REQUIRE(v.element_type_name() == "int8");
+        REQUIRE(v.element_type_name() == to_dtype_name<DT>());
         REQUIRE(v.type() == AttributeType::ATTR_ARRAY);
-        REQUIRE(v.element_type() == AttributeType::ATTR_INT8);
+        REQUIRE(v.element_type() == to_dtype<DT>());
     }
 
     SECTION("Test indexing and modify element value")
     {
-        sal::object::Int8Array v({2, 3});
-
         int8_t number = 100u;
+        DT orig = v(0, 0);
         v[0] = number;
-        REQUIRE(v[0] == number);
         REQUIRE(v(0, 0) == number);
-
-        v[1] = -128;
-        REQUIRE(v[1] == -128);
+        v(0, 0) = orig;
+        REQUIRE(v[0] == orig);
 
         v(1, 0) = 127;
         REQUIRE(v(1, 0) == 127);
+    }
+
+    SECTION("Test encoding and decoding")
+    {
+        auto jObj = v.encode();
+        // jObj->stringify(cout); cout << endl;
+        auto dv = ArrayT::decode(jObj);
+        REQUIRE(v(0, 1) == 1);
     }
 }
 
