@@ -7,6 +7,10 @@
 #include <string>
 #include <vector>
 
+#if SAL_USE_EIGEN
+#include <Eigen/Dense>
+#endif
+
 #include "Poco/Base64Decoder.h"
 #include "Poco/Base64Encoder.h"
 #include "Poco/Dynamic/Var.h"
@@ -496,16 +500,43 @@ namespace sal
         {
         public:
             typedef Poco::SharedPtr<IArray> Ptr;
-            IArray()
+            IArray(ShapeType _shape)
                     : Attribute(ATTR_ARRAY, TYPE_NAME_ARRAY)
             {
+
+                this->m_dimension = _shape.size();
+                this->m_shape = _shape;
+                this->m_strides.resize(this->m_dimension);
+
+                // calculate strides
+                int16_t i = this->m_dimension - 1;
+                this->m_strides[i] = 1;
+                i--;
+                while (i >= 0)
+                {
+                    this->m_strides[i] = this->m_strides[i + 1] * this->m_shape[i + 1];
+                    i--;
+                }
             }
+
             virtual ~IArray() // virtual destructor when virtual functions are present.
             {
             }
             /// those functions below could be made non-virtual for better performance
-            virtual ShapeType shape() const = 0;
-            virtual size_t dimension() const = 0;
+            inline ShapeType shape() const
+            {
+                return this->m_shape;
+            };
+            /// consider: plural name
+            inline size_t dimension() const
+            {
+                return this->m_shape.size();
+            };
+            inline ShapeType strides() const
+            {
+                return this->m_strides;
+            };
+
             virtual AttributeType element_type() const = 0;
             virtual std::string element_type_name() const = 0;
 
@@ -525,14 +556,18 @@ namespace sal
                                   int64_t i5 = -1, int64_t i6 = -1, int64_t i7 = -1, int64_t i8 = -1,
                                   int64_t i9 = -1) = 0;
             /// @}
+        protected:
+            uint8_t m_dimension; // CONSIDER: size_t otherwise lots of compiler warning
+            ShapeType m_shape;
+            ShapeType m_strides;
         };
 
         /*
-        It is a multi-dimension array based on std::vector<T>
-        No default constructor without parameter is allowed,
-        so shape of the array, as std::vector<uint64_t>,  consistent with python numpy.array
-        TODO: proxy pattern for m_data, so big data can not fit into memory can be supported.
-        */
+         It is a multi-dimension array based on std::vector<T>
+         No default constructor without parameter is allowed,
+         so shape of the array, as std::vector<uint64_t>,  consistent with python numpy.array
+         TODO: proxy pattern for m_data, so big data can not fit into memory can be supported.
+         */
         template <class T> class Array : public IArray
         {
         public:
@@ -560,26 +595,17 @@ namespace sal
                 Float32Array a3({512, 512, 3});
 
             */
+
             Array(ShapeType _shape)
-                    : IArray()
-                    , m_element_type(to_dtype<T>())
-                    , m_element_type_name(to_dtype_name<T>())
+                    : Array(_shape, to_dtype<T>(), to_dtype_name<T>())
             {
+            }
 
-                this->m_dimension = _shape.size();
-                this->m_shape = _shape;
-                this->m_strides.resize(this->m_dimension);
-
-                // calculate strides
-                int16_t i = this->m_dimension - 1;
-                this->m_strides[i] = 1;
-                i--;
-                while (i >= 0)
-                {
-                    this->m_strides[i] = this->m_strides[i + 1] * this->m_shape[i + 1];
-                    i--;
-                }
-
+            Array(ShapeType _shape, AttributeType _type, const std::string _type_name)
+                    : IArray(_shape)
+                    , m_element_type(_type)
+                    , m_element_type_name(_type_name)
+            {
                 // calculate array buffer length
                 uint64_t element_size = 1;
                 for (uint64_t d : this->m_shape)
@@ -587,7 +613,7 @@ namespace sal
 
                 // create buffer, how about set a default value?
                 this->data.resize(element_size);
-            };
+            }
 
             // CONSIDER: disable those constructors, force shared_ptr<>
             //            Array(const Array&);
@@ -600,16 +626,6 @@ namespace sal
             */
             virtual ~Array(){};
 
-            inline virtual ShapeType shape() const
-            {
-                return this->m_shape;
-            };
-            /// consider: plural name
-            inline virtual size_t dimension() const
-            {
-                return this->m_shape.size();
-            };
-
             inline virtual AttributeType element_type() const override
             {
                 return m_element_type;
@@ -620,7 +636,7 @@ namespace sal
                 return m_element_type_name;
             }
 
-            /// @{
+            /// @{ STL container API
             /*
             Returns the length of the array buffer, element_size, not byte size
             flattened 1D array from all dimensions
@@ -630,9 +646,13 @@ namespace sal
                 return this->data.size();
             };
 
-            /** infra-structure for C-API */
+            /// todo: STL iterators
+            /// @}
+
+            /// @{ Infrastructure for C-API
             inline virtual size_t byte_size() const
             {
+                /// NOTE: std::vector<bool> stores bit instead of byte for each element
                 return this->data.size() * sizeof(T);
             };
 
@@ -678,12 +698,13 @@ namespace sal
                 return this->data[index];
             };
 
-                // C++14 provide <T indices ...>
-#if 1
-            /// quick access an element for 2D matrix row and col,  without bound check
-            /// array(row, col), all zero for the first
+            // C++14 provide <T indices ...>
+
+            /// quickly access an element for 2D matrix row and col,  without bound check
+            /// `array(row_index, col_index)`  all zero for the first element
             inline T& operator()(const uint64_t row, const uint64_t column)
             {
+                // assert(m_dimension == 2);
                 uint64_t index = row * this->m_strides[0] + column;
                 return this->data[index];
             };
@@ -693,7 +714,6 @@ namespace sal
                 uint64_t index = row * this->m_strides[0] + column;
                 return this->data[index];
             };
-#endif
 
             /*
             Access an element of the array.
@@ -763,7 +783,7 @@ namespace sal
                 array_definition->set("type", this->m_element_type_name);
                 array_definition->set("shape", this->encode_shape());
                 array_definition->set("encoding", this->encoding());
-                array_definition->set("data", this->encode_data());
+                array_definition->set("data", encode_data());
 
                 if (is_summary())
                     throw SALException("this is an summary without data");
@@ -774,14 +794,11 @@ namespace sal
                 return json_obj;
             };
 
-            std::string encoding() const
+            virtual std::string encoding() const
             {
-                if (std::is_same<std::string, T>::value)
-                    return "list"; // TODO: I do not know why?
-                else
-                {
-                    return "base64";
-                }
+                if (this->element_type_name() == "string") // || this->element_type_name() == "bool"
+                    return "list";                         /// TODO: why list, is that fixed on server side?
+                return "base64";
             }
 
             /*
@@ -789,53 +806,47 @@ namespace sal
             */
             static typename Array<T>::Ptr decode(Poco::JSON::Object::Ptr json)
             {
-
                 Poco::JSON::Object::Ptr array_definition;
                 ShapeType shape;
                 std::string encoded_data;
-                typename Array<T>::Ptr array;
 
-                // treat any failure as a failure to decode
-                try
-                {
-                    // check sal type is valid for this class
-                    if (json->getValue<std::string>("type") != std::string(TYPE_NAME_ARRAY))
-                        throw SALException("type does not match, array is expected here");
+                // CONSIDER: treat any failure as a failure to decode
+                // diasable try and catch all block
+                // check sal type is valid for this class
+                if (json->getValue<std::string>("type") != std::string(TYPE_NAME_ARRAY))
+                    throw SALException("type does not match, array is expected here");
 
-                    // extract array definition
-                    array_definition = json->getObject("value");
+                // extract array definition
+                array_definition = json->getObject("value");
 
-                    // check array element type and array encoding are valid for this class
-                    if (array_definition->getValue<std::string>("type") != to_dtype_name<T>())
-                        throw std::exception();
-                    auto _encoding = array_definition->getValue<std::string>("encoding");
-                    if (_encoding != "base64" or _encoding != "list") // TODO: supported_encodings()
-                        throw SALException("encoding is not supported");
-                    if (!array_definition->isArray("shape"))
-                        throw SALException("decoded shape is not an array");
+                // check array element type and array encoding are valid for this class
+                auto input_type = array_definition->getValue<std::string>("type");
+                if (input_type != "bool" && input_type != to_dtype_name<T>())
+                    throw SALException("internal element type and input json data type does not match");
+                auto _encoding = array_definition->getValue<std::string>("encoding");
+                if (!(_encoding == "base64" or _encoding == "list")) // TODO: supported_encodings()
+                    throw SALException("encoding is not supported");
+                if (!array_definition->isArray("shape"))
+                    throw SALException("decoded shape is not an array");
 
-                    // decode shape
-                    shape = Array<T>::decode_shape(array_definition->getArray("shape"));
+                // decode shape
+                shape = Array<T>::decode_shape(array_definition->getArray("shape"));
 
-                    // create and populate array
-                    array = new Array<T>(shape);
-                    Array<T>::decode_data(array->data, array_definition->getValue<std::string>("data"));
-                    return array;
-                }
-                catch (...)
-                {
-                    // todo: define a sal exception and replace
-                    throw SALException("JSON object does not define a valid SAL Array attribute.");
-                }
+                // create and populate array
+                Array<T>::Ptr arr = new Array<T>(shape);
+                auto data_str = array_definition->getValue<std::string>("data");
+
+                Array<T>::decode_data(arr, data_str);
+                return arr;
             };
 
 #if SAL_USE_EIGEN
-            // return a const view of buffer
-            typedef Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> MatrixType;
+            // it is crucial to set the storage order to RowMajor
+            typedef Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> MatrixType;
             typedef Eigen::Map<const MatrixType> ConstMatrixView;
 
-            /// a read-only of underlying data an Eigen::Matrix
-            ConstMatrixView to_eigen_matrix() const
+            /// a read-only view of the underlying data a const Map<Eigen::Matrix>
+            ConstMatrixView view_as_eigen_matrix() const
             {
                 if (m_dimension == 2)
                     return ConstMatrixView(this->data.data(), m_shape[0], m_shape[1]);
@@ -844,7 +855,8 @@ namespace sal
             }
 
             /// as a writable Map of Eigen::Matrix
-            Eigen::Map<MatrixType> as_eigen()
+            /// https://eigen.tuxfamily.org/dox/group__TutorialMapClass.html
+            Eigen::Map<MatrixType> as_eigen_matrix()
             {
                 if (m_dimension == 2)
                     return Eigen::Map<MatrixType>(this->data.data(), m_shape[0], m_shape[1]);
@@ -857,11 +869,6 @@ namespace sal
             // change element type is not possible without re-create the array object
             const AttributeType m_element_type;
             const std::string m_element_type_name;
-
-            uint8_t m_dimension; // CONSIDER: size_t otherwise lots of compiler warning
-            ShapeType m_shape;
-
-            ShapeType m_strides;
             std::vector<T> data;
 
             /*
@@ -890,37 +897,107 @@ namespace sal
             Encodes the data buffer as a base64 string.
             but not for std::string data type
             */
-            const std::string encode_data() const //  reinterpret_cast stop mark this f as const
+            const std::string encode_data() const
             {
-                std::stringstream s;
+                if (element_type_name() == "string") // || element_type_name() == "bool"
+                {
+                    return encode_data_to_json_array();
+                }
+                else
+                {
+                    std::stringstream s;
 #if POCO_VERSION >= 0x01080000
-                // Poco::BASE64_URL_ENCODING is a enum, with value 1
-                Poco::Base64Encoder encoder(s, Poco::BASE64_URL_ENCODING);
+                    // Poco::BASE64_URL_ENCODING is a enum, with value 1
+                    Poco::Base64Encoder encoder(s, Poco::BASE64_URL_ENCODING);
 #else
-                // POCO 1.6 on Centos7 does not have such
-                Poco::Base64Encoder encoder(s);
+                    // POCO 1.6 on Centos7 does not have such
+                    Poco::Base64Encoder encoder(s);
 #endif
-                encoder.write(reinterpret_cast<const char*>(this->data.data()), this->data.size() * sizeof(T));
-                encoder.close();
-                return s.str();
+
+                    encoder.write(reinterpret_cast<const char*>(this->data.data()), this->data.size() * sizeof(T));
+                    encoder.close();
+                    return s.str();
+                }
             };
 
             /*
-            Decodes the data buffer from a base64 string.
-            `const std::vector<T>& data` is not possible
+            Encodes the string vector as a nested Poco Array of strings.
             */
-            static void decode_data(std::vector<T>& data, const std::string b64)
+            std::string encode_data_to_json_array(uint8_t dimension = 0, uint64_t offset = 0) const
             {
-                std::stringstream s(b64);
-#if POCO_VERSION >= 0x01080000
-                // Poco::BASE64_URL_ENCODING is a enum, with value 1
-                Poco::Base64Decoder decoder(s, Poco::BASE64_URL_ENCODING);
-#else
-                // POCO 1.6 on Centos7 does not have Poco::BASE64_URL_ENCODING enum
-                Poco::Base64Decoder decoder(s);
-#endif
-                decoder.read(reinterpret_cast<char*>(data.data()), data.size() * sizeof(T));
+                std::stringstream ss;
+                Poco::JSON::Array::Ptr json = new Poco::JSON::Array();
+
+                if (dimension == (this->m_dimension - 1))
+                {
+                    // populate innermost array with the strings
+                    for (uint64_t i = 0; i < this->shape()[dimension]; i++)
+                    {
+                        json->add(this->data[offset + i]);
+                    }
+                }
+                else
+                {
+                    // create nested array objects
+                    for (uint64_t i = 0; i < this->shape()[dimension]; i++)
+                    {
+                        json->add(encode_data_to_json_array(dimension + 1, offset + i * this->m_strides[dimension]));
+                    }
+                }
+                json->stringify(ss);
+                return ss.str();
             };
+
+            /*
+            Decodes the numeric data buffer from a base64 string.
+            */
+            static void decode_data(Array<T>::Ptr arr, const std::string& b64)
+            {
+                if (arr->element_type_name() == "string") // || arr->element_type_name() == "bool"
+                {
+                    auto j = Poco::JSON::Parser().parse(b64);
+                    Poco::JSON::Array::Ptr json = j.extract<Poco::JSON::Array::Ptr>();
+                    decode_data_from_json_array(arr, json);
+                }
+                else
+                {
+                    std::stringstream s(b64);
+#if POCO_VERSION >= 0x01080000
+                    // Poco::BASE64_URL_ENCODING is a enum, with value 1
+                    Poco::Base64Decoder decoder(s, Poco::BASE64_URL_ENCODING);
+#else
+                    // POCO 1.6 on Centos7 does not have Poco::BASE64_URL_ENCODING enum
+                    Poco::Base64Decoder decoder(s);
+#endif
+                    decoder.read(reinterpret_cast<char*>(arr->data_pointer()), arr->size() * sizeof(T));
+                }
+            }
+
+            /**
+            Decodes a nested Poco Array into a string vector, for BoolArray and StringArray
+            */
+            static void decode_data_from_json_array(Array<T>::Ptr array, const Poco::JSON::Array::Ptr json,
+                                                    uint8_t dimension = 0, uint64_t offset = 0)
+            {
+                std::cout << "\n === decode_data_from_json_array() is called === \n";
+                if (dimension == (array->dimension() - 1))
+                {
+                    // innermost array contains strings
+                    for (uint64_t i = 0; i < array->shape()[dimension]; i++)
+                    {
+                        (*array)[offset + i] = json->getElement<T>(i);
+                    }
+                }
+                else
+                {
+                    // decode nested array objects
+                    for (uint64_t i = 0; i < array->shape()[dimension]; i++)
+                    {
+                        decode_data_from_json_array(array, json->getArray(i), dimension + 1,
+                                                    offset + i * array->strides()[dimension]);
+                    }
+                }
+            }
         };
 
         /// naming as Javascript TypedArray
@@ -939,13 +1016,50 @@ namespace sal
         typedef Array<float> Float32Array;
         typedef Array<double> Float64Array;
 
-        // std::vector<bool> is a specialized std::vector<>
-        typedef Array<bool> BoolArray;          // has error decoding, different allocator
-        typedef Array<std::string> StringArray; // has different encoding "list"
+
+        /** `typedef Array<std::string> StringArray` needs specialization
+         *  why StringArray is different from Array<double>?
+         *  + string array has different encoding "list",
+         *  + data buffer is be not contiguous, so buffer pointer should not exposed to C-API
+         *  + element value/string length is not fixed, sizeof(std::string) != std::string::size()
+         *
+         *  1) Template specialization to some non-virtual function,  a bit ugly
+         *   > `virtual const void* data_pointer() const` method can NOT be overriden by
+         * template member method redefinition.
+         *
+         *  2) StringArray derived from `Array<std::string>`
+         *  > too much work and too much duplicate code
+         *
+         *  solution
+         * 3)  conditionally select decode and encoding method according to data type
+         *
+         * */
+        typedef Array<std::string> StringArray;
+
+        /** `typedef Array<std::string> StringArray` needs specialization
+         * Reasons
+         * + std::vector<bool> is a specialized std::vector<>, each element use a bit not byte
+         * + all left reference to element will not work/compile, such as `T& operator []`
+         *
+         * Solution: `class BoolArray : public Array<uint8_t>`
+         * override the constructor solved the type name initialization
+         * but server side may have different serialization method, another special decode_data()
+         * is necessary, leave it as future work.
+         * */
+
+        class BoolArray : public Array<uint8_t>
+        {
+        public:
+            BoolArray(const ShapeType _shape)
+                    : Array<uint8_t>(_shape, ATTR_BOOL, "bool")
+            {
+            }
+        };
+        // typedef Array<uint8_t> BoolArray;
+
 
         // forward declare decode()
         Attribute::Ptr decode(Poco::JSON::Object::Ptr json);
-
 
         /*
         a container of string key and Attribute type data
@@ -1063,9 +1177,10 @@ namespace sal
                     }
                     return container;
                 }
-                catch (...)
+                catch (std::exception& e)
                 {
                     // todo: define a sal exception and replace
+                    std::cout << e.what() << std::endl;
                     throw SALException("JSON object does not define a valid SAL Array attribute.");
                 }
             };
@@ -1112,10 +1227,10 @@ namespace sal
                 return Float32Array::decode(json);
             else if (el_type_name == TYPE_NAME_FLOAT64)
                 return Float64Array::decode(json);
-            // else if (element_id == TYPE_NAME_BOOL)
-            //    return BoolArray::decode(json);  // TODO: compiling error, needs std::enable_if<>
+            else if (el_type_name == TYPE_NAME_BOOL)
+                return BoolArray::decode(json); // TODO: compiling error, needs std::enable_if<>
             else if (el_type_name == TYPE_NAME_STRING)
-                return StringArray::decode(json); // TODO: decoding may not working, needs std::enable_if<>
+                return StringArray::decode(json);
             else
                 throw SALException("data type string `" + el_type_name + "` is not supported");
         }

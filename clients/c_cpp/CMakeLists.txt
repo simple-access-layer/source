@@ -48,13 +48,11 @@ endif()
 ###################### module selection ##########################
 
 option(CODE_COVERAGE "Enable coverage reporting" OFF)
-option(SAL_USE_EIGEN "use Eigen represent multi-dimension array" OFF)
+option(SAL_USE_EIGEN "use Eigen represent multi-dimension array" ON)
 option(SAL_USE_VTK "export signal as VTK data object for viz in paraView " OFF)
 option(SAL_USE_TEST "use unit test module" ON)
 
 ######################################################
-
-
 # extra search path provided by this project, such OCCT SMesh
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cMake")
 
@@ -87,23 +85,25 @@ if (UNIX)
 endif()
 
 if (UNIX)
-    if (NOT DEFINED Poco_LIBRARIES})     # use FindPoco.cmake provided in this repo
-        message(STATUS "Poco_LIBRARIES = ${Poco_LIBRARIES}")
-    else()    # system provided Poco::JSON, to make it compatible with Poco_LIBRARIES
+    if(ON)
+    #if (NOT DEFINED Poco_LIBRARIES)     # use FindPoco.cmake provided in this repo
         set(Poco_LIBRARIES "-lPocoNet -lPocoNetSSL -lPocoFoundation -lPocoJSON -lPocoUtil")
-        message(STATUS "Poco_LIBRARIES = ${Poco_LIBRARIES}")
+        message(STATUS " manually set Poco_LIBRARIES = ${Poco_LIBRARIES}")
+    else()    # system provided Poco::JSON, to make it compatible with Poco_LIBRARIES
+        message(STATUS "found poco by cmake: Poco_LIBRARIES = ${Poco_LIBRARIES}")
     endif()
 endif()
 
 
 if(SAL_USE_EIGEN)
-    find_package(Eigen3 REQUIRED NO_MODULE)
+    find_package(Eigen3 NO_MODULE)
     if(EIGEN3_FOUND)
         message("found Eigen version: ${EIGEN3_VERSION}")
         include_directories(${EIGEN3_INCLUDE_DIRS})  # already on system include path
         #target_link_directories()  # or it is header only lib
         add_definitions("-DSAL_USE_EIGEN")
     else()
+    message(" Eigen3 lib not found, optional feature will not be compiled")
         ## may download to third-party from git
     endif()
 endif()

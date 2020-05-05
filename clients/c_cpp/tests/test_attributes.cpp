@@ -643,85 +643,197 @@ TEST_CASE("Data object Int8 array attribute.", "[sal::object::Int8Array]")
     //     //REQUIRE(v.elementTypeName() == "uint8");
     // }
 
+    using namespace sal::object;
+    // make this test more general, to quickly switch between element data type
+    typedef double DT; // int32_t test passed
+    typedef Float64Array ArrayT;
+
+    const size_t rows = 2;
+    const size_t cols = 3;
+    ArrayT v({rows, cols});
+    for (int i = 0; i < v.size(); i++)
+        v[i] = i;
+
     SECTION("Initialise with array.")
     {
-        sal::object::Int8Array v({2, 3});
-
-        REQUIRE(v.size() == 2 * 3);
+        REQUIRE(v.size() == rows * cols);
         REQUIRE(v.dimension() == 2);
-        REQUIRE(v.shape()[0] == 2);
+        REQUIRE(v.shape()[0] == rows);
     }
 
     SECTION("Initialise with array.")
     {
-        using namespace sal::object;
-        sal::object::Int8Array v({2, 3});
-
         REQUIRE(v.type_name() == "array");
-        REQUIRE(v.element_type_name() == "int8");
+        REQUIRE(v.element_type_name() == to_dtype_name<DT>());
         REQUIRE(v.type() == AttributeType::ATTR_ARRAY);
-        REQUIRE(v.element_type() == AttributeType::ATTR_INT8);
+        REQUIRE(v.element_type() == to_dtype<DT>());
     }
 
     SECTION("Test indexing and modify element value")
     {
-        sal::object::Int8Array v({2, 3});
-
         int8_t number = 100u;
+        DT orig = v(0, 0);
         v[0] = number;
-        REQUIRE(v[0] == number);
         REQUIRE(v(0, 0) == number);
-
-        v[1] = -128;
-        REQUIRE(v[1] == -128);
+        v(0, 0) = orig;
+        REQUIRE(v[0] == orig);
 
         v(1, 0) = 127;
         REQUIRE(v(1, 0) == 127);
+    }
+
+    SECTION("Test encoding and decoding")
+    {
+        auto jObj = v.encode();
+        // jObj->stringify(cout); cout << endl;
+        auto dv = ArrayT::decode(jObj);
+        REQUIRE(v(0, 1) == 1);
     }
 }
 
 TEST_CASE("Data object string array attribute.", "[sal::object::StringArray]")
 {
 
+    using namespace sal::object;
+    StringArray v({2, 3});
+    const size_t rows = 2;
+    const size_t cols = 3;
+
+    std::string value = "Hello";
+    v[0] = value;
+
+    std::string value2 = "World";
+    v[cols] = value2;
+
     SECTION("Initialise with array.")
     {
-        sal::object::StringArray v({2, 3});
-
-        REQUIRE(v.size() == 2 * 3);
+        REQUIRE(v.size() == rows * cols);
         REQUIRE(v.dimension() == 2);
-        REQUIRE(v.shape()[0] == 2);
+        REQUIRE(v.shape()[0] == rows);
         REQUIRE(v.type_name() == "array");
         REQUIRE(v.element_type_name() == "string");
     }
 
     SECTION("Test indexing and modify element value")
     {
-        sal::object::StringArray v({2, 3});
-
-        std::string value = "Hello";
-        v[0] = value;
         REQUIRE(v[0] == value);
         REQUIRE(v(0, 0) == value);
+        REQUIRE(v(1, 0) == value2);
+    }
+
+    SECTION("Test encoding and decoding")
+    {
+        auto jObj = v.encode();
+        jObj->stringify(cout);
+        cout << endl;
+        auto dv = StringArray::decode(jObj); // Null pointer
+        REQUIRE(v(1, 0) == value2);
     }
 }
 
+
+TEST_CASE("Data object bool array attribute.", "[sal::object::BoolArray]")
+{
+    using namespace sal::object;
+    typedef bool DT;
+    typedef BoolArray ArrayT;
+    const size_t rows = 2;
+    const size_t cols = 3;
+    BoolArray v({rows, cols});
+
+    for (int i = 0; i < v.size(); i++)
+        v[i] = true;
+
+    SECTION("Initialise with array.")
+    {
+        REQUIRE(v.size() == rows * cols);
+        REQUIRE(v.dimension() == 2);
+        REQUIRE(v.shape()[0] == rows);
+        REQUIRE(v.type_name() == "array");
+        REQUIRE(v.element_type_name() == "bool");
+    }
+
+    SECTION("Test indexing and modify element value")
+    {
+        DT value = false;
+        v[cols] = value;
+        REQUIRE(v(1, 0) == value);
+    }
+
+    SECTION("Test encoding and decoding")
+    {
+        auto jObj = v.encode();
+        jObj->stringify(cout);
+        cout << endl; // correct
+        auto dv = ArrayT::decode(jObj);
+        REQUIRE(v(0, 0) == true);
+    }
+}
+
+
 /// todo: BoolArray and StringArray
+#if SAL_USE_EIGEN
+#include <Eigen/Dense>
+TEST_CASE("Array<T> exposed as Eigen Matrix", "[sal::object::Array]")
+{
+    using namespace sal::object;
+    typedef int DT;
+    const size_t rows = 2;
+    const size_t cols = 3;
+    Int32Array arr({rows, cols});
+
+    DT number = 100;
+    arr[0] = number;
+    arr[1] = number + 1;
+    arr[2] = number + 2;
+    arr[cols] = number + cols;
+    arr[cols + 1] = number + cols + 1;
+
+    SECTION("Test Eigen matrix API")
+    {
+        // matrix view to the readonly data buffer
+        auto v = arr.view_as_eigen_matrix();
+        // std::cout << v << std::endl;
+        REQUIRE(v(0, 1) == number + 1);
+        REQUIRE(v(1, 0) == number + cols);
+
+        REQUIRE(arr.at(1, 0) == number + cols);
+        REQUIRE(arr(1, 0) == arr.at(1, 0));
+        REQUIRE(arr[cols] == number + cols);
+
+        int number2 = 20;
+        auto w = arr.as_eigen_matrix();
+        w(0, 2) = number2;
+        // https://eigen.tuxfamily.org/dox/group__TutorialMapClass.html
+        REQUIRE(w(0, 2) == number2);
+        REQUIRE(arr(0, 2) == number2);
+    }
+}
+#endif
 
 TEST_CASE("Array<T> buffer API", "[sal::object::Array<T>]")
 {
+    using namespace sal::object;
+    const size_t rows = 2;
+    const size_t cols = 3;
+
+    typedef int8_t DT;
+    Int8Array v({rows, cols});
+
+    // NOTE: BoolArray and StringArray data_pointer() is not working
+    // but data_at() should work
+
     SECTION("Test buffer pointer for C-API")
     {
-        sal::object::Int8Array v({2, 3});
-
-        int8_t number = 100u;
+        DT number = 100u;
         v[0] = number;
 
         // cp is readonly buffer
-        const int8_t* cp = static_cast<const int8_t*>(v.data_pointer());
+        const DT* cp = static_cast<const DT*>(v.data_pointer());
         REQUIRE(cp[0] == number);
 
-        int8_t number2 = 20u;
-        int8_t* p = static_cast<int8_t*>(v.data_pointer());
+        DT number2 = 20u;
+        DT* p = static_cast<DT*>(v.data_pointer());
         p[0] = number2;
         REQUIRE(v(0, 0) == number2);
     }
@@ -731,9 +843,15 @@ TEST_CASE("Array interface test", "[sal::object::IArray]")
 {
     using namespace sal::object;
     typedef int DT;
-    Int32Array arr({2, 3});
+    const size_t rows = 2;
+    const size_t cols = 3;
+    Int32Array arr({rows, cols});
     DT number = 100;
     arr[0] = number;
+    arr[1] = number + 1;
+    arr[cols] = number + cols;
+    arr[cols + 1] = number + cols + 1;
+
     IArray& v = arr;
 
     SECTION("Test IArray readonly properties")
@@ -750,11 +868,13 @@ TEST_CASE("Array interface test", "[sal::object::IArray]")
         // cp is readonly buffer
         const DT* cp = static_cast<const DT*>(v.data_pointer());
         REQUIRE(cp[0] == number);
+        REQUIRE(cp[cols] == number + cols);
+        REQUIRE(arr(1, 0) == number + cols);
 
         DT number1 = 20;
         DT* p = static_cast<DT*>(v.data_pointer());
         p[1] = number1;
         // std::cout << "p[1]" << p[1] << std::endl;  // fine
-        // REQUIRE(*static_cast<DT*>(v.data_at(1)) == number1);
+        // REQUIRE(*(static_cast<DT*>(v.data_at(1))) == number1);  // failed
     }
 }
