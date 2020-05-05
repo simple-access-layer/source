@@ -794,7 +794,15 @@ namespace sal
                 array_definition->set("type", this->m_element_type_name);
                 array_definition->set("shape", this->encode_shape());
                 array_definition->set("encoding", this->encoding());
-                array_definition->set("data", encode_data());
+
+                if (element_type_name() == "string") // || element_type_name() == "bool"
+                {
+                    array_definition->set("data", encode_data_to_json_array());
+                }
+                else
+                {
+                    array_definition->set("data", encode_data());
+                }
 
                 if (is_summary())
                     throw SALException("this is an summary without data");
@@ -845,9 +853,15 @@ namespace sal
 
                 // create and populate array
                 Array<T>::Ptr arr = new Array<T>(shape);
-                auto data_str = array_definition->getValue<std::string>("data");
-
-                Array<T>::decode_data(arr, data_str);
+                if (arr->element_type_name() == "string")
+                {
+                    Array<T>::decode_data_from_json_array(arr, array_definition->getArray("data"));
+                }
+                else // binary Base64 encoding of memory bytes
+                {
+                    auto data_str = array_definition->getValue<std::string>("data");
+                    Array<T>::decode_data(arr, data_str);
+                }
                 return arr;
             };
 
@@ -910,33 +924,25 @@ namespace sal
             */
             const std::string encode_data() const
             {
-                if (element_type_name() == "string") // || element_type_name() == "bool"
-                {
-                    return encode_data_to_json_array();
-                }
-                else
-                {
-                    std::stringstream s;
+                std::stringstream s;
 #if POCO_VERSION >= 0x01080000
-                    // Poco::BASE64_URL_ENCODING is a enum, with value 1
-                    Poco::Base64Encoder encoder(s, Poco::BASE64_URL_ENCODING);
+                // Poco::BASE64_URL_ENCODING is a enum, with value 1
+                Poco::Base64Encoder encoder(s, Poco::BASE64_URL_ENCODING);
 #else
-                    // POCO 1.6 on Centos7 does not have such
-                    Poco::Base64Encoder encoder(s);
+                // POCO 1.6 on Centos7 does not have such
+                Poco::Base64Encoder encoder(s);
 #endif
 
-                    encoder.write(reinterpret_cast<const char*>(this->data.data()), this->data.size() * sizeof(T));
-                    encoder.close();
-                    return s.str();
-                }
+                encoder.write(reinterpret_cast<const char*>(this->data.data()), this->data.size() * sizeof(T));
+                encoder.close();
+                return s.str();
             };
 
             /*
             Encodes the string vector as a nested Poco Array of strings.
             */
-            std::string encode_data_to_json_array(uint8_t dimension = 0, uint64_t offset = 0) const
+            Poco::JSON::Array::Ptr encode_data_to_json_array(uint8_t dimension = 0, uint64_t offset = 0) const
             {
-                std::stringstream ss;
                 Poco::JSON::Array::Ptr json = new Poco::JSON::Array();
 
                 if (dimension == (this->m_dimension - 1))
@@ -955,8 +961,7 @@ namespace sal
                         json->add(encode_data_to_json_array(dimension + 1, offset + i * this->m_strides[dimension]));
                     }
                 }
-                json->stringify(ss);
-                return ss.str();
+                return json;
             };
 
             /*
@@ -964,39 +969,34 @@ namespace sal
             */
             static void decode_data(Array<T>::Ptr arr, const std::string& b64)
             {
-                if (arr->element_type_name() == "string") // || arr->element_type_name() == "bool"
-                {
-                    auto j = Poco::JSON::Parser().parse(b64);
-                    Poco::JSON::Array::Ptr json = j.extract<Poco::JSON::Array::Ptr>();
-                    decode_data_from_json_array(arr, json);
-                }
-                else
-                {
-                    std::stringstream s(b64);
+
+                std::stringstream s(b64);
 #if POCO_VERSION >= 0x01080000
-                    // Poco::BASE64_URL_ENCODING is a enum, with value 1
-                    Poco::Base64Decoder decoder(s, Poco::BASE64_URL_ENCODING);
+                // Poco::BASE64_URL_ENCODING is a enum, with value 1
+                Poco::Base64Decoder decoder(s, Poco::BASE64_URL_ENCODING);
 #else
-                    // POCO 1.6 on Centos7 does not have Poco::BASE64_URL_ENCODING enum
-                    Poco::Base64Decoder decoder(s);
+                // POCO 1.6 on Centos7 does not have Poco::BASE64_URL_ENCODING enum
+                Poco::Base64Decoder decoder(s);
 #endif
-                    decoder.read(reinterpret_cast<char*>(arr->data_pointer()), arr->size() * sizeof(T));
-                }
+                decoder.read(reinterpret_cast<char*>(arr->data_pointer()), arr->size() * sizeof(T));
             }
 
             /**
-            Decodes a nested Poco Array into a string vector, for BoolArray and StringArray
+            Decodes a nested Poco Array of user-defined type into a string vector, e.g. StringArray
+            if `json->getElement<ElementType>(index)` is supported for the user-defined type
             */
             static void decode_data_from_json_array(Array<T>::Ptr array, const Poco::JSON::Array::Ptr json,
                                                     uint8_t dimension = 0, uint64_t offset = 0)
             {
+                /// NOTE: BoolArray may also fit here, yet tested
+                typedef T ElementType;
                 std::cout << "\n === decode_data_from_json_array() is called === \n";
                 if (dimension == (array->dimension() - 1))
                 {
                     // innermost array contains strings
                     for (uint64_t i = 0; i < array->shape()[dimension]; i++)
                     {
-                        (*array)[offset + i] = json->getElement<T>(i);
+                        (*array)[offset + i] = json->getElement<ElementType>(i);
                     }
                 }
                 else
