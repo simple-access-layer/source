@@ -9,6 +9,12 @@ extern "C"
 {
 #endif
 
+    typedef enum
+    {
+        CSAL_ERR_NONE = 0
+            , CSAL_CLIENT_ERR = 1
+    } CSAL_ERRORS;
+
 
     typedef enum 
     {

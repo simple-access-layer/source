@@ -2,6 +2,7 @@
 #define __CSAL_CLIENT_H__
 
 #include "csal/csal.h"
+#include "csal/detail/csal_attrib.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -22,7 +23,7 @@ extern "C"
 	csal_report_t* csal_client_report( csal_client_t* self );
 #endif
 	int csal_client_put( csal_client_t* self, const char* pszpath, const csal_object_t* obj );
-	int csal_client_get( csal_client_t* self, const char* pszpath, csal_bool_t summary );
+    int csal_client_get( csal_client_t* self, const char* pszpath, csal_bool_t summary, csal_attrib_t** pcsal_attrib_ptr );
 	int csal_client_copy( csal_client_t* self, const char* psztarget, const char* pszsource );
 	int csal_client_del( csal_client_t* self, const char* pszpath );
 

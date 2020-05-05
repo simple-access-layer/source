@@ -114,20 +114,20 @@ int test_attrib_cast( test_frame_t* tf )
 
 
 
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_uint8 ) );
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_uint16 ) );
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_uint32 ) );
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_uint64 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_uint8 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_uint16 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_uint32 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_uint64 ) );
 
 
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_int8 ) );
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_int16 ) );
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_int32 ) );
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_int64 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_int8 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_int16 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_int32 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_int64 ) );
 
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_float32 ) );
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_float64 ) );
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_string ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_float32 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_float64 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_string ) );
 
     return 0;
 }
@@ -206,12 +206,12 @@ int test_construction( test_frame_t* tf )
     TF_TEST( tf, 32 == csal_attrib_int32_value_get( at_int32 ) );
     TF_TEST( tf, 64 == csal_attrib_int64_value_get( at_int64 ) );
 
-    TF_TEST( tf, 0 == csal_attrib_int8_value_set( at_int8, 1 ) );
-    TF_TEST( tf, 0 == csal_attrib_int16_value_set( at_int16, 2 ) );
-    TF_TEST( tf, 0 == csal_attrib_int32_value_set( at_int32, 3 ) );
-    TF_TEST( tf, 0 == csal_attrib_int64_value_set( at_int64, 4 ) );
-    TF_TEST( tf, 0 == csal_attrib_float_value_set( at_float, -1.1 ) );
-    TF_TEST( tf, 0 == csal_attrib_double_value_set( at_double, -2.2 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_int8_value_set( at_int8, 1 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_int16_value_set( at_int16, 2 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_int32_value_set( at_int32, 3 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_int64_value_set( at_int64, 4 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_float_value_set( at_float, -1.1 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_double_value_set( at_double, -2.2 ) );
 
     TF_TEST( tf, 1 == csal_attrib_int8_value_get( at_int8 ) );
     TF_TEST( tf, 2 == csal_attrib_int16_value_get( at_int16 ) );
@@ -222,10 +222,10 @@ int test_construction( test_frame_t* tf )
 
 
 
-    TF_TEST( tf, 0 == csal_attrib_uint8_value_set( at_uint8, 1 ) );
-    TF_TEST( tf, 0 == csal_attrib_uint16_value_set( at_uint16, 2 ) );
-    TF_TEST( tf, 0 == csal_attrib_uint32_value_set( at_uint32, 3 ) );
-    TF_TEST( tf, 0 == csal_attrib_uint64_value_set( at_uint64, 4 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_uint8_value_set( at_uint8, 1 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_uint16_value_set( at_uint16, 2 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_uint32_value_set( at_uint32, 3 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_uint64_value_set( at_uint64, 4 ) );
 
     TF_TEST( tf, 1 == csal_attrib_uint8_value_get( at_uint8 ) );
     TF_TEST( tf, 2 == csal_attrib_uint16_value_get( at_uint16 ) );
@@ -234,20 +234,20 @@ int test_construction( test_frame_t* tf )
 
 
 
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_uint8 ) );
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_uint16 ) );
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_uint32 ) );
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_uint64 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_uint8 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_uint16 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_uint32 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_uint64 ) );
 
 
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_int8 ) );
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_int16 ) );
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_int32 ) );
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_int64 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_int8 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_int16 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_int32 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_int64 ) );
 
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_string ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_string ) );
 #if 0
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_branch ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_branch ) );
 #endif
     return 0;
 }
@@ -278,25 +278,25 @@ int test_branch( test_frame_t* tf )
     TF_TEST( tf, CSAL_ATTR_INT8 == csal_attrib_type( at_got ) ) ;
     TF_TEST( tf, 8==csal_attrib_int8_value_get( (csal_attrib_int8_t*)at_got ) );
 
-    TF_TEST( tf, 0 == csal_attrib_branch_remove( at_branch, "key1" ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_branch_remove( at_branch, "key1" ) );
 
     TF_TEST( tf, csal_false == csal_attrib_branch_has( at_branch, "key1" ) );
 
-    TF_TEST( tf, "ds1" && 0 == csal_attrib_destroy( (csal_attrib_t*)at_int8 ) );
+    TF_TEST( tf, "ds1" && CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_int8 ) );
 
-    TF_TEST( tf, "ds2" && 0 == csal_attrib_destroy( (csal_attrib_t*)at_int16 ) );
+    TF_TEST( tf, "ds2" && CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_int16 ) );
 
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_int32 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_int32 ) );
 
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_int64 ) );
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_string ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_int64 ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_string ) );
 
 
-    TF_TEST( tf, 0 == csal_attrib_destroy( (csal_attrib_t*)at_branch ) );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_attrib_destroy( (csal_attrib_t*)at_branch ) );
     return 0;
 }
 #endif
-int test_int8_array( test_frame_t* tf )
+int test_bool_array( test_frame_t* tf )
 {
 
     csal_attrib_t* csal_attrib_ptr = NULL;
@@ -315,11 +315,11 @@ int test_int8_array( test_frame_t* tf )
 
     dims[0]=3;
     dims[1]=4;
-    csal_attrib_array_int8_t* at_arr = csal_attrib_array_int8_create( dims, ndims );
+    csal_attrib_array_bool_t* at_arr = csal_attrib_array_bool_create( dims, ndims );
 
-    csal_attrib_array_int8_cast( at_arr, IID_CSAL_ATTRIB, (void**)(&csal_attrib_ptr) );
+    csal_attrib_array_bool_cast( at_arr, IID_CSAL_ATTRIB, (void**)(&csal_attrib_ptr) );
 
-    TF_TEST( tf, 0 == csal_err );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_err );
 
     TF_TEST( tf, NULL != csal_attrib_ptr );
 
@@ -348,7 +348,123 @@ int test_int8_array( test_frame_t* tf )
     csal_err = csal_attrib_array_shape( (csal_attrib_array_t*)(at_arr), shape, &nshape, 2 );
 
 
-    TF_TEST(tf, 0 == csal_err );
+    TF_TEST(tf, CSAL_ERR_NONE == csal_err );
+    TF_TEST(tf, 2 == nshape );
+
+
+
+    csal_err = csal_attrib_array_shape( (csal_attrib_array_t*)(at_arr), shape, &nshape, 1 );
+
+    TF_TEST(tf, 1 == csal_err );
+
+    for( i = 0; i < dims[0]; ++i )
+    {
+        for( j = 0; j < dims[1]; ++j )
+        {
+            idxs[0] = i;
+            idxs[1] = j;
+
+            csal_attrib_array_bool_element_set( at_arr, idxs, ndims, i==j);
+        }
+    }
+
+    for( i = 0; i < dims[0]; ++i )
+    {
+        for( j = 0; j < dims[1]; ++j )
+        {
+            idxs[0] = i;
+            idxs[1] = j;
+
+            TF_TEST( tf, (i==j) == csal_attrib_array_bool_element_get( at_arr, idxs, ndims) );
+        }
+    }
+
+    csal_err = csal_attrib_array_bool_cast( at_arr, IID_CSAL_ATTRIB, (void**)(&csal_attrib_ptr) );
+
+    csal_err = csal_attrib_cast( csal_attrib_ptr, IID_CSAL_ATTRIB_ARRAY_BOOL, (void**)(&csal_array_ptr) );
+
+    TF_TEST( tf, CSAL_ERR_NONE == csal_err );
+    TF_TEST( tf, NULL != csal_array_ptr );
+
+    csal_err = csal_attrib_cast( csal_attrib_ptr, IID_CSAL_ATTRIB_ARRAY_INT16, (void**)(&csal_array_ptr) );
+
+    TF_TEST( tf, 1 == csal_err );
+    TF_TEST( tf, NULL == csal_array_ptr );
+
+    csal_err = csal_attrib_cast( csal_attrib_ptr, IID_CSAL_ATTRIB_ARRAY_INT32, (void**)(&csal_array_ptr) );
+
+    TF_TEST( tf, 1 == csal_err );
+    TF_TEST( tf, NULL == csal_array_ptr );
+
+    csal_err = csal_attrib_cast( csal_attrib_ptr, IID_CSAL_ATTRIB_ARRAY_INT64, (void**)(&csal_array_ptr) );
+
+    TF_TEST( tf, 1 == csal_err );
+    TF_TEST( tf, NULL == csal_array_ptr );
+
+    csal_err = csal_attrib_cast( csal_attrib_ptr, IID_CSAL_ATTRIB_ARRAY_UINT64, (void**)(&csal_array_ptr) );
+
+    TF_TEST( tf, 1 == csal_err );
+    TF_TEST( tf, NULL == csal_array_ptr );
+
+
+    csal_attrib_destroy( (csal_attrib_t*)(at_arr) );
+
+    return 0;
+}
+
+int test_int8_array( test_frame_t* tf )
+{
+
+    csal_attrib_t* csal_attrib_ptr = NULL;
+    csal_attrib_array_t* csal_array_ptr = NULL;
+
+    int csal_err = 0;
+    uint64_t dims[2];
+
+    uint64_t shape[2];
+    uint64_t nshape;
+
+    uint64_t idxs[2];
+    uint64_t ndims=2;
+
+    int i,j;
+
+    dims[0]=3;
+    dims[1]=4;
+    csal_attrib_array_int8_t* at_arr = csal_attrib_array_int8_create( dims, ndims );
+
+    csal_attrib_array_int8_cast( at_arr, IID_CSAL_ATTRIB, (void**)(&csal_attrib_ptr) );
+
+    TF_TEST( tf, CSAL_ERR_NONE == csal_err );
+
+    TF_TEST( tf, NULL != csal_attrib_ptr );
+
+
+
+
+    TF_TEST( tf, NULL != at_arr );
+
+    TF_TEST( tf, CSAL_ATTR_ARRAY == csal_attrib_type( (csal_attrib_t*)at_arr ) );
+
+    TF_TEST( tf, csal_true == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_ARRAY ) );
+
+    TF_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_BOOL ) );
+    TF_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_INT8 ) );
+    TF_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_INT16 ) );
+    TF_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_INT32 ) );
+    TF_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_INT64 ) );
+    TF_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_UINT8 ) );
+    TF_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_UINT16 ) );
+    TF_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_UINT32 ) );
+    TF_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_UINT64 ) );
+    TF_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_FLOAT32 ) );
+    TF_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_FLOAT64 ) );
+    TF_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_STRING ) );
+
+    csal_err = csal_attrib_array_shape( (csal_attrib_array_t*)(at_arr), shape, &nshape, 2 );
+
+
+    TF_TEST(tf, CSAL_ERR_NONE == csal_err );
     TF_TEST(tf, 2 == nshape );
 
 
@@ -386,7 +502,7 @@ int test_int8_array( test_frame_t* tf )
 
     csal_err = csal_attrib_cast( csal_attrib_ptr, IID_CSAL_ATTRIB_ARRAY_INT8, (void**)(&csal_array_ptr) );
 
-    TF_TEST( tf, 0 == csal_err );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_err );
     TF_TEST( tf, NULL != csal_array_ptr );
 
     csal_err = csal_attrib_cast( csal_attrib_ptr, IID_CSAL_ATTRIB_ARRAY_INT16, (void**)(&csal_array_ptr) );
@@ -539,7 +655,7 @@ int test_int32_array( test_frame_t* tf )
 #if 1 
     csal_err = csal_attrib_cast( (csal_attrib_t*)at_arr, IID_CSAL_ATTRIB_ARRAY, (void**)(&csal_array_ptr) );
 
-    TF_TEST( tf, 0 == csal_err );
+    TF_TEST( tf, CSAL_ERR_NONE == csal_err );
     TF_TEST( tf, NULL != csal_array_ptr );
 #endif
 
@@ -1030,7 +1146,7 @@ int test_string_array( test_frame_t* tf )
             idxs[0] = i;
             idxs[1] = j;
 
-            TF_TEST( tf, 0 == strcmp( buffer, csal_attrib_array_string_element_get( at_arr, idxs, ndims) ) );
+            TF_TEST( tf, CSAL_ERR_NONE == strcmp( buffer, csal_attrib_array_string_element_get( at_arr, idxs, ndims) ) );
         }
     }
 
@@ -1045,7 +1161,38 @@ int test_string_array( test_frame_t* tf )
 
 
 
+int test_client( test_frame_t* tf )
+{
+    int err = 0;
+    int csal_err = 0;
+    int summary = csal_false;
 
+    csal_client_t* csal_client_ptr = NULL;
+    csal_attrib_t* csal_attrib_ptr = NULL;
+
+    csal_err = csal_client_create( &csal_client_ptr, "https://sal.jet.uk", csal_false );
+
+    TF_TEST( tf, CSAL_ERR_NONE == csal_err );
+
+    csal_err = csal_client_authenticate( csal_client_ptr, "lkjlkj", "lkjlkj" );
+
+    TF_TEST( tf, CSAL_ERR_NONE == csal_err );
+
+    csal_err = csal_client_get( csal_client_ptr, "pulse/latest?object=full", summary, &csal_attrib_ptr );
+
+    TF_TEST( tf, CSAL_ERR_NONE != csal_err );
+    TF_TEST( tf, CSAL_CLIENT_ERR == csal_err );
+
+    if( CSAL_ERR_NONE == csal_err )
+    {
+        csal_client_destroy( csal_client_ptr );
+    }
+
+
+    
+
+    return err;
+}
 
 
 
@@ -1080,6 +1227,7 @@ int main()
 
     if( 1 )
     {
+        test_bool_array( &tf );
         test_int8_array( &tf );
         test_int16_array( &tf );
         test_int32_array( &tf );
@@ -1094,6 +1242,11 @@ int main()
         test_float64_array( &tf );
         test_string_array( &tf );
     }
+
+
+    if( 1 )
+        test_client( &tf );
+
     test_frame_finish( &tf );
 
     return 0;

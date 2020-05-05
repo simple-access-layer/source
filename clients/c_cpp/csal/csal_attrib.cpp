@@ -78,6 +78,7 @@ static int _csal_attrib_string_cast( csal_attrib_t* self, csal_uuid_t* at_type, 
 
 
 
+static int _csal_attrib_array_bool_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv );
 static int _csal_attrib_array_int8_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv );
 static int _csal_attrib_array_int16_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv );
 static int _csal_attrib_array_int32_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv );
@@ -112,6 +113,7 @@ static _csal_attrib_vtbl_t _attrib_vtbl_float64= { _csal_attrib_float64_cast };
 static _csal_attrib_vtbl_t _attrib_vtbl_string= { _csal_attrib_string_cast };
 
 
+static _csal_attrib_vtbl_t _attrib_vtbl_array_bool= { _csal_attrib_array_bool_cast };
 static _csal_attrib_vtbl_t _attrib_vtbl_array_uint8= { _csal_attrib_array_uint8_cast };
 static _csal_attrib_vtbl_t _attrib_vtbl_array_uint16 = { _csal_attrib_array_uint16_cast };
 static _csal_attrib_vtbl_t _attrib_vtbl_array_uint32 = { _csal_attrib_array_uint32_cast };
@@ -131,7 +133,6 @@ struct _csal_attrib_bool_t
 {
     _csal_attrib_t base;
 };
-
 
 struct _csal_attrib_uint8_t
 {
@@ -194,6 +195,10 @@ struct _csal_attrib_array_t
 
 
 
+struct _csal_attrib_array_bool_t
+{
+    _csal_attrib_array_t base;
+};
 
 
 struct _csal_attrib_array_int8_t
@@ -717,6 +722,51 @@ static int _csal_attrib_uint64_cast( csal_attrib_t* self, csal_uuid_t* at_type, 
 
 
 
+
+
+
+int csal_attrib_array_bool_cast( csal_attrib_array_bool_t* self, csal_uuid_t* at_type, void** ppv )
+{
+    int err = 0;
+
+    if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY_BOOL ) )
+    {
+        auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::BoolArray > ();
+        if( sal_ptr )
+        {
+            *ppv = self;
+        }
+
+    }
+    else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB_ARRAY ) )
+    {
+        auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::BoolArray > ();
+        if( sal_ptr )
+        {
+            *ppv = self;
+        }
+    }
+    else if( 0 == strcmp( at_type, IID_CSAL_ATTRIB ) )
+    {
+        auto sal_ptr = self->base.base.sal_at_ptr.cast< sal::object::BoolArray > ();
+        if( sal_ptr )
+        {
+            *ppv = self;
+        }
+
+    }
+    else
+    {
+        *ppv = NULL;
+        err = 1;
+    }
+    return err;
+}
+
+static int _csal_attrib_array_bool_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv )
+{
+    return csal_attrib_array_bool_cast( (csal_attrib_array_bool_t*)self, at_type, ppv );
+}
 
 
 
@@ -1939,7 +1989,6 @@ csal_attrib_array_float64_t* csal_attrib_array_float64_create( uint64_t* _shape,
 
 
 
-    extern "C"
 csal_attrib_array_string_t* csal_attrib_array_string_create( uint64_t* _shape, uint64_t nshapes )
 {
     std::vector< uint64_t > shape( _shape, _shape+nshapes );
@@ -1954,8 +2003,21 @@ csal_attrib_array_string_t* csal_attrib_array_string_create( uint64_t* _shape, u
     return self;
 }
 
+csal_attrib_array_bool_t* csal_attrib_array_bool_create( uint64_t* _shape, uint64_t nshapes )
+{
+    std::vector< uint64_t > shape( _shape, _shape+nshapes );
 
-    extern "C"
+    csal_attrib_array_bool_t* self = new csal_attrib_array_bool_t;
+    csal_attrib_array_t* csal_array_ptr = &(self->base);
+
+    csal_array_ptr->base.vtbl = &_attrib_vtbl_array_bool;
+    csal_array_ptr->base.sal_at_ptr = sal::object::Attribute::Ptr( new sal::object::BoolArray( shape ) );
+
+    return self;
+}
+
+
+
 csal_attrib_array_int8_t* csal_attrib_array_int8_create( uint64_t* _shape, uint64_t nshapes )
 {
     std::vector< uint64_t > shape( _shape, _shape+nshapes );
@@ -2147,8 +2209,28 @@ double csal_attrib_array_float64_element_get( csal_attrib_array_float64_t* self,
 
 }
 
+csal_bool_t csal_attrib_array_bool_element_get( csal_attrib_array_bool_t* self, uint64_t* indices, uint64_t nindices )
+{
+    size_t i = 0;
 
-    extern "C"
+    csal_attrib_array_t* csal_array_ptr = &(self->base);
+    sal::object::BoolArray::Ptr a = csal_array_ptr->base.sal_at_ptr.cast<  sal::object::BoolArray >();
+
+    int64_t idxs[10];
+
+    for( i = 0; i < nindices; ++i )
+        idxs[i] = indices[i];
+
+    for( i=nindices; i < 10; ++i )
+        idxs[i]=-1;
+
+    bool sal_val = a->at( idxs[0], idxs[1], idxs[2], idxs[3], idxs[4], idxs[5], idxs[6], idxs[7], idxs[8], idxs[9] );
+
+    return sal_val ? csal_true : csal_false;
+
+}
+
+
 int8_t csal_attrib_array_int8_element_get( csal_attrib_array_int8_t* self, uint64_t* indices, uint64_t nindices )
 {
     size_t i = 0;
@@ -2396,8 +2478,27 @@ int csal_attrib_array_float64_element_set( csal_attrib_array_float64_t* self, ui
     return 0;
 }
 
+int csal_attrib_array_bool_element_set( csal_attrib_array_bool_t* self, uint64_t* indices, uint64_t nindices, csal_bool_t val ){
+    size_t i = 0;
 
-    extern "C"
+    csal_attrib_array_t* csal_array_ptr = &(self->base);
+    sal::object::BoolArray::Ptr a = csal_array_ptr->base.sal_at_ptr.cast< sal::object::BoolArray >();
+
+    int64_t idxs[10];
+
+    for( i = 0; i < nindices; ++i )
+        idxs[i] = indices[i];
+
+    for( i=nindices; i < 10; ++i )
+        idxs[i]=-1;
+
+    uint8_t& sal_el_val = a->at( idxs[0], idxs[1], idxs[2], idxs[3], idxs[4], idxs[5], idxs[6], idxs[7], idxs[8], idxs[9] );
+    sal_el_val = (val == csal_false) ? false : true;
+
+    return 0;
+}
+
+
 int csal_attrib_array_int8_element_set( csal_attrib_array_int8_t* self, uint64_t* indices, uint64_t nindices, int8_t val )
 {
     size_t i = 0;
@@ -2603,6 +2704,7 @@ struct _csal_client_t
     sal::Client* sal_client;
 };
 
+
 int csal_client_create( csal_client_t** pself, const char* pszhost, csal_bool_t verify_https_cert )
 {
     int err = 0;
@@ -2615,7 +2717,7 @@ int csal_client_create( csal_client_t** pself, const char* pszhost, csal_bool_t 
     catch( sal::exception::SALException& ex )
     {
         /* TODO : convert exception to error */
-        err=1;
+        err = CSAL_CLIENT_ERR;
     }
 
     return err;
@@ -2654,7 +2756,7 @@ int csal_client_host_set( csal_client_t* self, char* pszhost )
     catch( sal::exception::SALException& ex )
     {
         /* TODO: convert exception */
-        err=1;
+        err = CSAL_CLIENT_ERR;
     }
 
     return err;
@@ -2707,13 +2809,21 @@ int csal_client_get( csal_client_t* self, const char* pszpath, csal_bool_t summa
     std::string path = pszpath;
     bool sal_summary = summary ? true : false;
 
-    sal::object::Attribute::Ptr sal_attrib_ptr = self->sal_client->get( path, sal_summary );
+    *pcsal_attrib_ptr = NULL;
 
+    try
+    {
+        sal::object::Attribute::Ptr sal_attrib_ptr = self->sal_client->get( path, sal_summary );
 
-    csal_attrib_t* csal_attrib_ptr = new csal_attrib_t;
-    csal_attrib_ptr->sal_at_ptr = sal_attrib_ptr;
+        csal_attrib_t* csal_attrib_ptr = new csal_attrib_t;
+        csal_attrib_ptr->sal_at_ptr = sal_attrib_ptr;
 
-    *pcsal_attrib_ptr = csal_attrib_ptr;
+        *pcsal_attrib_ptr = csal_attrib_ptr;
+    }
+    catch( ... )
+    {
+        err = 1;
+    }
 
     return err;
 }
@@ -2749,7 +2859,7 @@ int csal_client_copy( csal_client_t* self, const char* psztarget, const char* ps
     }
     catch( sal::SALException& e )
     {
-        err = 1;
+        err = CSAL_CLIENT_ERR;
     }
 
     return err;
