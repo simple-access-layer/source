@@ -659,13 +659,24 @@ namespace sal
             /// read-only pointer to provide read view into the data buffer
             inline virtual const void* data_pointer() const
             {
-                return this->data.data();
+                // std::enable<> does not work for virtual function, so must check at runtime
+                if (element_type_name() != "string")
+                    return this->data.data();
+                else // Array<String> buffer addess does not contains contents but addr to content
+                {
+                    throw SALException("Should not use Array<String>::data_pointer()");
+                }
             }
 
             /// modifiable raw pointer to data buffer, use it with care
             inline virtual void* data_pointer()
             {
-                return this->data.data();
+                if (element_type_name() != "string") // std::enable<> does not work for virtual function
+                    return this->data.data();
+                else
+                {
+                    throw SALException("Should not use Array<String>::data_pointer()");
+                }
             }
 
             /// todo: more than 5 dim is kind of nonsense,
@@ -1032,21 +1043,21 @@ namespace sal
          *
          *  solution
          * 3)  conditionally select decode and encoding method according to data type
+         *     and throw exception if `data_pointer()` is called
          *
          * */
         typedef Array<std::string> StringArray;
 
-        /** `typedef Array<std::string> StringArray` needs specialization
+        /** `typedef Array<bool> BoolArray` will not work,
          * Reasons
          * + std::vector<bool> is a specialized std::vector<>, each element use a bit not byte
          * + all left reference to element will not work/compile, such as `T& operator []`
          *
          * Solution: `class BoolArray : public Array<uint8_t>`
-         * override the constructor solved the type name initialization
+         * override the constructor solved the element_type_name initialization
          * but server side may have different serialization method, another special decode_data()
          * is necessary, leave it as future work.
          * */
-
         class BoolArray : public Array<uint8_t>
         {
         public:
@@ -1055,8 +1066,9 @@ namespace sal
             {
             }
         };
-        // typedef Array<uint8_t> BoolArray;
-
+        // typedef Array<uint8_t> BoolArray;  // will not give correct
+        // template <> Array<uint8_t> {}; // will not give a new type,
+        // so BoolArray will confused with Array<uint8_t>
 
         // forward declare decode()
         Attribute::Ptr decode(Poco::JSON::Object::Ptr json);

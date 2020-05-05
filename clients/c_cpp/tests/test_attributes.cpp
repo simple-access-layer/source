@@ -729,6 +729,11 @@ TEST_CASE("Data object string array attribute.", "[sal::object::StringArray]")
         auto dv = StringArray::decode(jObj); // Null pointer
         REQUIRE(v(1, 0) == value2);
     }
+
+    SECTION("Test data_pointer() runtime exception")
+    {
+        CHECK_THROWS(v.data_pointer());
+    }
 }
 
 
