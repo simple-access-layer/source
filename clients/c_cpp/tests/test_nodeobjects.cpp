@@ -7,6 +7,7 @@ https://github.com/catchorg/Catch2
 #include "catch.h"
 
 #include "sal_node.h"
+//#include "sal_path.h"
 
 using namespace std;
 using namespace sal::node;
@@ -36,7 +37,7 @@ Poco::JSON::Object::Ptr get_json(const std::string url)
     HTTPRequest request(HTTPRequest::HTTP_GET, url, HTTPMessage::HTTP_1_1);
     session->sendRequest(request);
     StreamCopier::copyToString(session->receiveResponse(response), json);
-    cout << "res.getStatus() =" << response.getStatus();
+    cout << "res.getStatus() =" << response.getStatus() << std::endl;
 
     // todo: handle exceptions and check response status
     auto j = parser.parse(json).extract<Poco::JSON::Object::Ptr>(); // decode json
@@ -68,6 +69,8 @@ TEST_CASE("Tree-node leaf object", "[sal::core::Leaf]")
     {
         Poco::JSON::Object::Ptr leafJson = leaf.encode();
         REQUIRE(bool(leafJson));
+        // leafJson->stringify(cout, 2);
+        // cout << endl;
         auto obj = leafJson->getObject("object");
         REQUIRE(obj->getValue<uint64_t>("version") == SAL_API_VERSION);
         Leaf::Ptr lp = Leaf::decode(leafJson);
@@ -76,17 +79,22 @@ TEST_CASE("Tree-node leaf object", "[sal::core::Leaf]")
     SECTION("deserialization leaf report from server")
     {
         auto json = get_json(leaf_url);
-        REQUIRE(bool(json));
-        if (json)
+        if (json) // get_json() will fail if not within intranet
         {
-            NodeObject::Ptr node_ptr = Leaf::decode(json);
+            // json->stringify(cout, 2);
+            // cout << endl;
+            REQUIRE(json->getValue<std::string>("type") == "leaf");
+            NodeObject::Ptr node_ptr = Leaf::decode(json->getObject("object"));
             REQUIRE(node_ptr->nodeInfo().version == SAL_API_VERSION);
             Poco::JSON::Object::Ptr jobj = node_ptr->encode();
+            // jobj->stringify(cout, 2);
+            // cout << endl;
         }
     }
 
     // tear down
 }
+
 
 TEST_CASE("Tree-node data organization", "[sal::core::Branch]")
 {
@@ -111,13 +119,13 @@ TEST_CASE("Tree-node data organization", "[sal::core::Branch]")
     SECTION("deserialization branch report from server")
     {
         auto json = get_json(branch_url);
-        REQUIRE(bool(json));
-        if (json)
+        if (json) // get_json() will fail if not within intranet
         {
-            NodeObject::Ptr node_ptr = Branch::decode(json);
-            REQUIRE(node_ptr->nodeInfo().version == SAL_API_VERSION);
-
+            REQUIRE(json->getValue<std::string>("type") == "branch");
+            NodeObject::Ptr node_ptr = Branch::decode(json->getObject("object"));
             Poco::JSON::Object::Ptr jobj = node_ptr->encode();
+            jobj->stringify(cout, 2);
+            cout << endl;
         }
     }
     // tear down

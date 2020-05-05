@@ -46,7 +46,8 @@ namespace sal
 
             Poco::JSON::Object::Ptr encode() const
             {
-                Poco::JSON::Object::Ptr j;
+                Poco::JSON::Object::Ptr j = new Poco::JSON::Object();
+                ;
                 j->set("class", cls);
                 j->set("group", group);
                 j->set("version", version);
@@ -96,34 +97,41 @@ namespace sal
         public:
             TimeInfo(){}; // TODO: set a proper default values for members
             Poco::DateTime modified;
-            // const static std::string format = "%Y-%m-%dT%H:%M:%S.%f";
 
             std::string timestamp() const
             {
-                return Poco::DateTimeFormatter::format(modified, format());
+                return Poco::DateTimeFormatter::format(modified, TimeInfo::ts_format());
             }
-            std::string format() const
+            static std::string ts_format()
             {
-                return "%Y-%m-%dT%H:%M:%S.%f";
+                return "%Y-%m-%dT%H:%M:%S.%F";
             }
-#if defined(SAL_TIMEIFO_EXTRA)
+#if defined(SAL_TIMEINFO_EXTRA)
             Poco::DateTime created;
             Poco::DateTime accessed;
-#endif
-            Poco::JSON::Object::Ptr encode()
-            {
-                auto ts = Poco::DateTimeFormatter::format(modified, format());
-                Poco::JSON::Object::Ptr j;
-                j->set("modified", ts);
-                return j;
-            }
+            //
             static TimeInfo decode(Poco::JSON::Object::Ptr j)
             {
                 TimeInfo i;
                 int timeZoneDifferential;
                 auto modified_ts = j->getValue<std::string>("modified");
-                std::string format = "%Y-%m-%dT%H:%M:%S.%f";
-                i.modified = Poco::DateTimeParser::parse(format, modified_ts, timeZoneDifferential);
+                i.modified = Poco::DateTimeParser::parse(TimeInfo::ts_format(), modified_ts, timeZoneDifferential);
+                return i;
+            }
+#endif
+            Poco::JSON::Object::Ptr encode()
+            {
+                auto ts = Poco::DateTimeFormatter::format(modified, TimeInfo::ts_format());
+                Poco::JSON::Object::Ptr j = new Poco::JSON::Object();
+                j->set("modified", ts);
+                return j;
+            }
+
+            static TimeInfo decode(std::string modified_ts)
+            {
+                TimeInfo i;
+                int timeZoneDifferential;
+                i.modified = Poco::DateTimeParser::parse(TimeInfo::ts_format(), modified_ts, timeZoneDifferential);
                 return i;
             }
         };
@@ -133,23 +141,38 @@ namespace sal
         class RevisionInfo
         {
         public:
-            RevisionInfo(){}; // TODO: proper default member values
+            // TODO: proper default member values
+            RevisionInfo()
+                    : current(3)
+                    , latest(3)
+            {
+                // version_history = {};
+            }
             uint64_t current;
             uint64_t latest;
             std::vector<uint64_t> version_history;
 
             Poco::JSON::Object::Ptr encode() const
             {
-                Poco::JSON::Object::Ptr j;
+                Poco::JSON::Object::Ptr j = new Poco::JSON::Object();
                 j->set("latest", latest);
                 j->set("current", current);
                 j->set("modified", version_history);
                 return j;
             }
-            static RevisionInfo decode(Poco::JSON::Object::Ptr)
+            static RevisionInfo decode(Poco::JSON::Object::Ptr j)
             {
                 RevisionInfo i;
-                // todo:
+                i.current = j->getValue<uint64_t>("current");
+                i.latest = j->getValue<uint64_t>("latest");
+                auto arr = j->getArray("modified");
+                if (arr)
+                {
+                    for (size_t idx = 0; idx < arr->size(); idx++)
+                    {
+                        i.version_history.push_back(arr->getElement<uint64_t>(idx));
+                    }
+                }
                 return i;
             }
         };
@@ -238,32 +261,38 @@ namespace sal
 
             virtual Poco::JSON::Object::Ptr encode() const
             {
-                Poco::JSON::Object::Ptr j;
-                auto oj = m_nodeInfo.encode();
-                oj->set("name", m_display_name);
-                j->set("object", oj); // object is not a good name -> metadata
+                Poco::JSON::Object::Ptr j = new Poco::JSON::Object();
+                auto obj = m_nodeInfo.encode();
+                obj->set("display_name", m_display_name);
+                j->set("object", obj); // object is not a good name -> metadata
+
                 j->set("revision", m_revisionInfo.encode());
                 j->set("timestamp", m_timeInfo.timestamp());
                 j->set("description", m_description);
+                // j->set("url", m_url);
 
                 // j->set("permission", );
-                // j->set("url", );
                 return j;
             };
 
 
-            std::string name_from_url(const std::string url) const
+            std::string display_name_from_url(const std::string url) const
             {
                 return url; // todo
             }
             ///
             void decode_report(const Poco::JSON::Object::Ptr j)
             {
-                this->m_nodeInfo = NodeInfo::decode(j->getObject("object"));
-                this->m_display_name = name_from_url(j->getValue<std::string>("url"));
-                this->m_revisionInfo = RevisionInfo::decode(j->getObject("revision"));
-                this->m_timeInfo = TimeInfo::decode(j->getObject("timestamp"));
                 this->m_description = j->getValue<std::string>("description");
+                this->m_nodeInfo = NodeInfo::decode(j->getObject("object"));
+                this->m_revisionInfo = RevisionInfo::decode(j->getObject("revision"));
+#if SAL_TIMEINFO_EXTRA
+                this->m_timeInfo = TimeInfo::decode(j->getObject("timestamp"));
+#else
+                this->m_timeInfo = TimeInfo::decode(j->getValue<std::string>("timestamp"));
+#endif
+                // newly added into C++
+                // this->m_display_name = display_name_from_url(j->getValue<std::string>("url"));
             }
 
             /// SummaryInterface, not necessary for nodeoject
@@ -313,7 +342,7 @@ namespace sal
             /**
             from a SAL data object to a Poco JSON object representation.
             */
-            virtual Poco::JSON::Object::Ptr encode() const
+            virtual Poco::JSON::Object::Ptr encode() const override
             {
                 Poco::JSON::Object::Ptr j = NodeObject::encode();
                 return j;
@@ -409,18 +438,19 @@ namespace sal
 #endif
             static Leaf::Ptr decode(Poco::JSON::Object::Ptr json)
             {
-                Leaf::Ptr leaf;
-                // treat any failure as a failure to decode
+                Leaf::Ptr leaf = new Leaf();
+                leaf->decode_report(json);
+                /* treat any failure as a failure to decode
                 try
                 {
-                    leaf = new Leaf();
-                    leaf->decode_report(json);
+
                     // no other content for leaf in report mode
                 }
                 catch (...)
                 {
                     throw SALException("JSON object does not define a valid SAL leaf node object.");
                 }
+                */
                 return leaf;
             };
 
