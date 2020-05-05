@@ -702,6 +702,11 @@ TEST_CASE("Data object string array attribute.", "[sal::object::StringArray]")
     std::string value = "Hello";
     v[0] = value;
 
+    std::string utf8_text = "\xe4\xbd\xa0\xe5\xa5\xbd";
+    v[1] = utf8_text;
+    std::string utf8_text2 = "你好"; // assuming utf8 source file encoding
+    v[2] = utf8_text2;
+
     std::string value2 = "World";
     v[cols] = value2;
 
@@ -724,10 +729,18 @@ TEST_CASE("Data object string array attribute.", "[sal::object::StringArray]")
     SECTION("Test encoding and decoding")
     {
         auto jObj = v.encode();
-        jObj->stringify(cout);
-        cout << endl;
-        auto dv = StringArray::decode(jObj); // Null pointer
+        // jObj->stringify(cout, 2);
+        // cout << endl;
+        auto dv = StringArray::decode(jObj);
         REQUIRE(v(1, 0) == value2);
+
+        REQUIRE(v(0, 1) == utf8_text);
+        REQUIRE(v(0, 2) == utf8_text2);
+    }
+
+    SECTION("Test data_pointer() runtime exception")
+    {
+        CHECK_THROWS(v.data_pointer());
     }
 }
 
