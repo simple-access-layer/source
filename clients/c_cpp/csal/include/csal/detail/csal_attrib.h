@@ -13,8 +13,9 @@ extern "C"
 
 
  
-    typedef struct _csal_attrib_uint8_t csal_attrib_uint8_t;
 
+
+#define IID_CSAL_ATTRIB_BOOL "ba14054d-8a87-4d9a-bad9-1786917e4cc2"
 #define IID_CSAL_ATTRIB_UINT8 "81ca1837-b676-41c4-aaf0-04732d5dde05"
 #define IID_CSAL_ATTRIB_UINT16 "b3929122-b113-444c-90ae-024a7d147a5d"
 #define IID_CSAL_ATTRIB_UINT32 "c6d7da6e-e2c0-496e-8ee2-ad969321e806"
@@ -48,6 +49,9 @@ extern "C"
 #define IID_CSAL_ATTRIB_ARRAY_FLOAT64 "59b78402-1957-45f0-b59f-64533df3c07d"
 #define IID_CSAL_ATTRIB_ARRAY_STRING "9ae687c2-0404-48a0-af1a-cbf1528bb70b"
 
+    typedef struct _csal_attrib_bool_t csal_attrib_bool_t;
+
+    typedef struct _csal_attrib_uint8_t csal_attrib_uint8_t;
     typedef struct _csal_attrib_uint16_t csal_attrib_uint16_t;
     typedef struct _csal_attrib_uint32_t csal_attrib_uint32_t;
     typedef struct _csal_attrib_uint64_t csal_attrib_uint64_t;
@@ -90,6 +94,8 @@ extern "C"
 
 
     int csal_attrib_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv );
+
+    csal_bool_t csal_attrib_is_type( csal_attrib_t* self, CSAL_ATTRIBUTE_TYPE attrib_type );
 #if 0
     int csal_attrib_array_cast( csal_attrib_array_t* self, csal_uuid_t* csal_at_type, void** ppv );
 #endif
@@ -100,7 +106,37 @@ extern "C"
     int csal_attrib_int32_cast( csal_attrib_int32_t* self, csal_uuid_t* at_type, void** ppv );
     int csal_attrib_int64_cast( csal_attrib_int64_t* self, csal_uuid_t* at_type, void** ppv );
 
+    int csal_attrib_uint8_cast( csal_attrib_uint8_t* self, csal_uuid_t* at_type, void** ppv );
+    int csal_attrib_uint16_cast( csal_attrib_uint16_t* self, csal_uuid_t* at_type, void** ppv );
+    int csal_attrib_uint32_cast( csal_attrib_uint32_t* self, csal_uuid_t* at_type, void** ppv );
+    int csal_attrib_uint64_cast( csal_attrib_uint64_t* self, csal_uuid_t* at_type, void** ppv );
 
+
+    int csal_attrib_float32_cast( csal_attrib_float_t* self, csal_uuid_t* at_type, void** ppv );
+    int csal_attrib_float64_cast( csal_attrib_double_t* self, csal_uuid_t* at_type, void** ppv );
+    int csal_attrib_string_cast( csal_attrib_string_t* self, csal_uuid_t* at_type, void** ppv );
+
+    int csal_attrib_array_int8_cast( csal_attrib_array_int8_t* self, csal_uuid_t* at_type, void** ppv );
+    int csal_attrib_array_int16_cast( csal_attrib_array_int16_t* self, csal_uuid_t* at_type, void** ppv );
+    int csal_attrib_array_int32_cast( csal_attrib_array_int32_t* self, csal_uuid_t* at_type, void** ppv );
+    int csal_attrib_array_int64_cast( csal_attrib_array_int64_t* self, csal_uuid_t* at_type, void** ppv );
+
+    int csal_attrib_array_uint8_cast( csal_attrib_array_uint8_t* self, csal_uuid_t* at_type, void** ppv );
+    int csal_attrib_array_uint16_cast( csal_attrib_array_uint16_t* self, csal_uuid_t* at_type, void** ppv );
+    int csal_attrib_array_uint32_cast( csal_attrib_array_uint32_t* self, csal_uuid_t* at_type, void** ppv );
+    int csal_attrib_array_uint64_cast( csal_attrib_array_uint64_t* self, csal_uuid_t* at_type, void** ppv );
+
+    int csal_attrib_array_float32_cast( csal_attrib_array_float32_t* self, csal_uuid_t* at_type, void** ppv );
+    int csal_attrib_array_float64_cast( csal_attrib_array_float64_t* self, csal_uuid_t* at_type, void** ppv );
+    int csal_attrib_array_string_cast( csal_attrib_array_string_t* self, csal_uuid_t* at_type, void** ppv );
+
+
+#if 0
+    int csal_attrib_uint8_cast( csal_attrib_uint8_t* self, csal_uuid_t* at_type, void** ppv );
+    int csal_attrib_uint16_cast( csal_attrib_uint16_t* self, csal_uuid_t* at_type, void** ppv );
+    int csal_attrib_uint32_cast( csal_attrib_uint32_t* self, csal_uuid_t* at_type, void** ppv );
+    int csal_attrib_uint64_cast( csal_attrib_uint64_t* self, csal_uuid_t* at_type, void** ppv );
+#endif
     CSAL_ATTRIBUTE_TYPE csal_attrib_type( csal_attrib_t* self );
 
     int csal_attrib_array_shape( csal_attrib_array_t* self, uint64_t* vals, uint64_t* nvals, uint64_t nval_max );
@@ -125,6 +161,7 @@ extern "C"
 
 
 
+    csal_attrib_bool_t* csal_attrib_bool_create( csal_bool_t val );
     csal_attrib_uint8_t* csal_attrib_uint8_create( uint8_t val );
     csal_attrib_uint16_t* csal_attrib_uint16_create( uint16_t val );
     csal_attrib_uint32_t* csal_attrib_uint32_create( uint32_t val );
