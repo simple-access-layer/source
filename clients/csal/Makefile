@@ -33,7 +33,7 @@ $(BUILD_DIR)/%.cpp.o: %.cpp
 	$(CXX) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 test:
-	gcc -g ./test/main.c $(CFLAGS) $(LDFLAGS) -lcsal -o $(BUILD_DIR)/test 
+	gcc -g ./test/main.c ./test/test_suite.c $(CFLAGS) $(LDFLAGS) -lcsal -o $(BUILD_DIR)/test 
 
 .PHONY: clean test 
 	test: 
