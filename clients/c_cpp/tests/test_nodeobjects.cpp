@@ -79,7 +79,8 @@ TEST_CASE("Tree-node leaf object", "[sal::core::Leaf]")
     SECTION("deserialization leaf report from server")
     {
         auto json = get_json(leaf_url);
-        if (json) // get_json() will fail if not within intranet
+        // get_json() will fail if not within intranet, but still return a json object
+        if (json->has("type"))
         {
             // json->stringify(cout, 2);
             // cout << endl;
@@ -91,7 +92,6 @@ TEST_CASE("Tree-node leaf object", "[sal::core::Leaf]")
             // cout << endl;
         }
     }
-
     // tear down
 }
 
@@ -99,7 +99,7 @@ TEST_CASE("Tree-node leaf object", "[sal::core::Leaf]")
 TEST_CASE("Tree-node data organization", "[sal::core::Branch]")
 {
     // setup
-    NodeInfo nInfo{"node", "core", SAL_API_VERSION};
+    NodeInfo nInfo{"node", "core", SAL_API_VERSION, "test_branch"};
     Branch branch(nInfo, "test branch node");
 
     SECTION("Node info test")
@@ -107,20 +107,24 @@ TEST_CASE("Tree-node data organization", "[sal::core::Branch]")
         REQUIRE(nInfo.version == SAL_API_VERSION);
     }
 
-    SECTION("serialization branch report")
+    SECTION("encode and decode branch report")
     {
         Poco::JSON::Object::Ptr json = branch.encode();
+        REQUIRE(bool(json));
+        json->stringify(cout, 2);
+        cout << endl;
         auto obj = json->getObject("object");
         REQUIRE(obj->getValue<uint64_t>("version") == SAL_API_VERSION);
-        // Leaf::Ptr lp = Leaf::decode_summary(leafJson);
-        Leaf::Ptr lp = Leaf::decode(json);
+        NodeObject::Ptr lp = Branch::decode(json); // test passed
     }
 
     SECTION("deserialization branch report from server")
     {
         auto json = get_json(branch_url);
-        if (json) // get_json() will fail if not within intranet
+        if (json->has("type")) // get_json() will fail if not within intranet
         {
+            json->stringify(cout, 2);
+            cout << endl;
             REQUIRE(json->getValue<std::string>("type") == "branch");
             NodeObject::Ptr node_ptr = Branch::decode(json->getObject("object"));
             Poco::JSON::Object::Ptr jobj = node_ptr->encode();
