@@ -72,67 +72,124 @@ namespace sal
                 m_dtype = to_dtype_name<DType>();
             }
 
-            static Mask::Ptr decode(const Poco::JSON::Object::Ptr json)
-            {
-                Mask::Ptr p; //  todo new Mask();
-                return p;
-            }
             // override encode() to be compatible with python, diff _class
             virtual Poco::JSON::Object::Ptr encode() const override
             {
-                Poco::JSON::Object::Ptr j; // todo: new
+                Poco::JSON::Object::Ptr j = encode_summary();
+                // todo: if constant class_type
+                j->set("status", m_array->encode());
+                j->set("key", m_key->encode());
                 return j;
             }
             virtual Poco::JSON::Object::Ptr encode_summary() const override
             {
-                Poco::JSON::Object::Ptr j; // todo: new
-                return j;
+                Poco::JSON::Object::Ptr j = encode_header(); // attribute metadata
+                return j;                                    // no more info other than attribute metadata
+            }
+
+            static Mask::Ptr decode(const Poco::JSON::Object::Ptr json)
+            {
+                Mask::Ptr p = new Mask();
+                Attribute::decode_metadata(json, p);
+                if (!Attribute::is_summary(json))
+                {
+                    p->m_array = UInt8Array::decode(json->getObject("status"));
+                    p->m_key = StringArray::decode(json->getObject("key"));
+                }
+                return p;
             }
 
         protected:
-            DType m_data;
-            StringArray m_key;
+            DType m_constant;        // todo: no such server data I can find
+            UInt8Array::Ptr m_array; // enum integer value, is that always Unit8Array?
+            StringArray::Ptr m_key;  // enum string name
         };
 
+        /// TODO: a base Error class for all Error<T> classes
+
         /// Error is not a good name, it is value variance
-        /// Scalar (constant along the dimension) and Array types
+        /// template parameter can be Scalar constant and Array::Ptr types
         template <class DType> class Error : public DataObject
         {
+            // for summary decoding only
+            Error(std::string class_name)
+                    : DataObject("signal_error")
+            {
+                m_type_name = class_name;
+            }
+
         public:
             typedef Poco::SharedPtr<Error> Ptr;
+
             // Asymmetric error constructor
             Error(DType lower, DType upper, bool is_relative)
                     : DataObject("signal_error")
+                    , m_is_relative(is_relative)
+                    , m_is_symmetric(false)
+                    , m_is_constant(true)
             {
                 m_group_name = "signal_error";
                 m_dtype = to_dtype_name<DType>();
-                m_is_symmetric = false;
             }
-            // symmetric error constructor
+            // symmetric constant error constructor
             Error(DType amplitude, bool is_relative)
                     : Error(amplitude, amplitude, is_relative)
+            //, m_is_constant(true)
             {
-                m_is_symmetric = true;
             }
 
-            const DType& upper() const
+            /* array upper and lower error constructor */
+            Error(typename Array<DType>::Ptr lower, typename Array<DType>::Ptr upper, bool is_relative)
+                    : DataObject("signal_error")
+                    , m_lower_array(lower)
+                    , m_upper_array(upper)
+                    , m_is_relative(is_relative)
+                    , m_is_symmetric(false)
+                    , m_is_constant(false)
+            {
+            }
+
+            // symmetric constant error constructor
+            Error(typename Array<DType>::Ptr amplitude, bool is_relative)
+                    : DataObject("signal_error")
+                    , m_lower_array(amplitude)
+                    , m_upper_array(amplitude)
+                    , m_is_relative(is_relative)
+                    , m_is_symmetric(true)
+                    , m_is_constant(false)
+            {
+            }
+
+            /// defined getters, no setter
+            std::string class_name() const
+            {
+                return m_type_name;
+            }
+            const DType upper_constant() const
             {
                 return m_upper;
             }
-            const DType& lower() const
+            const DType lower_constant() const
             {
                 return m_lower;
             }
+            const typename Array<DType>::Ptr upper() const
+            {
+                return m_upper_array;
+            }
+            const typename Array<DType>::Ptr lower() const
+            {
+                return m_lower_array;
+            }
+
             //    const DType& amplitude() const
             bool relative() const
             {
                 return m_is_relative;
             }
-
             bool constant() const
             {
-                // return std::is_arithmetic<DType>::value;  // C++11, bool is also regarded as arithmetic
-                return std::is_integral<DType>::value || std::is_floating_point<DType>::value;
+                return m_is_constant;
             }
             bool symmetric() const
             {
@@ -154,15 +211,62 @@ namespace sal
 
             static Error::Ptr decode(const Poco::JSON::Object::Ptr json)
             {
-                // todo: new Error()
-                return nullptr;
+                auto class_name = String::decode(json->getObject("_class"))->value();
+                bool is_summary = Attribute::is_summary(json);
+                if (is_summary)
+                {
+                    Error::Ptr p;
+                    p = new Error(class_name);
+                    Attribute::decode_metadata(json, p);
+                    return p;
+                }
+                else
+                {
+                    return decode_full_object(json);
+                }
+            }
+
+            static Error::Ptr decode_full_object(const Poco::JSON::Object::Ptr json)
+            {
+                Error::Ptr p;
+                auto class_name = String::decode(json->getObject("_class"))->value();
+                bool is_relative = Bool::decode(json->getObject("relative"))->value();
+                if (class_name == "error_constant")
+                {
+                    DType lower = Atomic<DType>::decode(json->getObject("lower"))->value();
+                    DType upper = Atomic<DType>::decode(json->getObject("upper"))->value();
+
+                    p = new Error<DType>(lower, upper, is_relative);
+                }
+                else if (class_name == "error_symmetrical")
+                {
+                    auto lower = Array<DType>::decode(json->getObject("lower"));
+                    // p = new Error<typename Array<DType>::Ptr>(lower, is_relative);
+                    p = new Error<DType>(lower, is_relative);
+                }
+                else if (class_name == "error_asymmetric")
+                {
+                    auto lower = Array<DType>::decode(json->getObject("lower"));
+                    auto upper = Array<DType>::decode(json->getObject("upper"));
+                    // p = new Error<typename Array<DType>::Ptr>(lower, upper, is_relative);
+                    p = new Error<DType>(lower, upper, is_relative);
+                }
+                else
+                {
+                    std::string msg = "Error class type `" + class_name + "` has not been defined";
+                    throw SALException(msg.c_str());
+                }
+                p->m_type_name = class_name;
+                return p;
             }
 
         protected:
-            DType m_lower;
-            DType m_upper;
+            DType m_lower, m_upper;                                  // used only if is_constant() == true
+            typename Array<DType>::Ptr m_lower_array, m_upper_array; // if not constant
+
             bool m_is_relative;
             bool m_is_symmetric;
+            bool m_is_constant;
         };
 
         /// one temporal or spatial dimension data array
@@ -175,7 +279,7 @@ namespace sal
             ///
             Dimension(typename Array<DType>::Ptr coord, bool temoral, std::string units)
                     : DataObject(TYPE_NAME_SIGNAL_DIMENSION)
-                    , m_temoral(temoral)
+                    , m_temporal(temoral)
                     , m_units(units)
                     , m_data(coord)
             {
@@ -188,7 +292,7 @@ namespace sal
             /// Constructor for the calculated dimension type
             Dimension(DType start, DType length, DType step, bool temoral, std::string units)
                     : DataObject(TYPE_NAME_SIGNAL_DIMENSION)
-                    , m_temoral(temoral)
+                    , m_temporal(temoral)
                     , m_units(units)
                     , m_start(start)
                     , m_length(length)
@@ -205,46 +309,63 @@ namespace sal
 
             virtual Poco::JSON::Object::Ptr encode() const override
             {
-                Poco::JSON::Object::Ptr j; // todo: new
+                Poco::JSON::Object::Ptr j = encode_summary();
+                j->set("data", m_data->encode());
                 return j;
             }
             virtual Poco::JSON::Object::Ptr encode_summary() const override
             {
-                Poco::JSON::Object::Ptr j; // todo: new
+                Poco::JSON::Object::Ptr j = encode_header();
+                j->set("units", m_units);
+                j->set("length", m_length);
+                j->set("temporal", m_temporal);
                 return j;
             }
 
             /// see python documentation
             static Dimension::Ptr decode(const Poco::JSON::Object::Ptr json)
             {
-                auto class_name = String::decode(json->getObject("_class"))->value();
                 auto unit_name = String::decode(json->getObject("units"))->value();
                 auto temporal = Bool::decode(json->getObject("temporal"))->value();
+                Dimension::Ptr p;
+                auto class_name = String::decode(json->getObject("_class"))->value();
                 if (class_name == "coordinate_array")
                 {
-                    // length = array_shape
-                    auto a = Array<DType>::decode(json->getObject("data"));
-                    Dimension::Ptr p = new Dimension(a, temporal, unit_name);
-                    return p;
+                    typename Array<DType>::Ptr a;
+                    if (Attribute::is_summary(json))
+                    {
+                        // length = array_shape
+                        a = nullptr;
+                        p = new Dimension(a, temporal, unit_name);
+                        p->m_is_summary = true;
+                    }
+                    else
+                    {
+                        a = Array<DType>::decode(json->getObject("data"));
+                        p = new Dimension(a, temporal, unit_name);
+                        p->m_is_summary = false;
+                    }
                 }
                 else if (class_name == "calculated") // not tested
                 {
+                    // should no diff between summary and full object json
                     auto start = Atomic<DType>::decode(json->getObject("start"))->value();
                     auto le = Atomic<DType>::decode(json->getObject("length"))->value();
                     auto step = Atomic<DType>::decode(json->getObject("step"))->value();
                     Dimension::Ptr p = new Dimension(start, le, step, temporal, unit_name);
-                    return p;
                 }
                 else
                 {
                     std::string msg = "Dimension class type `" + class_name + "` is not supported in decoding";
                     throw SALException(msg.c_str());
                 }
+                Attribute::decode_metadata(json, p);
+                return p;
             }
 
         protected:
             std::string m_units;
-            bool m_temoral = false;
+            bool m_temporal = false;
             std::string m_class_name;
             bool m_is_calculated;
 
@@ -281,12 +402,17 @@ namespace sal
             ///
             virtual Poco::JSON::Object::Ptr encode() const override
             {
-                Poco::JSON::Object::Ptr j; // todo: new
+                Poco::JSON::Object::Ptr j = encode_summary();
+                j->set("data", m_data->encode());
                 return j;
             }
             virtual Poco::JSON::Object::Ptr encode_summary() const override
             {
-                Poco::JSON::Object::Ptr j; // todo: new
+                Poco::JSON::Object::Ptr j = encode_header();
+                j->set("units", m_units);
+                j->set("dimensions", encode_dimensions());
+                j->set("mask", m_mask->encode());
+                j->set("error", m_error->encode());
                 return j;
             }
 
@@ -306,8 +432,18 @@ namespace sal
             {
                 Signal<DType>::Ptr sig = new Signal<DType>();
                 // all meta data "_class, _group" does not needs to be decoded
+                Attribute::decode_metadata(json, sig);
                 sig->m_units = String::decode(json->getObject("units"))->value();
-                sig->m_data = Array<DType>::decode(json->getObject("data"));
+                if (Attribute::is_summary(json))
+                {
+                    sig->m_is_summary = true;
+                }
+                else
+                {
+                    sig->m_data = Array<DType>::decode(json->getObject("data"));
+                    sig->m_is_summary = false;
+                }
+
                 Signal::decode_dimensions(json->getObject("dimensions"), sig->m_dimensions);
                 // optional fields
                 if (json->has("error") and json->getObject("error"))
@@ -322,6 +458,15 @@ namespace sal
             }
 
         protected:
+            Poco::JSON::Array::Ptr encode_dimensions() const
+            {
+                Poco::JSON::Array::Ptr j = new Poco::JSON::Array();
+                for (const auto& d : m_dimensions)
+                {
+                    j->add(d->encode());
+                }
+                return j;
+            }
             static void decode_dimensions(const Poco::JSON::Object::Ptr json,
                                           std::vector<typename Dimension<DType>::Ptr>& dims)
             {
