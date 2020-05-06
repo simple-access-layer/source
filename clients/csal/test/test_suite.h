@@ -26,8 +26,11 @@ enum TEST_SUITE_CTRL_FLAGS
 {
     TEST_SUITE_CTRL_NONE=0
         , TEST_SUITE_CTRL_EXIT_ON_FAIL=1
-        , TEST_SUITE_CTRL_VERBOSE=2
+        , TEST_SUITE_CTRL_SUMMARY=2
+        , TEST_SUITE_CTRL_REPORT_PASS=4
 };
+
+#define TEST_SUITE_CTRL_VERBOSE (TEST_SUITE_CTRL_REPORT_PASS|TEST_SUITE_CTRL_SUMMARY)
 
 
 typedef struct _test_case_t
@@ -37,7 +40,6 @@ typedef struct _test_case_t
     int npassed;
     int nfailed;
 
-    int ctrl_flags;
     struct _test_suite_t* test_suite;
 
 } test_case_t;

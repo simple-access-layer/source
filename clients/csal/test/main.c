@@ -1078,7 +1078,6 @@ int test_string_array( test_case_t* tf )
     TC_TEST( tf, NULL != at_arr );
     TC_TEST( tf, CSAL_ATTR_ARRAY == csal_attrib_type( (csal_attrib_t*)at_arr ) );
 
-
     for( i = 0; i < dims[0]; ++i )
     {
         for( j = 0; j < dims[1]; ++j )
@@ -1141,6 +1140,7 @@ int test_client( test_case_t* tf )
         csal_client_destroy( csal_client_ptr );
     }
 
+
     return err;
 }
 
@@ -1164,8 +1164,16 @@ int main()
 {
     test_suite_t _tf;
     test_suite_t* tf = &_tf;
+
+    unsigned int ctrl_flags = TEST_SUITE_CTRL_NONE;
+
+    if( 0 )
+        ctrl_flags |= TEST_SUITE_CTRL_VERBOSE;
+
+    if( 1 )
+        ctrl_flags |= TEST_SUITE_CTRL_EXIT_ON_FAIL;
     
-    test_suite_init( tf, TEST_SUITE_CTRL_VERBOSE|TEST_SUITE_CTRL_EXIT_ON_FAIL );
+    test_suite_init( tf, ctrl_flags );
 
     TS_TEST_CASE( tf, test_constants );
 

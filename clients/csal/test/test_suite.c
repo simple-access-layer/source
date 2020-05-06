@@ -33,15 +33,17 @@ char* test_case_name_get( test_case_t* self )
 int test_case_run( test_case_t* self )
 {
     int err = 0;
-
+    printf( "\n" );
+#if 0
     printf( "\nTest case : %s : START\n", self->szname );
-
+#endif
     self->f( self );
  
     printf( "Test Case : %s : %d/%d passed\n",self->szname,  self->npassed, self->npassed + self->nfailed );
     printf( "Test Case : %s : %d/%d failed\n", self->szname, self->nfailed, self->npassed + self->nfailed );
+#if 0
     printf( "Test case : %s : END\n", self->szname );
-
+#endif
     return err;
 }
 
@@ -87,7 +89,8 @@ static int _test_case_passed( test_case_t* self, int res, const char* expr, cons
 
     self->npassed++;
 
-    printf( "%s(%d) : %s : %s\n", pszfile, lineno, expr, "PASS" );
+    if( self->test_suite->ctrl_flags & TEST_SUITE_CTRL_REPORT_PASS )
+        printf( "%s(%d) : %s : %s\n", pszfile, lineno, expr, "PASS" );
 
     return err;
 }
@@ -100,7 +103,7 @@ static int _test_case_failed( test_case_t* self, int res, const char* expr, cons
 
     printf( "%s(%d) : %s : %s\n", pszfile, lineno, expr, "FAIL" );
 
-    if( !res && self->ctrl_flags & TEST_SUITE_CTRL_EXIT_ON_FAIL )
+    if( !res && self->test_suite->ctrl_flags & TEST_SUITE_CTRL_EXIT_ON_FAIL )
         exit(1);
 
     return err;
