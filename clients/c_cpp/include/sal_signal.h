@@ -49,8 +49,6 @@ namespace sal
             {
                 m_group_name = "signal";
             }
-
-            virtual bool shape_compatible(ShapeType shape) const;
             // TODO: units and datatype compatible check
         protected:
             std::string m_dtype;
@@ -74,8 +72,23 @@ namespace sal
                 m_dtype = to_dtype_name<DType>();
             }
 
+            static Mask::Ptr decode(const Poco::JSON::Object::Ptr json)
+            {
+                Mask::Ptr p; //  todo new Mask();
+                return p;
+            }
             // override encode() to be compatible with python, diff _class
-            // encode_summary() const override {}
+            virtual Poco::JSON::Object::Ptr encode() const override
+            {
+                Poco::JSON::Object::Ptr j; // todo: new
+                return j;
+            }
+            virtual Poco::JSON::Object::Ptr encode_summary() const override
+            {
+                Poco::JSON::Object::Ptr j; // todo: new
+                return j;
+            }
+
         protected:
             DType m_data;
             StringArray m_key;
@@ -102,15 +115,6 @@ namespace sal
                 m_is_symmetric = true;
             }
 
-            virtual bool shape_compatible(ShapeType shape) const override
-            {
-                return true;
-            }
-
-            // override encode_summary() to be compatible with python, diff _class
-            // override encode() to be compatible with python, diff _class
-            // static decode()
-
             const DType& upper() const
             {
                 return m_upper;
@@ -136,6 +140,24 @@ namespace sal
                 // also compare constant upper and lower value?
             }
 
+            ///
+            virtual Poco::JSON::Object::Ptr encode() const override
+            {
+                Poco::JSON::Object::Ptr j; // todo: new
+                return j;
+            }
+            virtual Poco::JSON::Object::Ptr encode_summary() const override
+            {
+                Poco::JSON::Object::Ptr j; // todo: new
+                return j;
+            }
+
+            static Error::Ptr decode(const Poco::JSON::Object::Ptr json)
+            {
+                // todo: new Error()
+                return nullptr;
+            }
+
         protected:
             DType m_lower;
             DType m_upper;
@@ -143,42 +165,98 @@ namespace sal
             bool m_is_symmetric;
         };
 
-        /// temporal or spatial dimension for multiple-dimension data array
-        /// to build up coordinate system
+        /// one temporal or spatial dimension data array
+        /// for a multi-dim coordinate system
         /// TODO: there are two types of dimension, calculated or 1D array
-        template <class DType> class Dimension : public DataObject
+        template <typename DType> class Dimension : public DataObject
         {
         public:
             typedef Poco::SharedPtr<Dimension> Ptr;
-            Dimension(DType start, DType length, DType step, std::string units)
+            ///
+            Dimension(typename Array<DType>::Ptr coord, bool temoral, std::string units)
                     : DataObject(TYPE_NAME_SIGNAL_DIMENSION)
+                    , m_temoral(temoral)
+                    , m_units(units)
+                    , m_data(coord)
+            {
+                m_group_name = "signal_dimension";
+                m_class_name = "coordinate_array";
+                m_is_calculated = false;
+                m_dtype = to_dtype_name<DType>();
+            }
+
+            /// Constructor for the calculated dimension type
+            Dimension(DType start, DType length, DType step, bool temoral, std::string units)
+                    : DataObject(TYPE_NAME_SIGNAL_DIMENSION)
+                    , m_temoral(temoral)
+                    , m_units(units)
                     , m_start(start)
                     , m_length(length)
                     , m_step(step)
             {
                 m_group_name = "signal_dimension";
+                m_class_name = "calculated";
+                m_is_calculated = true;
                 m_dtype = to_dtype_name<DType>();
             }
 
             // TODO:
             // getters
-            // static decode()
-            // encode()
-            // encode_summary()
+
+            virtual Poco::JSON::Object::Ptr encode() const override
+            {
+                Poco::JSON::Object::Ptr j; // todo: new
+                return j;
+            }
+            virtual Poco::JSON::Object::Ptr encode_summary() const override
+            {
+                Poco::JSON::Object::Ptr j; // todo: new
+                return j;
+            }
+
+            /// see python documentation
+            static Dimension::Ptr decode(const Poco::JSON::Object::Ptr json)
+            {
+                auto class_name = String::decode(json->getObject("_class"))->value();
+                auto unit_name = String::decode(json->getObject("units"))->value();
+                auto temporal = Bool::decode(json->getObject("temporal"))->value();
+                if (class_name == "coordinate_array")
+                {
+                    // length = array_shape
+                    auto a = Array<DType>::decode(json->getObject("data"));
+                    Dimension::Ptr p = new Dimension(a, temporal, unit_name);
+                    return p;
+                }
+                else if (class_name == "calculated") // not tested
+                {
+                    auto start = Atomic<DType>::decode(json->getObject("start"))->value();
+                    auto le = Atomic<DType>::decode(json->getObject("length"))->value();
+                    auto step = Atomic<DType>::decode(json->getObject("step"))->value();
+                    Dimension::Ptr p = new Dimension(start, le, step, temporal, unit_name);
+                    return p;
+                }
+                else
+                {
+                    std::string msg = "Dimension class type `" + class_name + "` is not supported in decoding";
+                    throw SALException(msg.c_str());
+                }
+            }
+
         protected:
-            DType m_start;
+            std::string m_units;
+            bool m_temoral = false;
+            std::string m_class_name;
+            bool m_is_calculated;
+
+            typename Array<DType>::Ptr m_data; // for _class == coordinate_array
+
+            DType m_start; //  _class == calculated
             DType m_step;
             DType m_length; // ending = m_start + m_length
-            bool m_temoral = false;
-            std::string m_units;
-            std::string m_dtype;
-
-            typename Array<DType>::Ptr m_data;
-            bool m_is_calculated;
         };
 
-        /// default template type = float64
-        template <typename DType = double> class Signal : public DataObject
+        /// default template type = float32
+        template <typename DType> class Signal : public DataObject
         {
             /// non public constructor, instance must be created from the static `decode()` factory method
             Signal()
@@ -193,34 +271,75 @@ namespace sal
                 return m_data->shape();
             }
 
-            // TODO: error, mask, dimensions getter, but no setter!
-            // encode() const
+            virtual bool shape_compatible(ShapeType shape) const
+            {
+                return true; // todo
+            }
+
+            /// TODO: error, mask, dimensions getter, but no setter!
+
+            ///
+            virtual Poco::JSON::Object::Ptr encode() const override
+            {
+                Poco::JSON::Object::Ptr j; // todo: new
+                return j;
+            }
+            virtual Poco::JSON::Object::Ptr encode_summary() const override
+            {
+                Poco::JSON::Object::Ptr j; // todo: new
+                return j;
+            }
 
             // optional todo:
             // to_VTK() for visualization in paraview
             // to_mesh() // need to be override in derived class like for JET reactor
 
         protected:
-            std::vector<Dimension<DType>> m_dimensions;
-            std::string units;
+            std::vector<typename Dimension<DType>::Ptr> m_dimensions;
+            std::string m_units;
             IArray::Ptr m_data;
-            Poco::Nullable<Error<DType>> m_error; // std::optional<>
-            Poco::Nullable<Mask<DType>> m_mast;
+            typename Error<DType>::Ptr m_error;
+            typename Mask<DType>::Ptr m_mask;
 
         public:
-            static Signal::Ptr decode(Poco::JSON::Object::Ptr json)
+            static Signal<DType>::Ptr decode(const Poco::JSON::Object::Ptr json)
             {
-                Signal::Ptr sig;
-                // TODO:
+                Signal<DType>::Ptr sig = new Signal<DType>();
+                // all meta data "_class, _group" does not needs to be decoded
+                sig->m_units = String::decode(json->getObject("units"))->value();
+                sig->m_data = Array<DType>::decode(json->getObject("data"));
+                Signal::decode_dimensions(json->getObject("dimensions"), sig->m_dimensions);
+                // optional fields
+                if (json->has("error") and json->getObject("error"))
+                {
+                    sig->m_error = Error<DType>::decode(json->getObject("error"));
+                }
+                if (json->has("mask") and json->getObject("mask"))
+                {
+                    sig->m_mask = Mask<DType>::decode(json->getObject("mask"));
+                }
                 return sig;
             }
-        };
 
+        protected:
+            static void decode_dimensions(const Poco::JSON::Object::Ptr json,
+                                          std::vector<typename Dimension<DType>::Ptr>& dims)
+            {
+                const Poco::JSON::Array::Ptr ja = json->getArray("value");
+                assert(ja && ja->size() > 0);
+                for (const auto& d : *ja) // Null Pointer error here
+                {
+                    const auto dj = d.extract<Poco::JSON::Object::Ptr>();
+                    dims.push_back(Dimension<DType>::decode(dj));
+                }
+            }
+        };
 
         // consider return Attribute::Ptr from decode_summary()
         static SummaryInterface::Ptr decode_summary(Poco::JSON::Object::Ptr json);
         // python classmethod `from_dict()`
-        static Attribute::Ptr decode(Poco::JSON::Object::Ptr json);
+        // static Attribute::Ptr decode(Poco::JSON::Object::Ptr json);
+
 
     } // namespace dataclass
 
