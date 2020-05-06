@@ -1174,22 +1174,19 @@ int test_client( test_frame_t* tf )
 
     TF_TEST( tf, CSAL_ERR_NONE == csal_err );
 
-    csal_err = csal_client_authenticate( csal_client_ptr, "lkjlkj", "lkjlkj" );
-
-    TF_TEST( tf, CSAL_ERR_NONE == csal_err );
-
-    csal_err = csal_client_get( csal_client_ptr, "pulse/latest?object=full", summary, &csal_attrib_ptr );
-
-    TF_TEST( tf, CSAL_ERR_NONE != csal_err );
-    TF_TEST( tf, CSAL_CLIENT_ERR == csal_err );
-
     if( CSAL_ERR_NONE == csal_err )
     {
+        csal_err = csal_client_authenticate( csal_client_ptr, "lkjlkj", "lkjlkj" );
+
+        TF_TEST( tf, CSAL_ERR_NONE == csal_err );
+
+        csal_err = csal_client_get( csal_client_ptr, "pulse/latest?object=full", summary, &csal_attrib_ptr );
+
+        TF_TEST( tf, CSAL_ERR_NONE != csal_err );
+        TF_TEST( tf, CSAL_CLIENT_ERR == csal_err );
+
         csal_client_destroy( csal_client_ptr );
     }
-
-
-    
 
     return err;
 }
