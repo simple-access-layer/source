@@ -168,11 +168,12 @@ struct _csal_attrib_int64_t
     _csal_attrib_t base;
 };
 
-struct _csal_attrib_float_t
+struct _csal_attrib_float32_t
 {
     _csal_attrib_t base;
 };
-struct _csal_attrib_double_t
+
+struct _csal_attrib_float64_t
 {
     _csal_attrib_t base;
 };
@@ -440,7 +441,7 @@ static int _csal_attrib_int64_cast( csal_attrib_t* self, csal_uuid_t* at_type, v
 
 
 
-int csal_attrib_float32_cast( csal_attrib_float_t* self, csal_uuid_t* at_type, void** ppv )
+int csal_attrib_float32_cast( csal_attrib_float32_t* self, csal_uuid_t* at_type, void** ppv )
 {
     int err = 0;
 
@@ -472,10 +473,10 @@ int csal_attrib_float32_cast( csal_attrib_float_t* self, csal_uuid_t* at_type, v
 
 static int _csal_attrib_float32_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv )
 {
-    return csal_attrib_float32_cast( (csal_attrib_float_t*)self, at_type, ppv );
+    return csal_attrib_float32_cast( (csal_attrib_float32_t*)self, at_type, ppv );
 }
 
-int csal_attrib_float64_cast( csal_attrib_double_t* self, csal_uuid_t* at_type, void** ppv )
+int csal_attrib_float64_cast( csal_attrib_float64_t* self, csal_uuid_t* at_type, void** ppv )
 {
     int err = 0;
 
@@ -507,7 +508,7 @@ int csal_attrib_float64_cast( csal_attrib_double_t* self, csal_uuid_t* at_type, 
 
 static int _csal_attrib_float64_cast( csal_attrib_t* self, csal_uuid_t* at_type, void** ppv )
 {
-    return csal_attrib_float64_cast( (csal_attrib_double_t*)self, at_type, ppv );
+    return csal_attrib_float64_cast( (csal_attrib_float64_t*)self, at_type, ppv );
 }
 
 int csal_attrib_string_cast( csal_attrib_string_t* self, csal_uuid_t* at_type, void** ppv )
@@ -1429,10 +1430,10 @@ csal_attrib_t* csal_factory::create( CSAL_ATTRIBUTE_TYPE csal_type )
             break;
 
         case CSAL_ATTR_FLOAT32:
-            a = (csal_attrib_t*)( csal_attrib_float_create(0.0));
+            a = (csal_attrib_t*)( csal_attrib_float32_create(0.0));
             break;
         case CSAL_ATTR_FLOAT64:
-            a = (csal_attrib_t*)(csal_attrib_double_create(0.0));
+            a = (csal_attrib_t*)(csal_attrib_float64_create(0.0));
             break;
 
         case CSAL_ATTR_STRING:
@@ -1580,13 +1581,13 @@ int64_t csal_attrib_int64_value_get( csal_attrib_int64_t* self )
     return a->value();
 }
 
-float csal_attrib_float_value_get( csal_attrib_float_t* self )
+float csal_attrib_float32_value_get( csal_attrib_float32_t* self )
 {
     sal::object::Float32::Ptr a = self->base.sal_at_ptr.cast<sal::object::Float32>();
     return a->value();
 }
 
-double csal_attrib_double_value_get( csal_attrib_double_t* self )
+double csal_attrib_float64_value_get( csal_attrib_float64_t* self )
 {
     sal::object::Float64::Ptr a = self->base.sal_at_ptr.cast<sal::object::Float64>();
     return a->value();
@@ -1659,7 +1660,7 @@ int csal_attrib_int64_value_set( csal_attrib_int64_t* self, int64_t val )
 
 
     extern "C"
-int csal_attrib_float_value_set( csal_attrib_float_t* self, float val )
+int csal_attrib_float32_value_set( csal_attrib_float32_t* self, float val )
 {
     sal::object::Float32::Ptr a = self->base.sal_at_ptr.cast< sal::object::Float32 >();
     a->value() = val;
@@ -1667,7 +1668,7 @@ int csal_attrib_float_value_set( csal_attrib_float_t* self, float val )
     return 0;
 }
     extern "C"
-int csal_attrib_double_value_set( csal_attrib_double_t* self, double val )
+int csal_attrib_float64_value_set( csal_attrib_float64_t* self, double val )
 {
     sal::object::Float64::Ptr a = self->base.sal_at_ptr.cast<sal::object::Float64>();
     a->value() = val;
@@ -1758,9 +1759,9 @@ csal_attrib_int64_t* csal_attrib_int64_create( int64_t val )
 }
 
     extern "C"
-csal_attrib_float_t* csal_attrib_float_create( float val )
+csal_attrib_float32_t* csal_attrib_float32_create( float val )
 {
-    csal_attrib_float_t* self = new csal_attrib_float_t;
+    csal_attrib_float32_t* self = new csal_attrib_float32_t;
 
     self->base.vtbl = &_attrib_vtbl_float32;
     self->base.sal_at_ptr = sal::object::Attribute::Ptr( new sal::object::Float32( val ) );
@@ -1768,9 +1769,9 @@ csal_attrib_float_t* csal_attrib_float_create( float val )
 }
 
     extern "C"
-csal_attrib_double_t* csal_attrib_double_create( double val )
+csal_attrib_float64_t* csal_attrib_float64_create( double val )
 {
-    csal_attrib_double_t* self = new csal_attrib_double_t;
+    csal_attrib_float64_t* self = new csal_attrib_float64_t;
 
     self->base.vtbl = &_attrib_vtbl_float64;
     self->base.sal_at_ptr = sal::object::Attribute::Ptr( new sal::object::Float64( val ) );

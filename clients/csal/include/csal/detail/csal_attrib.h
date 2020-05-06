@@ -63,8 +63,8 @@ extern "C"
     typedef struct _csal_attrib_int32_t csal_attrib_int32_t;
     typedef struct _csal_attrib_int64_t csal_attrib_int64_t;
 
-    typedef struct _csal_attrib_float_t csal_attrib_float_t;
-    typedef struct _csal_attrib_double_t csal_attrib_double_t;
+    typedef struct _csal_attrib_float32_t csal_attrib_float32_t;
+    typedef struct _csal_attrib_float64_t csal_attrib_float64_t;
 #if 0
     typedef struct _csal_attrib_branch_t csal_attrib_branch_t;
 #endif
@@ -115,8 +115,8 @@ extern "C"
     int csal_attrib_uint64_cast( csal_attrib_uint64_t* self, csal_uuid_t* at_type, void** ppv );
 
 
-    int csal_attrib_float32_cast( csal_attrib_float_t* self, csal_uuid_t* at_type, void** ppv );
-    int csal_attrib_float64_cast( csal_attrib_double_t* self, csal_uuid_t* at_type, void** ppv );
+    int csal_attrib_float32_cast( csal_attrib_float32_t* self, csal_uuid_t* at_type, void** ppv );
+    int csal_attrib_float64_cast( csal_attrib_float64_t* self, csal_uuid_t* at_type, void** ppv );
     int csal_attrib_string_cast( csal_attrib_string_t* self, csal_uuid_t* at_type, void** ppv );
 
     int csal_attrib_array_bool_cast( csal_attrib_array_bool_t* self, csal_uuid_t* at_type, void** ppv );
@@ -178,8 +178,8 @@ extern "C"
     csal_attrib_int32_t* csal_attrib_int32_create( int32_t val );
     csal_attrib_int64_t* csal_attrib_int64_create( int64_t val );
 
-    csal_attrib_float_t* csal_attrib_float_create( float val );
-    csal_attrib_double_t* csal_attrib_double_create( double val );
+    csal_attrib_float32_t* csal_attrib_float32_create( float val );
+    csal_attrib_float64_t* csal_attrib_float64_create( double val );
 
 
     csal_bool_t csal_attrib_bool_value_get( csal_attrib_bool_t* self );
@@ -194,8 +194,8 @@ extern "C"
     int32_t csal_attrib_int32_value_get( csal_attrib_int32_t* self );
     int64_t csal_attrib_int64_value_get( csal_attrib_int64_t* self );
 
-    float csal_attrib_float_value_get( csal_attrib_float_t* self );
-    double csal_attrib_double_value_get( csal_attrib_double_t* self );
+    float csal_attrib_float32_value_get( csal_attrib_float32_t* self );
+    double csal_attrib_float64_value_get( csal_attrib_float64_t* self );
 
     int csal_attrib_bool_value_set( csal_attrib_uint8_t* self, csal_bool_t val );
 
@@ -208,8 +208,8 @@ extern "C"
     int csal_attrib_int16_value_set( csal_attrib_int16_t* self, int16_t val );
     int csal_attrib_int32_value_set( csal_attrib_int32_t* self, int32_t val );
     int csal_attrib_int64_value_set( csal_attrib_int64_t* self, int64_t val );
-    int csal_attrib_float_value_set( csal_attrib_float_t* self, float val );
-    int csal_attrib_double_value_set( csal_attrib_double_t* self, double val );
+    int csal_attrib_float32_value_set( csal_attrib_float32_t* self, float val );
+    int csal_attrib_float64_value_set( csal_attrib_float64_t* self, double val );
 
 
     int csal_attrib_destroy( csal_attrib_t* self );
@@ -221,8 +221,8 @@ extern "C"
 //    csal_array_attrib_t* csal_array_attrib_int16_create( uint64_t* shape, uint64_t nshapes );
  //   csal_array_attrib_t* csal_array_attrib_int32_create( uint64_t* shape, uint64_t nshapes );
   //  csal_array_attrib_t* csal_array_attrib_int64_create( uint64_t* shape, uint64_t nshapes );
-   // csal_array_attrib_t* csal_array_attrib_float_create( uint64_t* shape, uint64_t nshapes );
- //   csal_array_attrib_t* csal_array_attrib_double_create( uint64_t* shape, uint64_t nshapes );
+   // csal_array_attrib_t* csal_array_attrib_float32_create( uint64_t* shape, uint64_t nshapes );
+ //   csal_array_attrib_t* csal_array_attrib_float64_create( uint64_t* shape, uint64_t nshapes );
   //  csal_array_attrib_t* csal_array_attrib_string_create( uint64_t* shape, uint64_t nshapes );
 
 
