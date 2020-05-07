@@ -1143,14 +1143,14 @@ namespace sal
             };
 
             /*
-            Returns a Poco JSON object summary of the Array.
+            Returns a Poco JSON object summary of the Dictionary
             */
             virtual Poco::JSON::Object::Ptr encode_summary() const override
             {
                 auto json_obj = encode_header();
                 // new info, only for C++, but comptable with python
-                json_obj->set("count", this->attributes.size());
-                // consider also write an array of keys
+                // json_obj->set("count", this->attributes.size());
+                /// CONSIDER: also write an array of keys
                 return json_obj;
             };
 
@@ -1169,7 +1169,7 @@ namespace sal
                     value->set(i->first, i->second->encode());
 
                 json->set("type", this->type_name());
-                json->set("value", value);
+                json->set("items", value); /// documentation shows it should be "items", not "value"
                 return json;
             };
 
@@ -1191,8 +1191,9 @@ namespace sal
                     if (json->getValue<std::string>("type") != TYPE_NAME_DICTIONARY)
                         throw SALException("data type does not match");
 
-                    // extract array definition
-                    contents = json->getObject("value");
+                    // extract dictionary definition
+                    // https://simple-access-layer.github.io/documentation/datamodel/dataclasses/dictionary.html
+                    contents = json->getObject("items");
 
                     // create container object and populate
                     container = new Dictionary();
