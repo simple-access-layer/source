@@ -303,6 +303,12 @@ namespace sal
                 return json;
             }
 
+            /// NOTE: forward declaration String class are used inside
+
+            /// decoded the attribute header/metadata
+            static void decode_metadata(const Poco::JSON::Object::Ptr j, Attribute::Ptr attr);
+            static bool is_summary(const Poco::JSON::Object::Ptr j);
+
             /*
             Returns a Poco JSON object summary of the data object.
             corresponding to python DataSummary class `to_dict()`
@@ -491,6 +497,25 @@ namespace sal
         // TODO: specialization String to have different CLASS name
         // std::string is also not support atomic operation
         typedef Atomic<std::string> String;
+
+        void Attribute::decode_metadata(const Poco::JSON::Object::Ptr j, Attribute::Ptr attr)
+        {
+            // _version is also fixed at compiling time, but can be checked
+            attr->m_description = String::decode(j->getObject("description"))->value();
+            auto obj_type = String::decode(j->getObject("_type"))->value();
+            attr->m_is_summary = obj_type == "summary";
+            // _group, _class
+            attr->m_group_name = String::decode(j->getObject("_group"))->value();
+            // m_type_name is fixed at object creation time
+            // better to check, Atomic<> change type to scaler during encoding
+            // attr->m_type_name = String::decode(j->getObject("_class"))->value();
+        }
+
+        bool Attribute::is_summary(const Poco::JSON::Object::Ptr j)
+        {
+            auto obj_type = String::decode(j->getObject("_type"))->value();
+            return obj_type == "summary";
+        }
 
         /// a typedef to ease future refactoring on data structure
         using ShapeType = std::vector<uint64_t>;
@@ -1162,7 +1187,6 @@ namespace sal
                 // treat any failure as a failure to decode
                 try
                 {
-
                     // check sal type is valid for this class
                     if (json->getValue<std::string>("type") != TYPE_NAME_DICTIONARY)
                         throw SALException("data type does not match");
@@ -1175,14 +1199,12 @@ namespace sal
                     contents->getNames(keys);
                     for (key = keys.begin(); key != keys.end(); ++key)
                     {
-
                         // CONSIDER: Null data object is ready, still skip null elements?
                         if (contents->isNull(*key))
                             continue;
 
-                        // all valid attributes definitions are JSON objects
                         if (!contents->isObject(*key))
-                            throw std::exception();
+                            throw SALException("all valid attributes definitions must be JSON objects");
 
                         // dispatch object to the appropriate decoder
                         container->set(*key, sal::object::decode(contents->getObject(*key)));
