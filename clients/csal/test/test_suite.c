@@ -1,8 +1,13 @@
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+
 #include "test_suite.h"
 
-#include<stdio.h>
-#include <stdlib.h>
-#include<string.h>
+
+#define UNUSED(x) ( (void)(x) )
 
 int test_case_init( test_case_t* self, test_suite_t* owner )
 {
@@ -37,7 +42,8 @@ int test_case_run( test_case_t* self )
 #if 0
     printf( "\nTest case : %s : START\n", self->szname );
 #endif
-    self->f( self );
+    if( self->f )
+        self->f( self );
  
     printf( "Test Case : %s : %d/%d passed\n",self->szname,  self->npassed, self->npassed + self->nfailed );
     printf( "Test Case : %s : %d/%d failed\n", self->szname, self->nfailed, self->npassed + self->nfailed );
@@ -51,6 +57,8 @@ int test_case_finish( test_case_t* self )
 {
     int err = 0;
 
+    free( self->test_results );
+
     return err;
 }
 
@@ -58,18 +66,25 @@ int test_suite_add_test_case( test_suite_t* self, const char* pszname, TEST_CASE
 {
     int err = 0;
 
-    test_case_t*  tc = NULL;
+    int jmp_val = setjmp( self->abort_jmp_buf );
 
-    self->ntestcases++;
-    self->testcases = (test_case_t*)realloc( self->testcases, sizeof(test_case_t) * self->ntestcases );
+    UNUSED(jmp_val);
 
-    tc = self->testcases + self->ntestcases-1;
+    if( self->processing_flags & TEST_SUITE_PROC_RUN_TESTS )
+    {
+        test_case_t*  tc = NULL;
 
-    test_case_init( tc, self );
-    test_case_name_set( tc, pszname );
-    tc->f = f;
+        self->ntestcases++;
+        self->testcases = (test_case_t*)realloc( self->testcases, sizeof(test_case_t) * self->ntestcases );
 
-    test_case_run( tc );
+        tc = self->testcases + self->ntestcases-1;
+
+        test_case_init( tc, self );
+        test_case_name_set( tc, pszname );
+        tc->f = f;
+
+        test_case_run( tc );
+    }
 
     return err;
 }
@@ -78,9 +93,20 @@ int test_suite_init( test_suite_t* self, unsigned int ctrl_flags )
 {
     self->ctrl_flags = ctrl_flags;
 
+    self->processing_flags = TEST_SUITE_PROC_NONE;
+    self->processing_flags |= TEST_SUITE_PROC_RUN_TESTS;
+
     self->ntestcases = 0;
     self->testcases = NULL;
+
+    memset( &(self->abort_jmp_buf), 0, sizeof( jmp_buf ) );
+
     return 0;
+}
+
+int test_case_abort( test_case_t* self )
+{
+    longjmp( self->test_suite->abort_jmp_buf, 1 );
 }
 
 static int _test_case_passed( test_case_t* self, int res, const char* expr, const char* pszfile, unsigned int lineno )
@@ -95,6 +121,19 @@ static int _test_case_passed( test_case_t* self, int res, const char* expr, cons
     return err;
 }
 
+
+int test_result_init( test_result_t* self, int passed, const char* pszexpr, const char* pszfile, unsigned int lineno )
+{
+    int err = 0;
+
+    self->passed = passed;
+    strcpy( self->szexp, pszexpr );
+    strcpy( self->szfile, pszfile );
+    self->lineno = lineno;
+
+    return err;
+}
+
 static int _test_case_failed( test_case_t* self, int res, const char* expr, const char* pszfile, unsigned int lineno )
 {
     int err = 0;
@@ -103,8 +142,15 @@ static int _test_case_failed( test_case_t* self, int res, const char* expr, cons
 
     printf( "%s(%d) : %s : %s\n", pszfile, lineno, expr, "FAIL" );
 
+
+
     if( !res && self->test_suite->ctrl_flags & TEST_SUITE_CTRL_EXIT_ON_FAIL )
-        exit(1);
+    {
+        self->test_suite->processing_flags &= ~TEST_SUITE_PROC_RUN_TESTS;
+        test_case_abort( self );
+
+        /*exit(1);*/
+    }
 
     return err;
 }
@@ -113,6 +159,14 @@ static int _test_case_failed( test_case_t* self, int res, const char* expr, cons
 
 int test_case_test( test_case_t* self, int res, const char* expr, const char* file, unsigned int lineno )
 {
+    test_result_t* tr = NULL;
+    self->test_results = (test_result_t*)realloc( self->test_results, sizeof( test_result_t ) * (self->nresults+1) );
+    tr = self->test_results + self->nresults;
+
+    test_result_init( tr, res, expr, file, lineno );
+   
+    self->nresults++;
+
     if( res )
         _test_case_passed( self, res, expr, file, lineno );
     else

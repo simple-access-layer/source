@@ -1,6 +1,8 @@
 #ifndef __TEST_SUITE_H__
 #define __TEST_SUITE_H__
 
+#include <setjmp.h>
+
 #define TC_TEST( tf, expr ) test_case_test( tf, expr, #expr, __FILE__, __LINE__ )
 
 #define TC_TEST_EQUAL_INT( tc, val, expected ) test_case_equal_int( tc, val, expected, __FILE__, __LINE__ )
@@ -22,6 +24,12 @@ struct _test_case_t;
 
 typedef int (*TEST_CASE_FUNCTION)( struct _test_case_t* );
 
+enum TEST_SUITE_PROC_FLAGS
+{
+    TEST_SUITE_PROC_NONE=0
+        , TEST_SUITE_PROC_RUN_TESTS=1
+};
+
 enum TEST_SUITE_CTRL_FLAGS
 {
     TEST_SUITE_CTRL_NONE=0
@@ -31,6 +39,14 @@ enum TEST_SUITE_CTRL_FLAGS
 };
 
 #define TEST_SUITE_CTRL_VERBOSE (TEST_SUITE_CTRL_REPORT_PASS|TEST_SUITE_CTRL_SUMMARY)
+typedef struct test_result_t
+{
+    int passed;
+    char szexp[ 512 ];
+    char szfile[ 512 ];
+    unsigned int lineno;
+
+} test_result_t;
 
 
 typedef struct _test_case_t
@@ -42,14 +58,20 @@ typedef struct _test_case_t
 
     struct _test_suite_t* test_suite;
 
+    size_t nresults;
+    test_result_t* test_results;
+
 } test_case_t;
 
 
 typedef struct _test_suite_t
 {
     unsigned int ctrl_flags;
+    unsigned int processing_flags;
     int ntestcases;
     test_case_t* testcases;
+
+    jmp_buf abort_jmp_buf;
 
 } test_suite_t;
 

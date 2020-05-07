@@ -841,7 +841,6 @@ int test_uint32_array( test_case_t* tf )
     TC_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_FLOAT64 ) );
     TC_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_STRING ) );
 
-
     for( i = 0; i < dims[0]; ++i )
     {
         for( j = 0; j < dims[1]; ++j )
@@ -933,7 +932,7 @@ int test_uint64_array( test_case_t* tf )
 
 
 
-int test_float32_array( test_case_t* tf )
+int test_float32_array( test_case_t* tc )
 {
     uint64_t dims[2];
     uint64_t idxs[2];
@@ -946,28 +945,27 @@ int test_float32_array( test_case_t* tf )
 
     csal_attrib_array_float32_t* at_arr = csal_attrib_array_float32_create( dims, ndims );
 
-    TC_TEST( tf, NULL != at_arr );
-    TC_TEST( tf, CSAL_ATTR_ARRAY == csal_attrib_type( (csal_attrib_t*)at_arr ) );
+    TC_TEST( tc, NULL != at_arr );
+    TC_TEST( tc, CSAL_ATTR_ARRAY == csal_attrib_type( (csal_attrib_t*)at_arr ) );
 
     csal_attrib_t* csal_attrib_ptr = NULL;
     csal_attrib_array_float32_cast( at_arr, IID_CSAL_ATTRIB, (void**)(&csal_attrib_ptr) );
 
-    TC_TEST( tf, NULL!= csal_attrib_ptr );
-    TC_TEST( tf, csal_true == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_ARRAY ) );
+    TC_TEST( tc, NULL!= csal_attrib_ptr );
+    TC_TEST( tc, csal_true == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_ARRAY ) );
 
-    TC_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_BOOL ) );
-    TC_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_INT8 ) );
-    TC_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_INT16 ) );
-    TC_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_INT32 ) );
-    TC_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_INT64 ) );
-    TC_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_UINT8 ) );
-    TC_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_UINT16 ) );
-    TC_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_UINT32 ) );
-    TC_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_UINT64 ) );
-    TC_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_FLOAT32 ) );
-    TC_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_FLOAT64 ) );
-    TC_TEST( tf, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_STRING ) );
-
+    TC_TEST( tc, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_BOOL ) );
+    TC_TEST( tc, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_INT8 ) );
+    TC_TEST( tc, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_INT16 ) );
+    TC_TEST( tc, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_INT32 ) );
+    TC_TEST( tc, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_INT64 ) );
+    TC_TEST( tc, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_UINT8 ) );
+    TC_TEST( tc, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_UINT16 ) );
+    TC_TEST( tc, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_UINT32 ) );
+    TC_TEST( tc, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_UINT64 ) );
+    TC_TEST( tc, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_FLOAT32 ) );
+    TC_TEST( tc, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_FLOAT64 ) );
+    TC_TEST( tc, csal_false == csal_attrib_is_type( csal_attrib_ptr, CSAL_ATTR_STRING ) );
 
     for( i = 0; i < dims[0]; ++i )
     {
@@ -987,7 +985,7 @@ int test_float32_array( test_case_t* tf )
             idxs[0] = i;
             idxs[1] = j;
 
-            TC_TEST_EQUAL_FLOAT( tf, i*j, csal_attrib_array_float32_element_get( at_arr, idxs, ndims) );
+            TC_TEST_EQUAL_FLOAT( tc, i*j, csal_attrib_array_float32_element_get( at_arr, idxs, ndims) );
         }
     }
 
@@ -1149,6 +1147,11 @@ int test_client( test_case_t* tf )
 
 
 
+int test_abort( test_case_t* tc )
+{
+    TC_TEST( tc, 0 );
+    return 0;
+}
 
 
 
@@ -1167,13 +1170,15 @@ int main()
 
     unsigned int ctrl_flags = TEST_SUITE_CTRL_NONE;
 
+
     if( 0 )
         ctrl_flags |= TEST_SUITE_CTRL_VERBOSE;
 
-    if( 1 )
+    if( 0 )
         ctrl_flags |= TEST_SUITE_CTRL_EXIT_ON_FAIL;
     
     test_suite_init( tf, ctrl_flags );
+
 
     TS_TEST_CASE( tf, test_constants );
 
@@ -1183,6 +1188,8 @@ int main()
 #endif
 
     TS_TEST_CASE( tf, test_attrib_cast );
+
+    TS_TEST_CASE( tf, test_abort );
 
     if( 1 )
     {
