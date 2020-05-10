@@ -29,7 +29,7 @@ matrix:
         - echo "nothing is needed here, PWD = $PWD"
       script:
         # multi-line command
-        - cd clients/c_cpp/
+        - cd clients/cppsal/
         - if [ ! -d build ]; then  mkdir build; fi  && cd build
         - cmake -DCODE_COVERAGE=ON -DCMAKE_BUILD_TYPE=Debug ..
         - cmake --build . --config Debug -- -j $(nproc)
@@ -71,7 +71,7 @@ matrix:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
           /bin/sh -c "
-          cd clients/c_cpp/ && mkdir blg && cd blg 
+          cd clients/cppsal/ && mkdir blg && cd blg 
           && cmake3 .. 
           && make
           && make package

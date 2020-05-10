@@ -67,6 +67,7 @@ namespace sal
                     decode_content(json, p);
                 }
                 p->m_json = json;
+                return p;
             }
 
 #if 1 // data class filed should be `get()` into Signal class or Dictionary Attribute class
@@ -87,7 +88,7 @@ namespace sal
             {
                 this->attributes[key] = attribute;
             };
-            const bool has(const std::string& key) const
+            bool has(const std::string& key) const
             {
                 return this->attributes.count(key);
             };
