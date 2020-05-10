@@ -65,7 +65,7 @@ TEST_CASE("Tree-node leaf object", "[sal::core::Leaf]")
         REQUIRE(nInfo.version == SAL_API_VERSION);
     }
 
-    SECTION("serialization leaf report")
+    SECTION("local encode and decode leaf report")
     {
         Poco::JSON::Object::Ptr leafJson = leaf.encode();
         REQUIRE(bool(leafJson));
@@ -111,26 +111,73 @@ TEST_CASE("Tree-node data organization", "[sal::core::Branch]")
     {
         Poco::JSON::Object::Ptr json = branch.encode();
         REQUIRE(bool(json));
-        json->stringify(cout, 2);
-        cout << endl;
+        // json->stringify(cout, 2);
+        // cout << endl;
         auto obj = json->getObject("object");
         REQUIRE(obj->getValue<uint64_t>("version") == SAL_API_VERSION);
         NodeObject::Ptr lp = Branch::decode(json); // test passed
     }
 
-    SECTION("deserialization branch report from server")
+    SECTION("decode branch report from server")
     {
         auto json = get_json(branch_url);
         if (json->has("type")) // get_json() will fail if not within intranet
         {
-            json->stringify(cout, 2);
-            cout << endl;
             REQUIRE(json->getValue<std::string>("type") == "branch");
             NodeObject::Ptr node_ptr = Branch::decode(json->getObject("object"));
             Poco::JSON::Object::Ptr jobj = node_ptr->encode();
+            // jobj->stringify(cout, 2);
+            // cout << endl;
+        }
+    }
+    // tear down
+}
+
+#include "sal_signal.h"
+TEST_CASE("Signal data class", "[sal::data::Signal]")
+{
+    using namespace sal::dataclass;
+
+    /*
+        SECTION("local encode and decode leaf report")
+        {
+            Signal s;
+            Poco::JSON::Object::Ptr leafJson = s.encode();
+            REQUIRE(bool(leafJson));
+            // leafJson->stringify(cout, 2);
+            // cout << endl;
+            auto obj = leafJson->getObject("object");
+            REQUIRE(obj->getValue<uint64_t>("version") == SAL_API_VERSION);
+            Leaf::Ptr lp = Leaf::decode(leafJson);
+        }
+
+    SECTION("decode signal summary from server")
+    {
+        auto json = get_json(summary_url);
+        if (json->has("type")) // get_json() will fail if not within intranet
+        {
+            // json->stringify(cout, 2);
+            // cout << endl;
+            REQUIRE(json->getValue<std::string>("type") == "leaf");
+            Signal<float>::Ptr signal_ptr = Signal<float>::decode(json->getObject("object"));
+            Poco::JSON::Object::Ptr jobj = signal_ptr->encode();
+            // jobj->stringify(cout, 2);
+            // cout << endl;
+        }
+    }
+    */
+    SECTION("decode signal full object from server")
+    {
+        auto json = get_json(full_url);
+        if (json->has("object")) // get_json() return empty json if not within intranet
+        {
+            // json->stringify(cout, 2);
+            // cout << endl;
+            REQUIRE(json->getValue<std::string>("type") == "leaf");
+            Signal<float>::Ptr signal_ptr = Signal<float>::decode(json->getObject("object"));
+            Poco::JSON::Object::Ptr jobj = signal_ptr->encode();
             jobj->stringify(cout, 2);
             cout << endl;
         }
     }
-    // tear down
 }
