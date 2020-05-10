@@ -320,15 +320,13 @@ namespace sal
         };
 
 
-
-        /// Container of DataEntry (Attribute)
+        ///  This is NOT data object i.e. containter of DataEntry (Attribute)
+        ///  but meta data of NodeObject, decoded from `list()` report
         class Leaf : public NodeObject
         {
-            /// Object::Dictionary holds only value types, this holds ptr
-            std::map<std::string, object::Attribute::Ptr> attributes;
-
-            object::Attribute::Ptr m_data; // ptr to Signal or Dictionary Attribute class
-            std::string m_data_type_name;  // dictionary | signal
+            /// CONSIDER:  remove those two fields,
+            object::Attribute::Ptr m_data; // ptr to data content
+            std::string m_data_type_name;
 
             Leaf(){};
 
@@ -345,11 +343,6 @@ namespace sal
             }
             virtual ~Leaf(){};
 
-            bool is_full_object() const
-            {
-                return false;
-            }
-
             /**
             from a SAL data object to a Poco JSON object representation.
             */
@@ -359,94 +352,7 @@ namespace sal
                 return j;
             }
 
-#if 0
-            // code duplication, leave contains only one object::Dictionary instance
-            object::Attribute::Ptr& operator[](const std::string& key)
-            {
-                return this->attributes.at(key);
-            };
-            object::Attribute::Ptr& get(const std::string& key)
-            {
-                return (*this)[key];
-            };
-            template <class T> typename T::Ptr get_as(const std::string& key)
-            {
-                return typename T::Ptr(this->get(key).cast<T>());
-            };
-            void set(const std::string& key, const object::Attribute::Ptr& attribute)
-            {
-                this->attributes[key] = attribute;
-            };
-            const bool has(const std::string& key) const
-            {
-                return this->attributes.count(key);
-            };
-            void remove(const std::string& key)
-            {
-                this->attributes.erase(key);
-            };
 
-            // meta data and description have been constructed as member variable
-            // consider move all meta data into a Dictionary data object
-            void remove_meta_attributes()
-            {
-                Leaf* obj = this;
-                obj->remove("_class");
-                obj->remove("_group");
-                obj->remove("_version");
-                obj->remove("_type");
-                obj->remove("description");
-            }
-
-            /*
-            Decodes a Poco JSON object representation of the data object and returns a SAL data object.
-            leaf node data type can be signal
-            */
-            static Leaf::Ptr decode(const Poco::JSON::Object::Ptr json)
-            {
-                std::vector<std::string> keys;
-                Leaf::Ptr obj;
-
-                // treat any failure as a failure to decode
-                try
-                {
-                    // extract meta data: class, group, version and object type
-                    object::String::Ptr cls = object::decode_as<object::String>(json->getObject("_class"));
-                    object::String::Ptr group = object::decode_as<object::String>(json->getObject("_group"));
-                    object::UInt64::Ptr version = object::decode_as<object::UInt64>(json->getObject("_version"));
-                    auto type = object::decode_as<object::String>(json->getObject("_type"));
-                    object::String::Ptr description = object::decode_as<object::String>(json->getObject("description"));
-
-                    // create object and populate
-                    NodeInfo nInfo{cls->value(), group->value(), version->value()};
-                    obj = new Leaf(nInfo, description->value(), type->value() == OBJ_TYPE_SUMMARY);
-
-                    json->getNames(keys);
-                    for (vector<std::string>::iterator key = keys.begin(); key != keys.end(); ++key)
-                    {
-                        // skip null elements
-                        if (json->isNull(*key))
-                            continue;
-
-                        if (!json->isObject(*key))
-                            throw SALException("all valid attributes must be JSON object not number or std::string");
-
-                        // dispatch object to the appropriate decoder and add to container
-                        obj->set(*key, sal::object::decode(json->getObject(*key)));
-                    }
-
-                    // remove extracted meta data in the for loop
-                    obj->remove_meta_attributes();
-
-                    return obj;
-                }
-                catch (...)
-                {
-                    // todo: define a sal exception and replace
-                    throw SALException("JSON object does not define a valid SAL data object.");
-                }
-            };
-#endif
             static Leaf::Ptr decode(Poco::JSON::Object::Ptr json)
             {
                 Leaf::Ptr leaf = new Leaf();
@@ -581,9 +487,10 @@ namespace sal
         /*
          A factory-pattern method attempts to decode a JSON object (http response)
           into a SAL node object.
-          branch has only one kind of serialization mode
+          branch has only one kind of json representation (Report in Python)
           https://sal.jet.uk/data/pulse/83373/ppf/signal/jetppf/magn?content=report
-          leaf has report, object (full, summary)
+          leaf has `report` returned by `list()`,
+          and also `object (full, summary)` returned by `get()`
          https://sal.jet.uk/data/pulse/83373/ppf/signal/jetppf/magn/ipla?object=full
          https://sal.jet.uk/data/pulse/83373/ppf/signal/jetppf/magn/ipla?object=summary
          "content" = object
@@ -591,7 +498,6 @@ namespace sal
         */
         NodeObject::Ptr decode(Poco::JSON::Object::Ptr json)
         {
-
             std::string content_type;
             std::string node_type;
             std::string url;
@@ -600,7 +506,6 @@ namespace sal
             try
             {
                 content_type = json->getValue<std::string>("content");
-
                 node_type = json->getValue<std::string>("type");
 
                 if (!json->isObject("object"))
@@ -618,17 +523,7 @@ namespace sal
                 throw SALException("JSON object does not define a valid SAL object.");
             }
 
-            if (content_type == "object")
-            {
-                /*
-                std::string data_type;
-                data_type = object->getValue<std::string>("_class");
-
-                if (node_type == "leaf")
-                    return Leaf::decode(object);
-                    */
-            }
-            else if (content_type == "report") //
+            if (content_type == "report") //
             {
                 if (node_type == "branch")
                     return Branch::decode(object);

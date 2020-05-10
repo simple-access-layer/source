@@ -60,7 +60,7 @@ namespace sal
             ATTR_ARRAY,      ///!> JSON array type, with same element type
             ATTR_DICTIONARY, ///!> JSON object type, container of children json types
 
-            ATTR_SIGNAL, ///!> high level data model for SAL physical pulse signal
+            ATTR_DATA_OBJECT, ///!> high level data model for SAL physical pulse signal
             // ATTR_NODE    ///!> high level data model for tree node
         } AttributeType;
 

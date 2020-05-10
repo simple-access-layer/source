@@ -1,11 +1,10 @@
 #pragma once
 
 #include "sal_data.h"
+#include "sal_data_object.h"
 
-/** TODO:
- *  summary interface should be able to reuse Attribute base class impl
- *  encode_summary() is need as there is
- *  full data object, encode and decode needs
+/** WARNING:
+ *  This header is not part of core C++ API, no API stabilization is guaranteed
  */
 
 namespace sal
@@ -34,26 +33,6 @@ namespace sal
         char TYPE_NAME_SIGNAL_MASK[] = "signal_mask";
         char TYPE_NAME_SIGNAL_ERROR[] = "signal_error";
 
-
-        /// there is no need to implement derived class
-        /// consider: named as SignalBase
-        /// member naming can map to OPC-UA attributeIDss
-        /// https://github.com/FreeOpcUa/python-opcua/blob/master/opcua/ua/attribute_ids.py
-        class DataObject : public Attribute
-        {
-        public:
-            typedef Poco::SharedPtr<DataObject> Ptr;
-            DataObject(const std::string _dtype_name)
-                    : Attribute(ATTR_SIGNAL, _dtype_name)
-            //, m_group_name("signal")
-            {
-                m_group_name = "signal";
-            }
-            // TODO: units and datatype compatible check
-        protected:
-            std::string m_dtype;
-            // CONSIDER: keep path name here to identify this unique signal
-        };
 
         /** Mask is really bad name, it is SignalQuality in the current python code
          * in the future, more meta data, misc data may needed
