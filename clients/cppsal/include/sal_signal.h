@@ -70,7 +70,7 @@ namespace sal
             {
                 Mask::Ptr p = new Mask();
                 Attribute::decode_metadata(json, p);
-                if (!Attribute::is_summary(json))
+                if (!DataObject::is_summary(json))
                 {
                     p->m_array = UInt8Array::decode(json->getObject("status"));
                     p->m_key = StringArray::decode(json->getObject("key"));
@@ -195,7 +195,7 @@ namespace sal
             static Error::Ptr decode(const Poco::JSON::Object::Ptr json)
             {
                 auto class_name = String::decode(json->getObject("_class"))->value();
-                bool is_summary = Attribute::is_summary(json);
+                bool is_summary = DataObject::is_summary(json);
                 if (is_summary)
                 {
                     Error::Ptr p;
@@ -319,7 +319,7 @@ namespace sal
                 if (class_name == "coordinate_array")
                 {
                     typename Array<DType>::Ptr a;
-                    if (Attribute::is_summary(json))
+                    if (DataObject::is_summary(json))
                     {
                         // length = array_shape
                         a = nullptr;
@@ -421,7 +421,7 @@ namespace sal
                 // all meta data "_class, _group" does not needs to be decoded
                 Attribute::decode_metadata(json, sig);
                 sig->m_units = String::decode(json->getObject("units"))->value();
-                if (Attribute::is_summary(json))
+                if (DataObject::is_summary(json))
                 {
                     sig->m_is_summary = true;
                 }

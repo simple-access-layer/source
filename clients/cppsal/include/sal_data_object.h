@@ -56,7 +56,7 @@ namespace sal
             static DataObject::Ptr decode(const Poco::JSON::Object::Ptr json)
             {
                 DataObject::Ptr p = new DataObject("data_object");
-                bool is_summary = Attribute::is_summary(json);
+                bool is_summary = DataObject::is_summary(json);
                 if (is_summary)
                 {
                     p->m_is_summary = true;
@@ -70,8 +70,9 @@ namespace sal
                 return p;
             }
 
-#if 1 // data class filed should be `get()` into Signal class or Dictionary Attribute class
-      // code duplication, leave contains only one object::Dictionary instance
+            /// NOTE:
+            // data class filed should be `get()` into Signal class or Dictionary Attribute class
+            // code duplication, leave contains only one object::Dictionary instance
             object::Attribute::Ptr& operator[](const std::string& key)
             {
                 return this->attributes.at(key);
@@ -96,6 +97,12 @@ namespace sal
             {
                 this->attributes.erase(key);
             };
+
+            static bool is_summary(const Poco::JSON::Object::Ptr j)
+            {
+                auto obj_type = String::decode(j->getObject("_type"))->value();
+                return obj_type == "summary";
+            }
 
             /// core.dataclass._new_dict() with common header info (metadata)
             /// however, Atomic/Scalar types does not have these metadata
@@ -124,18 +131,6 @@ namespace sal
                 // treat any failure as a failure to decode
                 try
                 {
-#if 0 // node meta data, to be removate later
-      // extract meta data: class, group, version and object type
-                    object::String::Ptr cls = object::decode_as<object::String>(json->getObject("_class"));
-                    object::String::Ptr group = object::decode_as<object::String>(json->getObject("_group"));
-                    object::UInt64::Ptr version = object::decode_as<object::UInt64>(json->getObject("_version"));
-                    auto type = object::decode_as<object::String>(json->getObject("_type"));
-                    object::String::Ptr description = object::decode_as<object::String>(json->getObject("description"));
-
-                    // create object and populate
-                    NodeInfo nInfo{cls->value(), group->value(), version->value()};
-                    obj = new Leaf(nInfo, description->value(), type->value() == OBJ_TYPE_SUMMARY);
-#endif
                     json->getNames(keys);
                     for (std::vector<std::string>::iterator key = keys.begin(); key != keys.end(); ++key)
                     {
@@ -159,7 +154,7 @@ namespace sal
                     throw SALException("JSON object does not define a valid SAL data object.");
                 }
             };
-#endif
+
         protected:
             std::string m_dtype;
             // CONSIDER: keep path name here to identify this unique signal

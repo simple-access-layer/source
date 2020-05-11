@@ -24,10 +24,22 @@
 
 static const uint64_t SAL_API_VERSION = 1;
 
+/// macro function used inside `catch(std::exception& e) {}` block
+/// use it only inside decode() function to achieve consistent error reporting
+#define SAL_REPORT_DECODE_ERROR(e, json)                                                                               \
+    std::stringstream ss;                                                                                              \
+    ss << "JSON object does not define a valid SAL object in function: " << __func__ << std::endl                      \
+       << e.what() << std::endl                                                                                        \
+       << " json object: \n";                                                                                          \
+    json->stringify(ss, 2);                                                                                            \
+    throw SALException(ss.str().c_str());
+
 namespace sal
 {
     // using namespace std;
     using namespace exception;
+
+
 
     /// TODO: rename namespace object -> namespace data
     /// responding to pyton sal.dataclass.core module
@@ -276,7 +288,6 @@ namespace sal
             /// NOTE: forward declaration String class are used inside
             /// decoded the attribute header/metadata
             static void decode_metadata(const Poco::JSON::Object::Ptr j, Attribute::Ptr attr);
-            static bool is_summary(const Poco::JSON::Object::Ptr j);
 
             /*
             Returns a Poco JSON object summary of the data object.
@@ -471,15 +482,10 @@ namespace sal
         // std::string is also not support atomic operation
         typedef Atomic<std::string> String;
 
-        // todo: rename to move to DataObject::
-        bool Attribute::is_summary(const Poco::JSON::Object::Ptr j)
-        {
-            auto obj_type = String::decode(j->getObject("_type"))->value();
-            return obj_type == "summary";
-        } /// a typedef to ease future refactoring on data structure
+        /// a typedef to ease future refactoring on data structure
         using ShapeType = std::vector<uint64_t>;
 
-
+        /// base class for all Array<T> as non-templated interface to array metadata
         class IArray : public Attribute
         {
         public:
@@ -596,9 +602,9 @@ namespace sal
                 for (uint64_t d : this->m_shape)
                     element_size *= d;
 
-                // todo: should just reserve size, but resize,
-                // as summary does not have data to decode
-                this->data.resize(element_size);
+                /// NOTE: should just reserve(), but not resize(),
+                // as summary mode does not have data to decode, size() == 0
+                this->data.reserve(element_size);
             }
 
             // CONSIDER: disable those constructors, force shared_ptr<>
@@ -1092,10 +1098,9 @@ namespace sal
                 array_definition = json->getObject("value");
                 el_type_name = array_definition->getValue<std::string>("type");
             }
-            catch (...)
+            catch (std::exception& e)
             {
-                // todo: define a sal exception and replace
-                throw SALException("JSON object does not have a valid SAL Array attribute `value` or `type`.");
+                SAL_REPORT_DECODE_ERROR(e, json);
             }
 
             // this can be removed if Array<T> is working
@@ -1237,9 +1242,7 @@ namespace sal
                 }
                 catch (std::exception& e)
                 {
-                    // todo: define a sal exception and replace
-                    std::cout << e.what() << std::endl;
-                    throw SALException("JSON object does not define a valid SAL Array attribute.");
+                    SAL_REPORT_DECODE_ERROR(e, json);
                 }
             };
 
