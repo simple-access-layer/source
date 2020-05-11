@@ -62,8 +62,8 @@ namespace sal
             }
             virtual Poco::JSON::Object::Ptr encode_summary() const override
             {
-                Poco::JSON::Object::Ptr j = encode_header(); // attribute metadata
-                return j;                                    // no more info other than attribute metadata
+                Poco::JSON::Object::Ptr j = encode_metadata(); // attribute metadata
+                return j;                                      // no more info other than attribute metadata
             }
 
             static Mask::Ptr decode(const Poco::JSON::Object::Ptr json)
@@ -298,7 +298,7 @@ namespace sal
             }
             virtual Poco::JSON::Object::Ptr encode_summary() const override
             {
-                Poco::JSON::Object::Ptr j = encode_header();
+                Poco::JSON::Object::Ptr j = encode_metadata();
                 j->set("units", m_units);
                 j->set("length", m_length);
                 j->set("temporal", m_temporal);
@@ -395,7 +395,7 @@ namespace sal
             }
             virtual Poco::JSON::Object::Ptr encode_summary() const override
             {
-                Poco::JSON::Object::Ptr j = encode_header();
+                Poco::JSON::Object::Ptr j = encode_metadata();
                 j->set("units", m_units);
                 j->set("dimensions", encode_dimensions());
                 j->set("mask", m_mask->encode());

@@ -97,6 +97,11 @@ namespace sal
                 this->attributes.erase(key);
             };
 
+            /// core.dataclass._new_dict() with common header info (metadata)
+            /// however, Atomic/Scalar types does not have these metadata
+            virtual Poco::JSON::Object::Ptr encode_metadata(bool _is_summary = false) const;
+
+
             // meta data and description have been constructed as member variable
             // consider move all meta data into a Dictionary data object
             static void remove_meta_attributes(DataObject::Ptr obj)
@@ -168,5 +173,61 @@ namespace sal
             /// Object::Dictionary holds only value types, this holds ptr
             std::map<std::string, Attribute::Ptr> attributes;
         };
+
+        Poco::JSON::Object::Ptr DataObject::encode_metadata(bool _is_summary) const
+        {
+            /// constant members from python DataObject ReportSummary
+
+            // d['_type'] = TYPE_SUMMARY
+            Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
+
+            // to be python compatible, remove this block after further refactoring,
+            if (is_number())
+            {
+                auto a = new String("scalar");
+                json->set("_class", a->encode());
+            }
+            else
+            {
+                auto a = new String(this->type_name());
+                json->set("_class", a->encode());
+            }
+
+            if (_is_summary)
+            {
+                auto a_type_name = new String("summary");
+                json->set("_type", a_type_name->encode());
+            }
+            else
+            {
+                auto a_type_name = new String("object");
+                json->set("_type", a_type_name->encode());
+            }
+
+            auto a_group_name = new String(m_group_name);
+            json->set("_group", a_group_name->encode());
+            // todo: this is per object version
+            auto a_version = new UInt64(SAL_API_VERSION);
+            json->set("_version", a_version->encode());
+
+            // todo: deal with description is empty?  also UUID for data object
+            auto a_description = new String(m_description);
+            json->set("description", a_description->encode());
+            return json;
+        }
     } // namespace dataclass
+
+    /// declared in Attribute class but implemented here close to encode_metadata()
+    void object::Attribute::decode_metadata(const Poco::JSON::Object::Ptr j, Attribute::Ptr attr)
+    {
+        // _version is also fixed at compiling time, but can be checked
+        attr->m_description = String::decode(j->getObject("description"))->value();
+        auto obj_type = String::decode(j->getObject("_type"))->value();
+        attr->m_is_summary = obj_type == "summary";
+        // _group, _class
+        attr->m_group_name = String::decode(j->getObject("_group"))->value();
+        // m_type_name is fixed at object creation time
+        // better to check, Atomic<> change type to scaler during encoding
+        // attr->m_type_name = String::decode(j->getObject("_class"))->value();
+    }
 } // namespace sal
