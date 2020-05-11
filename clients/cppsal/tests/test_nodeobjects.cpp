@@ -112,7 +112,6 @@ TEST_CASE("Tree-node data organization", "[sal::core::Branch]")
         Poco::JSON::Object::Ptr json = branch.encode();
         REQUIRE(bool(json));
         // json->stringify(cout, 2);
-        // cout << endl;
         auto obj = json->getObject("object");
         REQUIRE(obj->getValue<uint64_t>("version") == SAL_API_VERSION);
         NodeObject::Ptr lp = Branch::decode(json); // test passed
@@ -176,6 +175,7 @@ TEST_CASE("Signal data class", "[sal::data::Signal]")
             REQUIRE(json->getValue<std::string>("type") == "leaf");
             Signal<float>::Ptr signal_ptr = Signal<float>::decode(json->getObject("object"));
             Poco::JSON::Object::Ptr jobj = signal_ptr->encode();
+            REQUIRE(bool(jobj));
             jobj->stringify(cout, 2);
             cout << endl;
         }

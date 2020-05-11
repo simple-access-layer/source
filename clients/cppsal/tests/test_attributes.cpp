@@ -685,9 +685,10 @@ TEST_CASE("Data object Int8 array attribute.", "[sal::object::Int8Array]")
     SECTION("Test encoding and decoding")
     {
         auto jObj = v.encode();
-        // jObj->stringify(cout); cout << endl;
+        // jObj->stringify(cout, 2);
         auto dv = ArrayT::decode(jObj);
-        REQUIRE(v(0, 1) == 1);
+        REQUIRE(bool(dv));
+        REQUIRE((*dv)(0, 1) == 1);
     }
 }
 
@@ -730,12 +731,11 @@ TEST_CASE("Data object string array attribute.", "[sal::object::StringArray]")
     {
         auto jObj = v.encode();
         // jObj->stringify(cout, 2);
-        // cout << endl;
         auto dv = StringArray::decode(jObj);
-        REQUIRE(v(1, 0) == value2);
+        REQUIRE((*dv)(1, 0) == value2);
 
-        REQUIRE(v(0, 1) == utf8_text);
-        REQUIRE(v(0, 2) == utf8_text2);
+        REQUIRE((*dv)(0, 1) == utf8_text);
+        REQUIRE((*dv)(0, 2) == utf8_text2);
     }
 
     SECTION("Test data_pointer() runtime exception")
@@ -776,10 +776,9 @@ TEST_CASE("Data object bool array attribute.", "[sal::object::BoolArray]")
     SECTION("Test encoding and decoding")
     {
         auto jObj = v.encode();
-        jObj->stringify(cout);
-        cout << endl; // correct
+        // jObj->stringify(cout, 2);
         auto dv = ArrayT::decode(jObj);
-        REQUIRE(v(0, 0) == true);
+        REQUIRE((*dv)(0, 0) == true);
     }
 }
 

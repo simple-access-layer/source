@@ -23,16 +23,15 @@ namespace sal
 
         /// This is base class for all user-defined class like Signal
         /// consider:  derive from Attribute, single root principle
+        /// Attribute (type and value) + meta data make a DataObject
         class DataObject : public Attribute
         {
         public:
             typedef Poco::SharedPtr<DataObject> Ptr;
-            DataObject(const std::string _dtype_name)
-                    : Attribute(ATTR_DATA_OBJECT, _dtype_name)
+            DataObject(const std::string _class_name, const std::string _group_name = "dataobject")
+                    : Attribute(ATTR_DATA_OBJECT, _class_name, _group_name)
             {
-                m_group_name = "signal"; // todo: a better default group name
             }
-
 
             bool is_full_object() const
             {
@@ -64,7 +63,14 @@ namespace sal
                 else
                 {
                     p->m_is_summary = false;
-                    decode_content(json, p);
+                    try
+                    {
+                        decode_content(json, p);
+                    }
+                    catch (std::exception& e)
+                    {
+                        SAL_REPORT_DECODE_ERROR(e, json);
+                    }
                 }
                 p->m_json = json;
                 return p;
@@ -98,10 +104,50 @@ namespace sal
                 this->attributes.erase(key);
             };
 
+
+
+            inline const std::string& description() const noexcept
+            {
+                if (m_description.size())
+                    return m_description;
+                else
+                {
+                    return m_type_name;
+                }
+            }
+            /// description property setter
+            inline std::string& description() noexcept
+            {
+                return m_description;
+            }
+
+            /// group_name getter, corresponding to `_group`
+            inline std::string group_name() const noexcept
+            {
+                return m_group_name;
+            }
+
+            /// class_name getter, corresponding to `_class`
+            inline std::string class_name() const noexcept
+            {
+                if (is_number())
+                {
+                    return "scalar";
+                }
+                else
+                {
+                    return m_type_name;
+                }
+            }
+
             static bool is_summary(const Poco::JSON::Object::Ptr j)
             {
                 auto obj_type = String::decode(j->getObject("_type"))->value();
                 return obj_type == "summary";
+            }
+            static std::string parse_class_name(const Poco::JSON::Object::Ptr j)
+            {
+                return String::decode(j->getObject("_class"))->value();
             }
 
             /// core.dataclass._new_dict() with common header info (metadata)
@@ -128,36 +174,27 @@ namespace sal
             {
                 std::vector<std::string> keys;
 
-                // treat any failure as a failure to decode
-                try
+                json->getNames(keys);
+                for (std::vector<std::string>::iterator key = keys.begin(); key != keys.end(); ++key)
                 {
-                    json->getNames(keys);
-                    for (std::vector<std::string>::iterator key = keys.begin(); key != keys.end(); ++key)
-                    {
-                        // skip null elements
-                        if (json->isNull(*key))
-                            continue;
+                    // skip null elements
+                    if (json->isNull(*key))
+                        continue;
 
-                        if (!json->isObject(*key))
-                            throw SALException("all valid attributes must be JSON object not number or std::string");
+                    if (!json->isObject(*key))
+                        throw SALException("all valid attributes must be JSON object not number or std::string");
 
-                        // dispatch object to the appropriate decoder and add to container
-                        obj->set(*key, sal::object::decode(json->getObject(*key)));
-                    }
-
-                    // remove extracted meta data in the for loop
-                    remove_meta_attributes(obj);
+                    // dispatch object to the appropriate decoder and add to container
+                    obj->set(*key, sal::object::decode(json->getObject(*key)));
                 }
-                catch (...)
-                {
-                    // todo: define a sal exception and replace
-                    throw SALException("JSON object does not define a valid SAL data object.");
-                }
+
+                // remove extracted meta data in the for loop
+                remove_meta_attributes(obj);
             };
 
         protected:
             std::string m_dtype;
-            // CONSIDER: keep path name here to identify this unique signal
+            std::string m_url; // CONSIDER: keep path name here to identify this unique signal
 
             /// raw json to be further casted into user defined type like Signal
             Poco::JSON::Object::Ptr m_json;
@@ -177,16 +214,8 @@ namespace sal
             Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
 
             // to be python compatible, remove this block after further refactoring,
-            if (is_number())
-            {
-                auto a = new String("scalar");
-                json->set("_class", a->encode());
-            }
-            else
-            {
-                auto a = new String(this->type_name());
-                json->set("_class", a->encode());
-            }
+            auto a = new String(this->class_name());
+            json->set("_class", a->encode());
 
             if (_is_summary)
             {

@@ -270,21 +270,6 @@ namespace sal
                 return m_is_summary;
             };
 
-            inline const std::string& description() const noexcept
-            {
-                if (m_description.size())
-                    return m_description;
-                else
-                {
-                    return m_type_name;
-                }
-            }
-            /// description property setter
-            inline std::string& description() noexcept
-            {
-                return m_description;
-            }
-
             /// NOTE: forward declaration String class are used inside
             /// decoded the attribute header/metadata
             static void decode_metadata(const Poco::JSON::Object::Ptr j, Attribute::Ptr attr);
@@ -602,9 +587,7 @@ namespace sal
                 for (uint64_t d : this->m_shape)
                     element_size *= d;
 
-                /// NOTE: should just reserve(), but not resize(),
-                // as summary mode does not have data to decode, size() == 0
-                this->data.reserve(element_size);
+                this->data.resize(element_size);
             }
 
             // CONSIDER: disable those constructors, force shared_ptr<>
@@ -841,12 +824,14 @@ namespace sal
                     if (!json->isArray("shape"))
                         throw SALException("decoded shape is not an array");
 
+                    /// NOTE: summary has "shape" but full object json does not has such key
                     shape = Array<T>::decode_shape(json->getArray("shape"));
                     // create and populate array
                     arr = new Array<T>(shape);
-                    /// NOTE: summary has "shape" but full object json does not ?
-                    /// https://github.com/simple-access-layer/source/issues/25
-                    // Attribute::decode_metadata(json, arr);
+
+                    /// TODO:
+                    // as summary mode does not have data to decode, size() == 0
+                    arr->data.resize(0);
                 }
                 else
                 {
