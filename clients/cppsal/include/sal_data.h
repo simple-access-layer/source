@@ -204,8 +204,10 @@ namespace sal
 
         /// abstract class corresponding to python DataSummary class.
         /// Attribute class (base data class) implements this interface,
+        /// this interface may only used by server to generate a summary of Attribute.
         /// to avoid another summary class tree in parallel with data class tree as in Python
-        /// static Attribute::Ptr decode_summary(Poco::JSON::Object::Ptr json)
+        /// `static T::Ptr decode_summary(Poco::JSON::Object::Ptr json)` is not necessary,
+        ///  as T:decode() can detect if json is full or summary object
         class SummaryInterface
         {
         public:
@@ -222,16 +224,16 @@ namespace sal
         };
 
         /// It is low-level data entry, data.signal is high-level data container
-        //  Node class has a dictionary of Attributes
+        //  DataObject is a dictionary-like container of Attributes with DataObject metadata
         /// The base data class (without any data) should also have a Type and TypeName
-        // SKIP: rename to DataObject to align with Python implementation
         // SKIP: implement metadata registration to simulate python decorator
         class Attribute : public SummaryInterface
         {
         public:
             typedef Poco::SharedPtr<Attribute> Ptr;
 
-            // TODO: needs copy and move constructors, will not them be generated?
+            // TODO: needs copy and move constructors
+            // reply: not needed, this class has pure virtual function, can not be instantiated
 
             /*
             Constructors and destructor.
@@ -265,7 +267,7 @@ namespace sal
             /// @{ SummaryInterface
             /// for complex data type, there is no data available
             /// is_summary() true if the instance is created by decode_summary()
-            bool is_summary() const noexcept
+            inline bool is_summary() const noexcept
             {
                 return m_is_summary;
             };
@@ -312,7 +314,7 @@ namespace sal
             // bool is regarded as a arithmetic in C++
             inline bool is_number() const noexcept
             {
-                return not(is_array() or is_string() or is_boolean() or is_null() or is_object());
+                return not(is_array() or is_string() or is_boolean() or is_null() or is_object() or is_data_object());
             }
             // is bool regarded as scalar?
             inline bool is_boolean() const noexcept
@@ -338,12 +340,19 @@ namespace sal
             {
                 return m_type == ATTR_DICTIONARY;
             }
+
+            inline bool is_data_object() const noexcept
+            {
+                return m_type == ATTR_DATA_OBJECT;
+            }
             /// @}
 
         protected:
+            // it is memory efficient as static fields, but can not init in header
             const AttributeType m_type;
             std::string m_type_name;  // CLASS is the typename, it is different for types
             std::string m_group_name; // GROUP
+            // todo:  uint64_t m_version;
 
             /// member for summary interface
             bool m_is_summary = false;

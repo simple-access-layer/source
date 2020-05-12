@@ -5,6 +5,7 @@
 /** TODO:
  *
  *  full data object, encode and decode needs
+ *  move ISummary interface from Attribute to DataClass
  */
 
 namespace sal
@@ -22,6 +23,7 @@ namespace sal
         /// https://github.com/FreeOpcUa/python-opcua/blob/master/opcua/ua/attribute_ids.py
 
         /// This is base class for all user-defined class like Signal
+        /// metadata map to to Python class sal.core.dataclass.DataClass
         /// consider:  derive from Attribute, single root principle
         /// Attribute (type and value) + meta data make a DataObject
         class DataObject : public Attribute
@@ -32,11 +34,12 @@ namespace sal
                     : Attribute(ATTR_DATA_OBJECT, _class_name, _group_name)
             {
             }
-
+            /*
             bool is_full_object() const
             {
                 return !m_is_summary;
             }
+            */
 
             template <typename TargetT> typename TargetT::Ptr cast()
             {
@@ -55,7 +58,7 @@ namespace sal
             static DataObject::Ptr decode(const Poco::JSON::Object::Ptr json)
             {
                 DataObject::Ptr p = new DataObject("data_object");
-                bool is_summary = DataObject::is_summary(json);
+                bool is_summary = DataObject::is_summary_object(json);
                 if (is_summary)
                 {
                     p->m_is_summary = true;
@@ -140,10 +143,15 @@ namespace sal
                 }
             }
 
-            static bool is_summary(const Poco::JSON::Object::Ptr j)
+            static bool is_summary_object(const Poco::JSON::Object::Ptr j)
             {
                 auto obj_type = String::decode(j->getObject("_type"))->value();
                 return obj_type == "summary";
+            }
+            static bool is_full_object(const Poco::JSON::Object::Ptr j)
+            {
+                auto obj_type = String::decode(j->getObject("_type"))->value();
+                return obj_type == "object";
             }
             static std::string parse_class_name(const Poco::JSON::Object::Ptr j)
             {
@@ -151,13 +159,23 @@ namespace sal
             }
 
             /// core.dataclass._new_dict() with common header info (metadata)
-            /// however, Atomic/Scalar types does not have these metadata
+            /// however, Atomic/Scalar Attribute types does not have these metadata
             virtual Poco::JSON::Object::Ptr encode_metadata(bool _is_summary = false) const;
+            static Poco::JSON::Object::Ptr wrap_payload(const Poco::JSON::Object::Ptr j);
 
+            /*
+            Attempts to decode a JSON object into the specified SAL object.
+            Returns null pointer if cast is invalid.
+            */
+            template <class T> typename T::Ptr decode_object_as(const Poco::JSON::Object::Ptr json)
+            {
+                // todo: type matching validation
+                return T::decode(json);
+            };
 
             // meta data and description have been constructed as member variable
             // consider move all meta data into a Dictionary data object
-            static void remove_meta_attributes(DataObject::Ptr obj)
+            static void remove_metadata(DataObject::Ptr obj)
             {
                 obj->remove("_class");
                 obj->remove("_group");
@@ -189,7 +207,7 @@ namespace sal
                 }
 
                 // remove extracted meta data in the for loop
-                remove_meta_attributes(obj);
+                remove_metadata(obj);
             };
 
         protected:
@@ -206,15 +224,21 @@ namespace sal
             std::map<std::string, Attribute::Ptr> attributes;
         };
 
+        Poco::JSON::Object::Ptr DataObject::wrap_payload(const Poco::JSON::Object::Ptr j)
+        {
+            Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
+            json->set("type", "branch");
+            json->set("value", j);
+            return json;
+        }
         Poco::JSON::Object::Ptr DataObject::encode_metadata(bool _is_summary) const
         {
             /// constant members from python DataObject ReportSummary
-
-            // d['_type'] = TYPE_SUMMARY
+            const auto attr = this;
             Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
 
             // to be python compatible, remove this block after further refactoring,
-            auto a = new String(this->class_name());
+            auto a = new String(attr->class_name());
             json->set("_class", a->encode());
 
             if (_is_summary)
@@ -228,27 +252,36 @@ namespace sal
                 json->set("_type", a_type_name->encode());
             }
 
-            auto a_group_name = new String(m_group_name);
+            auto a_group_name = new String(attr->m_group_name);
             json->set("_group", a_group_name->encode());
             // todo: this is per object version
             auto a_version = new UInt64(SAL_API_VERSION);
             json->set("_version", a_version->encode());
 
             // todo: deal with description is empty?  also UUID for data object
-            auto a_description = new String(m_description);
+            auto a_description = new String(attr->m_description);
             json->set("description", a_description->encode());
             return json;
         }
+
+        /// in python it is classmethod, because metadata are static variable
+        /// in C++, these metadata are instance members for the moment
+        bool is_compatible()
+        {
+            return false;
+        }
+
     } // namespace dataclass
 
     /// declared in Attribute class but implemented here close to encode_metadata()
     void object::Attribute::decode_metadata(const Poco::JSON::Object::Ptr j, Attribute::Ptr attr)
     {
-        // _version is also fixed at compiling time, but can be checked
         attr->m_description = String::decode(j->getObject("description"))->value();
         auto obj_type = String::decode(j->getObject("_type"))->value();
         attr->m_is_summary = obj_type == "summary";
-        // _group, _class
+
+        // _group, _class, _version should be static
+        // _version is also fixed at compiling time, but can be checked
         attr->m_group_name = String::decode(j->getObject("_group"))->value();
         // m_type_name is fixed at object creation time
         // better to check, Atomic<> change type to scaler during encoding

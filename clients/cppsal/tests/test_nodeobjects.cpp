@@ -160,9 +160,9 @@ TEST_CASE("Signal data class", "[sal::data::Signal]")
             REQUIRE(json->getValue<std::string>("type") == "leaf");
             Signal<float>::Ptr signal_ptr = Signal<float>::decode(json->getObject("object"));
             REQUIRE(bool(signal_ptr));
-            REQUIRE(!signal_ptr->is_full_object());
+            REQUIRE(signal_ptr->is_summary());
 
-            // there is still unsolved bug in encoding, but low priority
+            // encode_summary() for some classes are not implemented yet, low priority
             // Poco::JSON::Object::Ptr jobj = signal_ptr->encode();
             // jobj->stringify(cout, 2);
             // cout << endl;
@@ -179,13 +179,12 @@ TEST_CASE("Signal data class", "[sal::data::Signal]")
             REQUIRE(json->getValue<std::string>("type") == "leaf");
             Signal<float>::Ptr signal_ptr = Signal<float>::decode(json->getObject("object"));
             REQUIRE(bool(signal_ptr));
-            REQUIRE(signal_ptr->is_full_object());
+            REQUIRE(!signal_ptr->is_summary());
 
-            // there is still unsolved bug in encoding, but low priority
-            // Poco::JSON::Object::Ptr jobj = signal_ptr->encode();
-            // REQUIRE(bool(jobj));
-            // jobj->stringify(cout, 2);
-            // cout << endl;
+            Poco::JSON::Object::Ptr jobj = signal_ptr->encode();
+            REQUIRE(bool(jobj));
+            jobj->stringify(cout, 2);
+            cout << endl;
         }
     }
 }
