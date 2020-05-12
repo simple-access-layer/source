@@ -59,17 +59,7 @@ namespace sal
                 return j;
             }
 
-            /// Attribute::encode_header() for object
-            /*
-            Poco::JSON::Object::Ptr encode() const
-            {
-                Poco::JSON::Object::Ptr j;
-                j->set("_class", cls);
-                j->set("_group", group);
-                j->set("_version", version);
-                return j;
-            }
-            */
+
 
             static NodeInfo decode(Poco::JSON::Object::Ptr j)
             {
@@ -185,7 +175,7 @@ namespace sal
             }
         };
 
-        /**
+        /**  this class has been implemented as NodeObject, to be removed later
         /// split this class into Object (for decode,encode) and Branch ()
         class Report
         {
@@ -205,8 +195,10 @@ namespace sal
         };
         */
 
-        /// base class for both Branch and Leaf, rename to NodeObject
-        class NodeObject // : public object::Attribute
+        /// Base class for both Branch and Leaf,
+        /// contains meta data for the node (permision, revision, etc) but not data content
+        /// It is constructed from json response of `list()` RESTFUL API
+        class NodeObject
         {
         protected:
             // TODO: if all meta data applied to Leaf only, move to class Leaf
@@ -288,7 +280,8 @@ namespace sal
             {
                 return url; // todo
             }
-            ///
+
+            /// SummaryInterface is not necessary for nodeoject which has only Report
             void decode_report(const Poco::JSON::Object::Ptr j)
             {
                 this->m_description = j->getValue<std::string>("description");
@@ -304,18 +297,6 @@ namespace sal
 #endif
                 // newly added into C++
                 // this->m_display_name = display_name_from_url(j->getValue<std::string>("url"));
-            }
-
-            /// SummaryInterface, not necessary for nodeoject
-            /// core.dataclass._new_dict() with common header info
-            /*
-            Returns a Poco JSON object summary of the data object.
-            corresponding to python DataSummary class `to_dict()`
-            only container derived class like Array and Dictionary need to override
-            */
-            virtual Poco::JSON::Object::Ptr encode_summary() const
-            {
-                return encode();
             }
         };
 
@@ -352,31 +333,28 @@ namespace sal
                 return j;
             }
 
-
+            /// check returned ptr validation, return
             static Leaf::Ptr decode(Poco::JSON::Object::Ptr json)
             {
-                Leaf::Ptr leaf = new Leaf();
-                leaf->decode_report(json);
-                /* treat any failure as a failure to decode
+                Leaf::Ptr leaf = nullptr;
                 try
                 {
-
-                    // no other content for leaf in report mode
+                    leaf = new Leaf();
+                    leaf->decode_report(json);
                 }
-                catch (...)
+                catch (std::exception& e)
                 {
-                    throw SALException("JSON object does not define a valid SAL leaf node object.");
+                    SAL_REPORT_DECODE_ERROR(e, json);
                 }
-                */
                 return leaf;
             };
+        };
 
-        }; // namespace node
-
-        /// Only information, no operation
+        /// similar with directory entry of file system,
+        /// contains children leaves (File) and branches (Directory)
         class Branch : public NodeObject
         {
-            // full object, empty if constructed from summary json
+
             std::vector<std::string> branches;
             std::vector<NodeInfo> leaves;
 
@@ -461,24 +439,26 @@ namespace sal
             */
             static Branch::Ptr decode(Poco::JSON::Object::Ptr json)
             {
-                Branch::Ptr branch = new Branch();
-                // check sal type is valid for this class
-                // if (json->getValue<std::string>("_class") != "node")
-                //    throw SALException("data type does not match node objects");
+                Branch::Ptr branch = nullptr;
 
-                branch->decode_report(json);
-
-                // std::string content_type = json->getValue<std::string>("summary");
-                // if (content_type == "report") // todo: check the name
-
-                branch->decode_content(json);
                 // treat any failure as a failure to decode
                 try
                 {
+                    branch = new Branch();
+                    // check sal type is valid for this class
+                    // if (json->getValue<std::string>("_class") != "node")
+                    //    throw SALException("data type does not match node objects");
+
+                    branch->decode_report(json);
+
+                    // std::string content_type = json->getValue<std::string>("summary");
+                    // if (content_type == "report") // todo: check the name
+
+                    branch->decode_content(json);
                 }
-                catch (...)
+                catch (std::exception& e)
                 {
-                    throw SALException("can not decode a valid SAL branch object from json object");
+                    SAL_REPORT_DECODE_ERROR(e, json);
                 }
                 return branch;
             };
@@ -509,7 +489,7 @@ namespace sal
                 node_type = json->getValue<std::string>("type");
 
                 if (!json->isObject("object"))
-                    throw std::exception();
+                    throw SALException("JSON object must be an object type");
                 object = json->getObject("object");
                 if (json->has("request"))
                 {
@@ -517,13 +497,12 @@ namespace sal
                     object->set("url", url);
                 }
             }
-            catch (...)
+            catch (std::exception& e)
             {
-                // todo: define a more specific sal exception and replace
-                throw SALException("JSON object does not define a valid SAL object.");
+                SAL_REPORT_DECODE_ERROR(e, json);
             }
 
-            if (content_type == "report") //
+            if (content_type == "report") // must be report, not like data object has summary and full types
             {
                 if (node_type == "branch")
                     return Branch::decode(object);
@@ -538,16 +517,6 @@ namespace sal
             throw SALException("JSON object does not define a valid SAL object.");
         }
 
-
-        /*
-        Attempts to decode a JSON object into the specified SAL object.
-
-        Returns null pointer if cast is invalid.
-        */
-        template <class T> typename T::Ptr decode_object_as(Poco::JSON::Object::Ptr json)
-        {
-            return typename T::Ptr(object::decode(json).cast<T>());
-        };
 
     }; // namespace node
 } // namespace sal
