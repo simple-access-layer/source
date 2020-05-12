@@ -59,6 +59,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cMake")
 
 # it can be used by subdirectory cmakelist.txt
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
+# sal_signal.h moved to examples folder
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/examples")
 # for json.hpp, catch.h
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/third-party") 
 

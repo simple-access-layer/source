@@ -29,10 +29,9 @@ namespace sal
             ArrayMask
         } SignalType;
 
-        char TYPE_NAME_SIGNAL_DIMENSION[] = "signal_dimension";
-        char TYPE_NAME_SIGNAL_MASK[] = "signal_mask";
-        char TYPE_NAME_SIGNAL_ERROR[] = "signal_error";
-
+        static const char* GROUP_NAME_SIGNAL_DIMENSION = "signal_dimension";
+        static const char* GROUP_NAME_SIGNAL_MASK = "signal_mask";
+        static const char* GROUP_NAME_SIGNAL_ERROR = "signal_error";
 
         /** Mask is really bad name, it is SignalQuality in the current python code
          * in the future, more meta data, misc data may needed
@@ -45,9 +44,9 @@ namespace sal
         public:
             typedef Poco::SharedPtr<Mask> Ptr;
             Mask(const std::string _class_name)
-                    : DataObject(_class_name)
+                    : DataObject(_class_name, GROUP_NAME_SIGNAL_MASK)
             {
-                m_group_name = "signal_mask";
+                // m_group_name = GROUP_NAME_SIGNAL_MASK;
                 m_dtype = to_dtype_name<DType>();
             }
 
@@ -112,12 +111,12 @@ namespace sal
 
             // Asymmetric error constructor
             Error(DType lower, DType upper, bool is_relative)
-                    : DataObject("signal_error")
+                    : DataObject("", GROUP_NAME_SIGNAL_ERROR)
                     , m_is_relative(is_relative)
                     , m_is_symmetric(false)
                     , m_is_constant(true)
             {
-                m_group_name = "signal_error";
+                // m_group_name = "GROUP_NAME_SIGNAL_ERROR";
                 m_dtype = to_dtype_name<DType>();
             }
             // symmetric constant error constructor
@@ -129,7 +128,7 @@ namespace sal
 
             /* array upper and lower error constructor */
             Error(typename Array<DType>::Ptr lower, typename Array<DType>::Ptr upper, bool is_relative)
-                    : DataObject("signal_error")
+                    : DataObject("", GROUP_NAME_SIGNAL_ERROR)
                     , m_lower_array(lower)
                     , m_upper_array(upper)
                     , m_is_relative(is_relative)
@@ -271,7 +270,7 @@ namespace sal
             typedef Poco::SharedPtr<Dimension> Ptr;
             ///
             Dimension(typename Array<DType>::Ptr coord, bool temoral, std::string units)
-                    : DataObject(TYPE_NAME_SIGNAL_DIMENSION)
+                    : DataObject("", GROUP_NAME_SIGNAL_DIMENSION)
                     , m_temporal(temoral)
                     , m_units(units)
                     , m_data(coord)
@@ -284,7 +283,7 @@ namespace sal
 
             /// Constructor for the calculated dimension type
             Dimension(DType start, DType length, DType step, bool temoral, std::string units)
-                    : DataObject(TYPE_NAME_SIGNAL_DIMENSION)
+                    : DataObject("", GROUP_NAME_SIGNAL_DIMENSION)
                     , m_temporal(temoral)
                     , m_units(units)
                     , m_start(start)
@@ -302,12 +301,14 @@ namespace sal
 
             virtual Poco::JSON::Object::Ptr encode() const override
             {
+                // todo: "type" and "value"
                 Poco::JSON::Object::Ptr j = this->encode_summary();
                 j->set("data", m_data->encode());
                 return j;
             }
             virtual Poco::JSON::Object::Ptr encode_summary() const override
             {
+                // todo: "type" and "value"
                 Poco::JSON::Object::Ptr j = this->encode_metadata();
                 j->set("units", m_units);
                 j->set("length", m_length);
