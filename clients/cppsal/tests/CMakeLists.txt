@@ -15,8 +15,10 @@ add_executable(sal_test_nodeobjects "test_nodeobjects.cpp")
 
 target_link_libraries(sal_test_nodeobjects
     PUBLIC     ${Poco_LIBRARIES}
-        #        Poco::NetSSL
-        #        Poco::Foundation
-        #        Poco::Net
-        #        Poco::JSON
+)
+
+add_executable(sal_data_object "test_data_object.cpp")
+
+target_link_libraries(sal_data_object
+    PUBLIC     ${Poco_LIBRARIES}
 )

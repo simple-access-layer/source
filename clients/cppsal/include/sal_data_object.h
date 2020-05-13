@@ -31,7 +31,9 @@ namespace sal
         public:
             typedef Poco::SharedPtr<DataObject> Ptr;
             DataObject(const std::string _class_name, const std::string _group_name = "data_object")
-                    : Attribute(ATTR_DATA_OBJECT, _class_name, _group_name)
+                    : Attribute(ATTR_DATA_OBJECT, "data_object")
+                    , m_class_name(_class_name)
+                    , m_group_name(_group_name)
             {
             }
 
@@ -104,7 +106,7 @@ namespace sal
                 }
                 else
                 {
-                    return m_type_name;
+                    return m_class_name;
                 }
             }
             /// @}
@@ -134,8 +136,13 @@ namespace sal
             }
 
             /// core.dataclass._new_dict() with common header info (metadata)
-            /// however, Atomic/Scalar Attribute types does not have these metadata
             virtual Poco::JSON::Object::Ptr encode_metadata(bool _is_summary = false) const;
+            /// decoded the attribute header/metadata/common attributes
+            static void decode_metadata(const Poco::JSON::Object::Ptr j, DataObject::Ptr attr);
+
+            /// todo:  should distinguish toplevel obj and sub,
+            /// may needs a field "m_is_root" for toplevel data, not subobject.
+            /// also renamed as "encode_payload()", make it non-static
             static Poco::JSON::Object::Ptr wrap_payload(const Poco::JSON::Object::Ptr j)
             {
                 Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
@@ -143,6 +150,7 @@ namespace sal
                 json->set("value", j);
                 return json;
             }
+            /// unbox
             static Poco::JSON::Object::Ptr unwrap_payload(const Poco::JSON::Object::Ptr j)
             {
                 if (j->has("object")) // root of sub-data-object, returned from get(), type == "leaf"
@@ -264,6 +272,11 @@ namespace sal
             std::string m_dtype;
             std::string m_url; // CONSIDER: keep path name here to identify this unique signal
 
+            std::string m_class_name;
+            std::string m_group_name; // GROUP
+            uint64_t m_version;
+            std::string m_description;
+
             /// raw json to be further casted into user defined type like Signal
             Poco::JSON::Object::Ptr m_json;
 
@@ -324,20 +337,18 @@ namespace sal
             return T::decode(json);
         };
 
+        void DataObject::decode_metadata(const Poco::JSON::Object::Ptr j, DataObject::Ptr attr)
+        {
+            attr->m_description = String::decode(j->getObject("description"))->value();
+            auto obj_type = String::decode(j->getObject("_type"))->value();
+            attr->m_is_summary = obj_type == "summary";
+
+            // _group, _class, _version should be static
+            // _version is also fixed at compiling time, but can be checked
+            attr->m_group_name = String::decode(j->getObject("_group"))->value();
+            // m_type_name is fixed at object creation time
+            // better to check, Atomic<> change type to scaler during encoding
+            // attr->m_type_name = String::decode(j->getObject("_class"))->value();
+        }
     } // namespace dataclass
-
-    /// declared in Attribute class but implemented here close to encode_metadata()
-    void object::Attribute::decode_metadata(const Poco::JSON::Object::Ptr j, Attribute::Ptr attr)
-    {
-        attr->m_description = String::decode(j->getObject("description"))->value();
-        auto obj_type = String::decode(j->getObject("_type"))->value();
-        attr->m_is_summary = obj_type == "summary";
-
-        // _group, _class, _version should be static
-        // _version is also fixed at compiling time, but can be checked
-        attr->m_group_name = String::decode(j->getObject("_group"))->value();
-        // m_type_name is fixed at object creation time
-        // better to check, Atomic<> change type to scaler during encoding
-        // attr->m_type_name = String::decode(j->getObject("_class"))->value();
-    }
 } // namespace sal

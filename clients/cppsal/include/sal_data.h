@@ -161,8 +161,6 @@ namespace sal
             }
         }
 
-
-
         ///  type trait to get data type name (numpy.dtype) at compiling time
         /// used in Array<T> and Atomic<T> instantation
         template <typename DT> const char* to_dtype_name()
@@ -238,10 +236,9 @@ namespace sal
             /*
             Constructors and destructor.
             */
-            Attribute(const AttributeType _type, const std::string _type_name, const std::string _group_name = "core")
+            Attribute(const AttributeType _type, const std::string _type_name)
                     : m_type(_type)
-                    , m_type_name(_type_name)
-                    , m_group_name(_group_name){};
+                    , m_type_name(_type_name){};
             virtual ~Attribute(){};
 
             /// from Attribute instance to json, return `Poco::JSON::Object::Ptr`
@@ -271,10 +268,6 @@ namespace sal
             {
                 return m_is_summary;
             };
-
-            /// NOTE: forward declaration String class are used inside
-            /// decoded the attribute header/metadata
-            static void decode_metadata(const Poco::JSON::Object::Ptr j, Attribute::Ptr attr);
 
             /*
             Returns a Poco JSON object summary of the data object.
@@ -350,13 +343,10 @@ namespace sal
         protected:
             // it is memory efficient as static fields, but can not init in header
             const AttributeType m_type;
-            std::string m_type_name;  // CLASS is the typename, it is different for types
-            std::string m_group_name; // GROUP
-            // todo:  uint64_t m_version;
+            std::string m_type_name; // mainly for scalar type, not object type `_class`
 
             /// member for summary interface
             bool m_is_summary = false;
-            std::string m_description;
         };
 
         /// this class can be merged to the base class  It is a design decision

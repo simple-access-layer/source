@@ -77,7 +77,7 @@ namespace sal
                     auto json = j->getObject("value");
                     p = new Mask(DataObject::parse_class_name(json));
 
-                    Attribute::decode_metadata(json, p);
+                    DataObject::decode_metadata(json, p);
                     if (!DataObject::is_summary_content(json))
                     {
                         p->m_array = UInt8Array::decode(json->getObject("status"));
@@ -133,7 +133,7 @@ namespace sal
 
             /* array upper and lower error constructor */
             Error(typename Array<DType>::Ptr lower, typename Array<DType>::Ptr upper, bool is_relative)
-                    : DataObject("", GROUP_NAME_SIGNAL_ERROR)
+                    : DataObject("error_symmetrical", GROUP_NAME_SIGNAL_ERROR)
                     , m_lower_array(lower)
                     , m_upper_array(upper)
                     , m_is_relative(is_relative)
@@ -144,7 +144,7 @@ namespace sal
 
             // symmetric constant error constructor
             Error(typename Array<DType>::Ptr amplitude, bool is_relative)
-                    : DataObject("", GROUP_NAME_SIGNAL_ERROR)
+                    : DataObject("error_asymmetric", GROUP_NAME_SIGNAL_ERROR)
                     , m_lower_array(amplitude)
                     , m_upper_array(amplitude)
                     , m_is_relative(is_relative)
@@ -226,7 +226,7 @@ namespace sal
                 {
                     Error::Ptr p;
                     p = new Error(class_name);
-                    Attribute::decode_metadata(json, p);
+                    DataObject::decode_metadata(json, p);
                     return p;
                 }
                 else
@@ -396,7 +396,7 @@ namespace sal
                     std::string msg = "Dimension class type `" + class_name + "` is not supported in decoding";
                     throw SALException(msg.c_str());
                 }
-                Attribute::decode_metadata(json, p);
+                DataObject::decode_metadata(json, p);
                 return p;
             }
 
@@ -448,7 +448,7 @@ namespace sal
                 if (m_error) // maybe, nullptr is encoded as null
                     j->set("error", m_error->encode());
                 j->set("data", m_data->encode());
-                return DataObject::wrap_payload(j);
+                return DataObject::wrap_payload(j); // todo: toplevel object, wrap with "object"
             }
             virtual Poco::JSON::Object::Ptr encode_summary() const override
             {
@@ -461,7 +461,7 @@ namespace sal
                     j->set("mask", m_mask->encode_summary());
                 if (m_error)
                     j->set("error", m_error->encode_summary());
-                return DataObject::wrap_payload(j);
+                return DataObject::wrap_payload(j); // todo: toplevel object, wrap with "object"
             }
 
             // optional todo:
@@ -480,7 +480,7 @@ namespace sal
             {
                 Signal<DType>::Ptr sig = new Signal<DType>();
                 // all meta data "_class, _group" does not needs to be decoded
-                Attribute::decode_metadata(json, sig);
+                DataObject::decode_metadata(json, sig);
                 sig->m_units = String::decode(json->getObject("units"))->value();
                 if (DataObject::is_summary_content(json))
                 {

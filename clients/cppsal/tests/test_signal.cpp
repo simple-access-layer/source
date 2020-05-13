@@ -1,4 +1,4 @@
-#define CATCH_CONFIG_MAIN
+
 #include "catch.h"
 #include "sal_signal.h"
 #include "test_sal.h"
@@ -38,8 +38,8 @@ TEST_CASE("Signal data class", "[sal::data::Signal]")
 
             // encode_summary() for some classes are not implemented yet, low priority
             // Poco::JSON::Object::Ptr jobj = signal_ptr->encode();
-            // jobj->stringify(cout, 2);
-            // cout << endl;
+            // jobj->stringify(std::cout, 2);
+            // std::cout << std::endl;
         }
     }
 
@@ -57,8 +57,8 @@ TEST_CASE("Signal data class", "[sal::data::Signal]")
 
             Poco::JSON::Object::Ptr jobj = signal_ptr->encode();
             REQUIRE(bool(jobj));
-            jobj->stringify(cout, 2); // still bug, all data array has values of AAA
-            cout << endl;
+            jobj->stringify(std::cout, 2); // still bug, all data array has values of AAA
+            std::cout << std::endl;
             // todo:
         }
     }

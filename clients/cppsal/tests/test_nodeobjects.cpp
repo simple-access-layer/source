@@ -8,7 +8,6 @@ https://github.com/catchorg/Catch2
 
 #include "sal_node.h"
 //#include "sal_path.h"
-#include "test_data_object.cpp"
 #include "test_sal.h"
 
 using namespace std;

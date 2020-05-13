@@ -1,7 +1,9 @@
+#define CATCH_CONFIG_MAIN
 #include "catch.h"
 
 #include "sal_data_object.h"
 #include "test_sal.h"
+#include "test_signal.cpp"
 
 using namespace sal::dataclass;
 
