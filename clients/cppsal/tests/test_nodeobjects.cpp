@@ -8,50 +8,17 @@ https://github.com/catchorg/Catch2
 
 #include "sal_node.h"
 //#include "sal_path.h"
+#include "test_data_object.cpp"
+#include "test_sal.h"
 
 using namespace std;
 using namespace sal::node;
 
-#include "Poco/Net/HTTPRequest.h"
-#include "Poco/Net/HTTPResponse.h"
-#include "Poco/Net/HTTPSClientSession.h"
-#include "Poco/StreamCopier.h"
-#include "Poco/URI.h"
-#include "Poco/UTF8String.h"
-
-Poco::JSON::Object::Ptr get_json(const std::string url)
-{
-    using namespace Poco;
-    using namespace Poco::Net;
-    using namespace Poco::JSON;
-
-    HTTPResponse response;
-    Poco::JSON::Parser parser;
-    string json;
-    Poco::URI uri{url};
-
-    // https session, ignoring invalid certificates
-    auto session = new HTTPSClientSession(uri.getHost(), uri.getPort(),
-                                          new Context(Context::CLIENT_USE, "", Context::VERIFY_NONE));
-
-    HTTPRequest request(HTTPRequest::HTTP_GET, url, HTTPMessage::HTTP_1_1);
-    session->sendRequest(request);
-    StreamCopier::copyToString(session->receiveResponse(response), json);
-    cout << "res.getStatus() =" << response.getStatus() << std::endl;
-
-    // todo: handle exceptions and check response status
-    auto j = parser.parse(json).extract<Poco::JSON::Object::Ptr>(); // decode json
-    // j->stringify(cout, 2);                                          // debugging output
-    return j;
-}
 
 /// those links only work within jet intranet, without authentication
-/// those links works also in webbrowser
+/// those links works also in webbrowser, recommend firefox
 auto branch_url = "https://sal.jet.uk/data/pulse/83373/ppf/signal/jetppf/magn";
 auto leaf_url = "https://sal.jet.uk/data/pulse/83373/ppf/signal/jetppf/magn/ipla";
-/// signal leaf, to test get() data object
-auto summary_url = "https://sal.jet.uk/data/pulse/83373/ppf/signal/jetppf/magn/ipla?object=summary";
-auto full_url = "https://sal.jet.uk/data/pulse/83373/ppf/signal/jetppf/magn/ipla?object=full";
 
 
 TEST_CASE("Tree-node leaf object", "[sal::core::Leaf]")
@@ -132,59 +99,4 @@ TEST_CASE("Tree-node data organization", "[sal::core::Branch]")
     // tear down
 }
 
-#include "sal_signal.h"
-TEST_CASE("Signal data class", "[sal::data::Signal]")
-{
-    using namespace sal::dataclass;
-
-    /*
-        SECTION("local encode and decode leaf report")
-        {
-            Signal s;
-            Poco::JSON::Object::Ptr leafJson = s.encode();
-            REQUIRE(bool(leafJson));
-            // leafJson->stringify(cout, 2);
-            // cout << endl;
-            auto obj = leafJson->getObject("object");
-            REQUIRE(obj->getValue<uint64_t>("version") == SAL_API_VERSION);
-            Leaf::Ptr lp = Leaf::decode(leafJson);
-        }
-  */
-    SECTION("decode signal summary from server")
-    {
-        auto json = get_json(summary_url);
-        if (json->has("type")) // get_json() will fail if not within intranet
-        {
-            // json->stringify(cout, 2);
-            // cout << endl;
-            REQUIRE(json->getValue<std::string>("type") == "leaf");
-            Signal<float>::Ptr signal_ptr = Signal<float>::decode(json->getObject("object"));
-            REQUIRE(bool(signal_ptr));
-            REQUIRE(signal_ptr->is_summary());
-
-            // encode_summary() for some classes are not implemented yet, low priority
-            // Poco::JSON::Object::Ptr jobj = signal_ptr->encode();
-            // jobj->stringify(cout, 2);
-            // cout << endl;
-        }
-    }
-
-    SECTION("decode signal full object from server")
-    {
-        auto json = get_json(full_url);
-        if (json->has("object")) // get_json() return empty json if not within intranet
-        {
-            // json->stringify(cout, 2);
-            // cout << endl;
-            REQUIRE(json->getValue<std::string>("type") == "leaf");
-            Signal<float>::Ptr signal_ptr = Signal<float>::decode(json->getObject("object"));
-            REQUIRE(bool(signal_ptr));
-            REQUIRE(!signal_ptr->is_summary());
-
-            Poco::JSON::Object::Ptr jobj = signal_ptr->encode();
-            REQUIRE(bool(jobj));
-            jobj->stringify(cout, 2);
-            cout << endl;
-        }
-    }
-}
+/// https://sal.jet.uk/data/pulse/latest?object=full

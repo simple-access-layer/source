@@ -5,7 +5,7 @@ These tests use a the Catch2 header only c++ test framework: https://github.com/
 #define CATCH_CONFIG_MAIN
 #include "catch.h"
 
-#include "sal.h"
+#include "sal_data.h"
 
 #include <cfloat>
 #include <limits>
