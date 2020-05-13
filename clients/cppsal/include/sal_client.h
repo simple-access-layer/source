@@ -1,8 +1,8 @@
 #pragma once
 
 #include "sal_data.h"
+#include "sal_data_object.h"
 #include "sal_node.h"
-#include "sal_signal.h"
 
 #define USE_POCO_LOGGER 1
 #if USE_POCO_LOGGER

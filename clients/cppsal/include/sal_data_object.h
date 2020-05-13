@@ -30,55 +30,19 @@ namespace sal
         {
         public:
             typedef Poco::SharedPtr<DataObject> Ptr;
-            DataObject(const std::string _class_name, const std::string _group_name = "dataobject")
+            DataObject(const std::string _class_name, const std::string _group_name = "data_object")
                     : Attribute(ATTR_DATA_OBJECT, _class_name, _group_name)
             {
             }
+
             /*
-            bool is_full_object() const
+            DataObject(const Attribute& attr)
+                    : Attribute(ATTR_DATA_OBJECT, _class_name, _group_name)
             {
-                return !m_is_summary;
             }
             */
 
-            template <typename TargetT> typename TargetT::Ptr cast()
-            {
-                return TargetT::decode(m_json);
-            }
-
-            virtual Poco::JSON::Object::Ptr encode() const override
-            {
-                Poco::JSON::Object::Ptr j = encode_summary();
-                // todo: if constant class_type
-                // j->set("status", m_array->encode());
-
-                return j;
-            }
-
-            static DataObject::Ptr decode(const Poco::JSON::Object::Ptr json)
-            {
-                DataObject::Ptr p = new DataObject("data_object");
-                bool is_summary = DataObject::is_summary_object(json);
-                if (is_summary)
-                {
-                    p->m_is_summary = true;
-                }
-                else
-                {
-                    p->m_is_summary = false;
-                    try
-                    {
-                        decode_content(json, p);
-                    }
-                    catch (std::exception& e)
-                    {
-                        SAL_REPORT_DECODE_ERROR(e, json);
-                    }
-                }
-                p->m_json = json;
-                return p;
-            }
-
+            /// @{
             /// NOTE:
             // data class filed should be `get()` into Signal class or Dictionary Attribute class
             // code duplication, leave contains only one object::Dictionary instance
@@ -106,9 +70,10 @@ namespace sal
             {
                 this->attributes.erase(key);
             };
+            /// @}
 
 
-
+            /// @{ getter for metadata attributes
             inline const std::string& description() const noexcept
             {
                 if (m_description.size())
@@ -142,16 +107,26 @@ namespace sal
                     return m_type_name;
                 }
             }
+            /// @}
 
-            static bool is_summary_object(const Poco::JSON::Object::Ptr j)
+            static bool is_summary_content(const Poco::JSON::Object::Ptr j)
             {
                 auto obj_type = String::decode(j->getObject("_type"))->value();
                 return obj_type == "summary";
             }
-            static bool is_full_object(const Poco::JSON::Object::Ptr j)
+            static bool is_full_content(const Poco::JSON::Object::Ptr j)
             {
                 auto obj_type = String::decode(j->getObject("_type"))->value();
                 return obj_type == "object";
+            }
+            static bool is_data_object(const Poco::JSON::Object::Ptr j)
+            {
+                if (j->has("type"))
+                {
+                    auto t = j->getValue<std::string>("type");
+                    return t == "branch";
+                }
+                return false;
             }
             static std::string parse_class_name(const Poco::JSON::Object::Ptr j)
             {
@@ -161,17 +136,84 @@ namespace sal
             /// core.dataclass._new_dict() with common header info (metadata)
             /// however, Atomic/Scalar Attribute types does not have these metadata
             virtual Poco::JSON::Object::Ptr encode_metadata(bool _is_summary = false) const;
-            static Poco::JSON::Object::Ptr wrap_payload(const Poco::JSON::Object::Ptr j);
-
-            /*
-            Attempts to decode a JSON object into the specified SAL object.
-            Returns null pointer if cast is invalid.
-            */
-            template <class T> typename T::Ptr decode_object_as(const Poco::JSON::Object::Ptr json)
+            static Poco::JSON::Object::Ptr wrap_payload(const Poco::JSON::Object::Ptr j)
             {
-                // todo: type matching validation
-                return T::decode(json);
-            };
+                Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
+                json->set("type", "branch");
+                json->set("value", j);
+                return json;
+            }
+            static Poco::JSON::Object::Ptr unwrap_payload(const Poco::JSON::Object::Ptr j)
+            {
+                if (j->has("object")) // root of sub-data-object, returned from get(), type == "leaf"
+                    return j->getObject("object");
+                if (j->has("value")) // sub-data-object, type == "branch"
+                    return j->getObject("value");
+                else
+                {
+                    throw SALException(
+                        "`value` or `object` key is not found in json to retrive payload (object content)");
+                }
+            }
+
+            inline bool is_full_object() const
+            {
+                return !m_is_summary;
+            }
+
+
+            virtual Poco::JSON::Object::Ptr encode_summary() const override
+            {
+                Poco::JSON::Object::Ptr j = encode_metadata(true);
+                for (const auto& it : attributes)
+                {
+                    j->set(it.first, it.second->encode_summary());
+                }
+                return DataObject::wrap_payload(j);
+            }
+            virtual Poco::JSON::Object::Ptr encode() const override
+            {
+                Poco::JSON::Object::Ptr j = encode_metadata();
+                for (const auto& it : attributes)
+                {
+                    j->set(it.first, it.second->encode());
+                }
+                return DataObject::wrap_payload(j);
+            }
+
+            /// decode the raw json into another type
+            /// data type has not been registered as in python, downcast check is not available
+            template <typename TargetT> typename TargetT::Ptr cast()
+            {
+                return TargetT::decode(m_json);
+            }
+            static DataObject::Ptr decode(const Poco::JSON::Object::Ptr j)
+            {
+                const Poco::JSON::Object::Ptr json = DataObject::unwrap_payload(json);
+                DataObject::Ptr p = new DataObject("data_object");
+                DataObject::decode_metadata(json, p);
+                bool is_summary = DataObject::is_summary_content(json);
+                if (is_summary)
+                {
+                    p->m_is_summary = true; // todo: check any difference in decoding
+                }
+                else
+                {
+                    p->m_is_summary = false;
+                }
+                try
+                {
+                    decode_content(json, p);
+                }
+                catch (std::exception& e)
+                {
+                    SAL_REPORT_DECODE_ERROR(e, json);
+                }
+                // a new key: URL may has been injected
+                // keep the pointer to json data to cast to user type later
+                p->m_json = json;
+                return p;
+            }
 
             // meta data and description have been constructed as member variable
             // consider move all meta data into a Dictionary data object
@@ -202,8 +244,16 @@ namespace sal
                     if (!json->isObject(*key))
                         throw SALException("all valid attributes must be JSON object not number or std::string");
 
-                    // dispatch object to the appropriate decoder and add to container
-                    obj->set(*key, sal::object::decode(json->getObject(*key)));
+                    /// dispatch object to the appropriate decoder and add to container
+                    auto item_json = json->getObject(*key);
+                    if (is_data_object(item_json))
+                    {
+                        obj->set(*key, decode(item_json));
+                    }
+                    else
+                    {
+                        obj->set(*key, sal::object::decode(item_json));
+                    }
                 }
 
                 // remove extracted meta data in the for loop
@@ -224,13 +274,6 @@ namespace sal
             std::map<std::string, Attribute::Ptr> attributes;
         };
 
-        Poco::JSON::Object::Ptr DataObject::wrap_payload(const Poco::JSON::Object::Ptr j)
-        {
-            Poco::JSON::Object::Ptr json = new Poco::JSON::Object();
-            json->set("type", "branch");
-            json->set("value", j);
-            return json;
-        }
         Poco::JSON::Object::Ptr DataObject::encode_metadata(bool _is_summary) const
         {
             /// constant members from python DataObject ReportSummary
@@ -270,6 +313,16 @@ namespace sal
         {
             return false;
         }
+
+        /*
+        Attempts to decode a JSON object into the specified SAL object.
+        Returns null pointer if cast is invalid.
+        */
+        template <class T> typename T::Ptr decode_object_as(const Poco::JSON::Object::Ptr json)
+        {
+            // todo: type matching validation
+            return T::decode(json);
+        };
 
     } // namespace dataclass
 
