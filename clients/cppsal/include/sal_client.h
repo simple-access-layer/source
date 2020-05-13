@@ -6,10 +6,12 @@
 
 #define USE_POCO_LOGGER 1
 #if USE_POCO_LOGGER
+#include "Poco/AutoPtr.h"
 #include "Poco/ConsoleChannel.h"
-#include "Poco/FileChannel.h"
+#include "Poco/FormattingChannel.h"
 #include "Poco/Logger.h"
-
+#include "Poco/PatternFormatter.h"
+#include "Poco/SimpleFileChannel.h"
 #endif
 
 #include "Poco/Net/HTTPRequest.h"
@@ -19,13 +21,14 @@
 #include "Poco/URI.h"
 #include "Poco/UTF8String.h"
 
+using namespace std; // todo: remove this later
+
 namespace sal
 {
-    using namespace std; // todo: remove this later
     using namespace exception;
+    using namespace dataclass;
 
-
-    uint32_t SUPPORTED_API_VERSION = 2;
+    uint32_t SUPPORTED_API_VERSION = 2; // why version ?
 
     /// Todo: authentication is not implemented
 
@@ -51,7 +54,11 @@ namespace sal
 
             // set and inspect host
             this->set_host(host);
+            // Poco logging setup
+#if USE_POCO_LOGGER
             this->m_log_filename = "sal_client.log";
+            setup_logger();
+#endif
         };
 
         virtual ~Client(){};
@@ -61,6 +68,24 @@ namespace sal
         {
             return Poco::Logger::get(m_log_filename);
         }
+
+        void setup_logger()
+        {
+#if 0 // nondebug
+            Poco::AutoPtr<Poco::SimpleFileChannel> pChannel(new Poco::SimpleFileChannel);
+            pChannel->setProperty("path", "sal_client.log");
+            pChannel->setProperty("rotation", "20 K");
+            Poco::Logger::root().setChannel(pChannel);
+            logger().setLevel("information");
+#else
+            Poco::AutoPtr<Poco::ConsoleChannel> pCons(new Poco::ConsoleChannel);
+            Poco::AutoPtr<Poco::PatternFormatter> pPF(new Poco::PatternFormatter);
+            pPF->setProperty("pattern", "%Y-%m-%d %H:%M:%S %s: %t");
+            Poco::AutoPtr<Poco::FormattingChannel> pFC(new Poco::FormattingChannel(pPF, pCons));
+            Poco::Logger::root().setChannel(pFC);
+            logger().setLevel("debug");
+#endif
+        }
 #endif
         const string get_host() const
         {
@@ -68,7 +93,6 @@ namespace sal
         };
         void set_host(const string host)
         {
-
             bool auth_required;
             Poco::URI uri = Poco::URI(host);
 
@@ -86,7 +110,7 @@ namespace sal
                 }
                 Poco::JSON::Object::Ptr api = json->getObject("api");
                 uint32_t version = api->getValue<uint32_t>("version");
-                if (version != SUPPORTED_API_VERSION)
+                if (version > SUPPORTED_API_VERSION)
                 {
                     std::string msg = "The server is using a newer API than the client please update your client API";
                     throw exception::SALException(msg.c_str());
@@ -156,7 +180,7 @@ namespace sal
 
         /// deserialized into Signal or Dictionary data attribute/object
         /// `obj = sal.get(path, summary=False)`
-        object::Attribute::Ptr get(const string path, bool summary = false) const
+        DataObject::Ptr get(const string path, bool summary = false) const
         {
             // TODO: convert sal path to uri, URI validation
             string sal_path = path;
@@ -165,14 +189,15 @@ namespace sal
             if (summary)
                 std::string query = "?object=summary";
             Poco::URI node_uri(this->m_data_uri, sal_path + query);
+
 #if USE_POCO_LOGGER
-            logger().debug(node_uri.toString());
+            logger().debug("GET: " + node_uri.toString());
 #endif
             Poco::JSON::Object::Ptr obj = this->make_get_request(node_uri);
 
             obj->stringify(cout, 2); // debugging output
-
-            return object::decode(obj);
+            // check type is "leaf"
+            return DataObject::decode(obj->getObject("object")); // now bug is here decode
         };
 
         // if data type has been knowned from list(), directly cast to type
@@ -257,12 +282,14 @@ namespace sal
             // open http or https session
             SharedPtr<HTTPClientSession> session = this->open_session(uri);
 
-            // redirect empty path to root
-            string path = uri.getPathEtc();
+            // redirect empty path to data root
+            string path = uri.toString(); // getPathEtc();
+            std::cout << "url to visit :" << path << std::endl;
             if (path.empty())
-                path = "/";
+                path = this->m_data_uri.toString();
 
             // make request
+            logger().log(path);
             HTTPRequest request(HTTPRequest::HTTP_GET, path, HTTPMessage::HTTP_1_1);
             session->sendRequest(request);
             // todo: handle errors: NodeNotFound
@@ -276,7 +303,8 @@ namespace sal
             return parser.parse(json).extract<Poco::JSON::Object::Ptr>();
         };
 
-        /// handle different situation
+        /// handle different situation according to HTTP status codes
+        // https://www.restapitutorial.com/httpstatuscodes.html
         bool check_response_status(const Poco::Net::HTTPResponse& res) const
         {
             using namespace Poco::Net;
@@ -288,9 +316,13 @@ namespace sal
             {
                 logger().error("permission error " + res.getReason());
             }
-            else if (status == HTTPResponse::HTTPStatus::HTTP_OK)
+            else if (status == HTTPResponse::HTTPStatus::HTTP_NOT_FOUND)
             {
-                logger().error("server is not found, please check url" + res.getReason());
+                logger().error("request content is not found, please check url" + res.getReason());
+            }
+            else if (status == HTTPResponse::HTTPStatus::HTTP_BAD_REQUEST)
+            {
+                logger().error("bad request, please check url " + res.getReason());
             }
             else
             {

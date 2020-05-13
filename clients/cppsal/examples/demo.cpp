@@ -1,124 +1,78 @@
 
-#include <stdint.h>
 #include <float.h>
+#include <stdint.h>
 //#include <stdarg.h>
-#include <vector>
-#include <string>
-#include <map>
-#include <iostream>
-#include <sstream>
-#include <initializer_list>
 #include <array>
+#include <initializer_list>
+#include <iostream>
+#include <map>
+#include <sstream>
+#include <string>
+#include <vector>
 
-#include "Poco/JSON/Object.h"
-#include "Poco/JSON/Parser.h"
 #include "Poco/Dynamic/Var.h"
 #include "Poco/Exception.h"
-#include "Poco/Net/HTTPSClientSession.h"
+#include "Poco/JSON/Object.h"
+#include "Poco/JSON/Parser.h"
 #include "Poco/Net/HTTPRequest.h"
 #include "Poco/Net/HTTPResponse.h"
-#include "Poco/JSON/Parser.h"
-#include "Poco/URI.h"
+#include "Poco/Net/HTTPSClientSession.h"
 #include "Poco/StreamCopier.h"
+#include "Poco/URI.h"
 
 #include "sal.h"
 
-using Poco::Net::HTTPSClientSession;
+using Poco::StreamCopier;
+using Poco::URI;
+using Poco::Net::HTTPMessage;
 using Poco::Net::HTTPRequest;
 using Poco::Net::HTTPResponse;
-using Poco::Net::HTTPMessage;
-using Poco::URI;
-using Poco::StreamCopier;
+using Poco::Net::HTTPSClientSession;
 
-using namespace std;
+
 using namespace sal::object;
 
-int main(int argc, char **argvstring) {
+// todo:  this demo should follow sal python tutorial as possible
+// url:
+
+int main(int argc, char** argvstring)
+{
 
     sal::Client sal("https://sal.jet.uk");
-//    sal::Client sal("http://cnlpepper.net");
-    cout << sal.get_host() << endl;
-    cout << sal.is_auth_required() << endl;
+    // could be also dev test server to test data modification on server
+    // sal::Client sal("http://cnlpepper.net");
 
-    sal.authenticate("lkjlkj", "lkjlkj");
+    std::cout << "SAL host: " << sal.get_host() << endl;
+    std::cout << "Is auth required? " << (sal.is_auth_required() ? "Yes" : "No") << std::endl;
 
-    sal.get("pulse/latest?object=full");
-    sal.get("pulse/87738/ppf/signal/jetppf/magn/ipla?object=summary");
-//    sal.get("/data/pulse/87738/ppf/signal/jetppf/magn/ipla?object=full");
+    sal.authenticate("lkjlkj", "lkjlkj"); // todo: not yet done on server side?
 
-//    sal.verify_https_cert = false;
-//    sal.set_host("https://sal-dev.jet.uk/");
+    auto j = sal.get("pulse/latest"); // by default, get the full object
+    // what if get url is branch, not leaf?
+    if (!j) // if any error happened, nullptr will be returned
+    {
+        return EXIT_FAILURE;
+    }
+    // parse an uint64 pulse number,  decode_scalar()
 
+    //    sal.verify_https_cert = false;
+    //    sal.set_host("https://sal-dev.jet.uk/");
+
+    // demo sal.list(branch_path)
+    // auto b = sal.get("pulse/87738/ppf/signal/jetppf/magn")
+
+    auto s = sal.get("pulse/87738/ppf/signal/jetppf/magn/ipla?object=summary");
+    //    sal.get("/data/pulse/87738/ppf/signal/jetppf/magn/ipla?object=full");
+    // https://sal.jet.uk/data/pulse/latest?object=full
+
+    // get a full object, and decode as a general DataObject (key-attribute dict)
+
+    // is there any way to detect the template parameter? float or double
+    // get the full object , decode as Signal<float>
+
+    // STL iterator and algorithm demo on Array<T> max()
+
+    // optional: using Array<T> as EigenMatrix
 
     exit(0);
-
-//
-//
-//
-//
-//    // connect and setup request
-//    URI uri("https://sal-dev.jet.uk/data/pulse/87737/ppf/signal/jetppf/magn/ipla?object=full");
-////    URI uri("https://sal.jet.uk/data/pulse/latest?object=full");
-//    cout << "SCHEME: " << uri.getScheme() << endl;
-//    HTTPSClientSession session(uri.getHost(), uri.getPort());
-//    HTTPRequest request(HTTPRequest::HTTP_GET, uri.getPathEtc(), HTTPMessage::HTTP_1_1);
-//    HTTPResponse response;
-//
-//    // print request
-////    request.write(std::cout);
-//
-//    // make request
-//    session.sendRequest(request);
-//
-//    // convert response to a string
-//    string json;
-//    StreamCopier::copyToString(session.receiveResponse(response), json);
-//    cout << json << endl;
-//
-//    if (response.getStatus() != Poco::Net::HTTPResponse::HTTP_OK) throw sal::exception::SALException();
-//
-//    Poco::JSON::Parser parser;
-//    Poco::Dynamic::Var decoded = parser.parse(json);
-//    Poco::JSON::Object::Ptr obj = decoded.extract<Poco::JSON::Object::Ptr>();
-//
-//    Poco::JSON::Object::Ptr content = obj->getObject("object");
-//    content->stringify(cout, 2);
-//    cout << endl;
-//
-//    sal::node::Leaf::Ptr leaf = sal::node::Leaf::decode(content);
-//
-//    cout << leaf->cls << endl;
-//    cout << leaf->has("description") << endl;
-//    cout << leaf->get_as<String>("description")->value << endl;
-////    cout << leaf->get_as<UInt64>("value")->value << endl;
-//    cout << leaf->get("description").cast<String>()->value << endl;
-////    cout << leaf->get_as<Branch>("dimensions")->get_as<Branch>("0")->get_as<String>("description")->value << endl;
-
-
-
-// -------------------JUNK
-
-//    sal::StringArray sa;
-//    sa.data.
-
-//
-//    sal::Client client("https://sal.jet.uk");
-//    sal::Report rpt = client.list("/pulse/87737/ppf/signal/jetppf/magn/ipla"); // USE c++11 move symantics
-//    sal::Object obj = client.get("/pulse/87737/ppf/signal/jetppf/magn/ipla", false);  // USE c++11 move symantics
-//
-//    if (rpt.is_leaf()) {
-//        // blah
-//    } else if {
-//        // blah
-//    }
-//
-//    cout << "Object type: " << obj.type() << endl;
-//
-//    int n;
-//    cin >> n;
-//
-//    for (int j=0;j<n;j++) {
-//        get({j,2,3,4,5});
-//    }
-
 }
