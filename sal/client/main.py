@@ -177,12 +177,7 @@ class SALClient:
         """
 
         # request server information from server root
-        try:
-            response = requests.get(url, verify=self.verify_https_cert)
-        except requests.exceptions.SSLError:
-            raise ConnectionError('The host\'s HTTPS certificate is invalid, please contact the server admin.')
-        except requests.ConnectionError:
-            raise ConnectionError('Could not connect to the specified host: \'{}\''.format(url))
+        response = self._make_get_request(url)
 
         # parse response
         try:
@@ -353,13 +348,7 @@ class SALClient:
         :param password: Password string.
         """
 
-        try:
-            response = requests.get(_AUTH_URL.format(host=self.host), auth=(user, password), verify=self.verify_https_cert)
-        except requests.exceptions.SSLError:
-            raise ConnectionError('The host\'s HTTPS certificate is invalid, please contact the server admin.')
-        except requests.ConnectionError:
-            raise ConnectionError('The server did not respond ({}).'.format(self.host))
-        self._validate_response(response, 200)
+        response = self._make_get_request(_AUTH_URL.format(host=self.host), auth=(user, password))
 
         # extract authentication token
         content = response.json()
@@ -537,7 +526,7 @@ class SALClient:
         )
         self._make_post_request(url)
 
-    def _make_get_request(self, url, valid_code=200):
+    def _make_get_request(self, url, valid_code=200, **kwargs):
         """
         Makes a get request and handles errors.
 
@@ -546,9 +535,9 @@ class SALClient:
         :return: A response object.
         """
 
-        return self._make_request(requests.get, url, valid_code=valid_code)
+        return self._make_request(requests.get, url, valid_code=valid_code, **kwargs)
 
-    def _make_post_request(self, url, payload=None, valid_code=204):
+    def _make_post_request(self, url, payload=None, valid_code=204, **kwargs):
         """
         Makes a post request and handles errors.
 
@@ -557,9 +546,9 @@ class SALClient:
         :param valid_code: HTTP return code of a valid response (default=204).
         """
 
-        return self._make_request(requests.post, url, valid_code=valid_code, json=payload)
+        return self._make_request(requests.post, url, valid_code=valid_code, json=payload, **kwargs)
 
-    def _make_delete_request(self, url, valid_code=204):
+    def _make_delete_request(self, url, valid_code=204, **kwargs):
         """
         Makes a delete request and handles errors.
 
@@ -567,7 +556,7 @@ class SALClient:
         :param valid_code: HTTP return code of a valid response (default=204).
         """
 
-        return self._make_request(requests.delete, url, valid_code=valid_code)
+        return self._make_request(requests.delete, url, valid_code=valid_code, **kwargs)
 
     def _make_request(self, method, url, *args, valid_code=200, **kwargs):
         """
@@ -582,6 +571,19 @@ class SALClient:
         :param valid_code: HTTP return code of a valid response (default=200).
         :return: A response object.
         """
+
+        def _get_response(url, *args, **kwargs):
+            # disable warnings unless enabled at python command line
+            # added to prevent SSL cert warnings being output by requests when the user permits invalid SSL certificates
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                try:
+                    response = method(url, *args, verify=self.verify_https_cert, **kwargs)
+                except requests.exceptions.SSLError:
+                    raise ConnectionError('The host\'s HTTPS certificate is invalid, please contact the server admin.')
+                except requests.exceptions.RequestException:
+                    raise ConnectionError('The server did not respond ({}).'.format(self._host))
+            return response
 
         if self.auth_required:
 
@@ -600,12 +602,7 @@ class SALClient:
 
                 # attempt request
                 headers = {'Authorization': 'Bearer {}'.format(self.auth_token)}
-                try:
-                    response = method(url, *args, headers=headers, verify=self.verify_https_cert, **kwargs)
-                except requests.exceptions.SSLError:
-                    raise ConnectionError('The host\'s HTTPS certificate is invalid, please contact the server admin.')
-                except requests.exceptions.RequestException:
-                    raise ConnectionError('The server did not respond ({}).'.format(self._host))
+                response = _get_response(url, *args, headers=headers, **kwargs)
 
                 # did the request fail due to an expired token?
                 if response.status_code == 401:
@@ -624,13 +621,7 @@ class SALClient:
         else:
 
             # no authentication handling
-            try:
-                response = method(url, *args, verify=self.verify_https_cert, **kwargs)
-            except requests.exceptions.SSLError:
-                raise ConnectionError('The host\'s HTTPS certificate is invalid, please contact the server admin.')
-            except requests.exceptions.RequestException:
-                raise ConnectionError('The server did not respond ({}).'.format(self._host))
-            self._validate_response(response, valid_code)
+            response = _get_response(url, *args, **kwargs)
             return response
 
     @staticmethod
@@ -682,4 +673,3 @@ class SALClient:
         except (ValueError, KeyError):
             # catch all for unrecognised errors
             raise exception.InternalError(message='An unidentified error has occurred, please contact your system administrator.')
-
