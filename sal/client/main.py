@@ -617,6 +617,7 @@ class SALClient:
 
             # no authentication handling
             response = _get_response(url, *args, **kwargs)
+            self._validate_response(response, valid_code)
             return response
 
     @staticmethod
