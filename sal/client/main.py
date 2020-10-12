@@ -17,11 +17,6 @@ from sal.core import exception
 from sal.core.version import VERSION
 from sal.dataclass import *
 
-# disable warnings unless enabled at python command line
-# added to prevent SSL cert warnings being output by requests when the user permits invalid SSL certificates
-if not sys.warnoptions:
-    warnings.simplefilter("ignore")
-
 __all__ = ['SALClient']
 
 # Supported API version.
