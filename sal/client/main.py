@@ -341,7 +341,7 @@ class SALClient:
         c.remove_section(self.host)
 
         # write tokens, creating file/folder if not present
-        os.makedirs(os.path.dirname(_AUTH_TOKEN_CACHE), exist_ok=True)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as f:
             c.write(f)
 
