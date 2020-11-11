@@ -343,7 +343,9 @@ class SALClient:
         :param password: Password string.
         """
 
-        response = self._make_get_request(_AUTH_URL.format(host=self.host), auth=(user, password))
+        response = self._get_response(requests.get,
+                                      _AUTH_URL.format(host=self.host),
+                                      auth=(user, password))
 
         # extract authentication token
         content = response.json()
@@ -567,19 +569,6 @@ class SALClient:
         :return: A response object.
         """
 
-        def _get_response(url, *args, **kwargs):
-            # disable warnings unless enabled at python command line
-            # added to prevent SSL cert warnings being output by requests when the user permits invalid SSL certificates
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore')
-                try:
-                    response = method(url, *args, verify=self.verify_https_cert, **kwargs)
-                except requests.exceptions.SSLError:
-                    raise ConnectionError('The host\'s HTTPS certificate is invalid, please contact the server admin.')
-                except requests.exceptions.RequestException:
-                    raise ConnectionError('The server did not respond ({}).'.format(self._host))
-            return response
-
         if self.auth_required:
 
             # handle authentication
@@ -597,7 +586,8 @@ class SALClient:
 
                 # attempt request
                 headers = {'Authorization': 'Bearer {}'.format(self.auth_token)}
-                response = _get_response(url, *args, headers=headers, **kwargs)
+                response = self._get_response(method, url, *args,
+                                             headers=headers, **kwargs)
 
                 # did the request fail due to an expired token?
                 if response.status_code == 401:
@@ -616,9 +606,22 @@ class SALClient:
         else:
 
             # no authentication handling
-            response = _get_response(url, *args, **kwargs)
+            response = self._get_response(method, url, *args, **kwargs)
             self._validate_response(response, valid_code)
             return response
+
+    def _get_response(self, method, url, *args, **kwargs):
+        # disable warnings unless enabled at python command line
+        # added to prevent SSL cert warnings being output by requests when the user permits invalid SSL certificates
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            try:
+                response = method(url, *args, verify=self.verify_https_cert, **kwargs)
+            except requests.exceptions.SSLError:
+                raise ConnectionError('The host\'s HTTPS certificate is invalid, please contact the server admin.')
+            except requests.exceptions.RequestException:
+                raise ConnectionError('The server did not respond ({}).'.format(self._host))
+        return response
 
     @staticmethod
     def _is_valid_url(urlstring):
