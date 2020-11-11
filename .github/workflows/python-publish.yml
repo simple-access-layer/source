@@ -29,9 +29,9 @@ jobs:
         TWINE_PASSWORD: ${{ secrets.PYPI_TEST_PASSWORD }}
       run: |
         twine upload --repository testpypi dist/*
-    # - name: Publish
-    #   env:
-    #     TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-    #     TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-    #   run: |
-    #     twine upload dist/*
+    - name: Publish
+      env:
+        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+        twine upload dist/*
