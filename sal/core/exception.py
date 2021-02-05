@@ -1,3 +1,5 @@
+from werkzeug.exceptions import HTTPException
+
 # base exception
 class SALException(Exception):
 
@@ -9,34 +11,56 @@ class SALException(Exception):
         message = message if message else self.message
         super().__init__(message, *args, **kwargs)
 
+class SALHTTPException(HTTPException, SALException):
+
+    """
+    Base SAL specific HTTP exception
+    
+    Inherits from ``HTTPException`` first as we want it to use that `__init__`
+
+    Inheriting from both means it will be caught if either ``HTTPException`` or
+    ``SALException``
+
+    Inheriting from ``HTTPException`` means it will have an associated status
+    code (`code`) which can be handled by Flask
+    """
+
+    pass
 
 # server side exceptions
-class InvalidPath(SALException):
-    message = 'Path does not conform to path specification.'
+class InvalidPath(SALHTTPException):
+    code = 404
+    description = 'Path does not conform to path specification.'
 
 
 class NodeNotFound(SALException):
-    message = 'The supplied path does not point to a valid node.'
+    code = 404
+    description = 'The supplied path does not point to a valid node.'
 
 
 class UnsupportedOperation(SALException):
-    message = 'Operation is not supported.'
+    code = 500
+    description = 'Operation is not supported.'
 
 
 class InvalidRequest(SALException):
-    message = 'The request sent to the server could not be handled.'
+    code = 400
+    description = 'The request sent to the server could not be handled.'
 
 
 class AuthenticationFailed(SALException):
-    message = 'Valid authorisation credentials were not supplied.'
+    code = 401
+    description = 'Valid authorisation credentials were not supplied.'
 
 
 class PermissionDenied(SALException):
-    message = 'The user does not have permission to perform this operation.'
+    code = 403
+    description = 'The user does not have permission to perform this operation.'
 
 
 class InternalError(SALException):
-    message = 'An error occurred affecting server operation. Please contact your administrator.'
+    code = 500
+    description = 'An error occurred affecting server operation. Please contact your administrator.'
 
 
 # client side exceptions
