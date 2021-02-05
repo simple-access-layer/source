@@ -46,25 +46,24 @@ def mock_server(mock_persistence_provider):
 #     import pdb; pdb.set_trace()
 #     assert isinstance(mock_server, SALServer)
 
-
 @given(content=st.dictionaries(keys=st.text(),
                                values=st.floats() | st.text() | st.booleans(),
                                min_size=0, max_size=3),
        revision=st.integers(min_value=0))
-def test_get_report(content, revision, mock_server, mock_persistence_provider):
+def test_data_tree_get_report(content, revision, mock_server,
+                             mock_persistence_provider):
 
     """
-    Tests that a DataTree corretcly calls a PersistenceProvider for a report 
+    Tests that a DataTree correctly calls a PersistenceProvider for a report 
 
     GIVEN
         A request with a URL path
-        AND a DataTree with a PersistenceProvider (with a defined return)
         AND a revision query where the revision is an int
         AND No object query
     WHEN
-        The DataTree gets from the path 
+        The DataTree gets from the path
     THEN
-        The Datatree gets the content of the path from the PersistenceProvider
+        A report of the path is retrieved (from the PersistenceProvider)
     """
 
     path = 'this/is/the/path'
@@ -83,3 +82,61 @@ def test_get_report(content, revision, mock_server, mock_persistence_provider):
     # hypothesis examples. Reset will ensure the assert_called_with is valid. 
     mock_persistence_provider.reset_mock()
     assert list_out == expected
+
+
+def test_data_tree_get_object():
+
+    """
+    Tests that a DataTree correctly calls a PersistenceProvider for an object 
+
+    GIVEN
+        A request with a URL path
+        AND a request with a query with revision=int
+        AND a request with a query with object="full" or object="summary" 
+    WHEN
+        The DataTree gets from the path
+    THEN
+        A object (full or summary) from the path is retrieved (from the
+        PersistenceProvider)
+    """
+
+    pass
+
+
+def test_data_tree_post_object():
+
+    """
+    Tests that a DataTree correctly puts an object to a path using a
+    PersistenceProvider 
+
+    GIVEN
+        A request with a URL path
+        AND a request with JSON content
+    WHEN
+        The DataTree posts to the path
+    THEN
+        The Datatree puts the JSON content onto the PersistenceProvider at the
+        path
+    """
+
+    pass
+
+
+def test_data_tree_copy_object():
+
+    """
+    Tests that a DataTree correctly copies an object from one path to another
+    path using a PersistenceProvider 
+
+    GIVEN
+        A request with a URL path
+        AND a request with a query with a source=path
+        AND a request with a query with source_revision=int
+    WHEN
+        The DataTree posts to the path
+    THEN
+        The Datatree copies the content from the PersistenceProvider source
+        path to the PersistenceProvider path
+    """
+
+    pass    
