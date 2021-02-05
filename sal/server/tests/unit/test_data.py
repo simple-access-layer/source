@@ -22,6 +22,10 @@ def mock_persistence_provider():
     # pp.list = lambda path, group=None: {'path':path, "group":group}
     return pp 
 
+# Module scope is required so that pytest plays nicely with hypothesis
+# hypothesis has the issue that each example on a test function isn't treated
+# as a separate event for any fixtures (i.e., the fixtures aren't rebuilt for
+# each example), so errors if the fixture has function scope
 @pytest.fixture(scope='module')
 def mock_server(mock_persistence_provider):
     """
@@ -43,23 +47,39 @@ def mock_server(mock_persistence_provider):
 #     assert isinstance(mock_server, SALServer)
 
 
-@given(data=st.dictionaries(keys=st.text(),
-                            values=st.floats() | st.text() | st.booleans(),
-                            min_size=0, max_size=3),
+@given(content=st.dictionaries(keys=st.text(),
+                               values=st.floats() | st.text() | st.booleans(),
+                               min_size=0, max_size=3),
        revision=st.integers(min_value=0))
-# @example(data={},
-#          revision=None)
-def test_data_tree(data, revision, mock_server, mock_persistence_provider):
+def test_get_report(content, revision, mock_server, mock_persistence_provider):
+
+    """
+    Tests that a DataTree corretcly calls a PersistenceProvider for a report 
+
+    GIVEN
+        A request with a URL path
+        AND a DataTree with a PersistenceProvider (with a defined return)
+        AND a revision query where the revision is an int
+        AND No object query
+    WHEN
+        The DataTree gets from the path 
+    THEN
+        The Datatree gets the content of the path from the PersistenceProvider
+    """
 
     path = 'this/is/the/path'
+    expected = {**{'request':{'url':'http://localhost/' + path}}, **content}
     dt = DataTree()
-    with mock_server.test_request_context('/how/about/this'):
+    
+    with mock_server.test_request_context(path=path,
+                                          data={'revision':revision}):
         with patch('sal.server.resource.data.serialise',
-                   return_value=data):
-            a = dt.get(path)
-    print(path)
-    print(mock_persistence_provider.__dict__)
+                   return_value=content):
+            list_out = dt.get(path)
     mock_persistence_provider.list.assert_called_with('/{}:{}'.format(path,
                                                                       revision)
                                                      )
-    # assert a == {**{'request':{'url':'https://localhost/' + path}}, **data}
+    # mock_persistence_provider must be reset, as it maintains state between
+    # hypothesis examples. Reset will ensure the assert_called_with is valid. 
+    mock_persistence_provider.reset_mock()
+    assert list_out == expected
