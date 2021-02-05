@@ -1,8 +1,8 @@
 from flask import Flask
-from flask_restful import Api
 
 from sal.core.version import VERSION as RELEASE_VERSION
 from sal.core import exception
+from sal.server.api import ErrorHandlerApi
 from sal.server.interface import PersistenceProvider, AuthenticationProvider, AuthorisationProvider
 from sal.server.resource import ServerInfo, DataTree, Authenticator
 from sal.dataclass import *
@@ -46,47 +46,8 @@ class SALServer(Flask):
             'API_VERSION': API_VERSION
         }
 
-        # exception handling mapping table
-        error_map = {
-            'InvalidRequest': {
-                'message': exception.InvalidRequest.message,
-                'status': 400,
-                'exception': 'InvalidRequest'
-            },
-            'AuthenticationFailed': {
-                'message': exception.AuthenticationFailed.message,
-                'status': 401,
-                'exception': 'AuthenticationFailed'
-            },
-            'PermissionDenied': {
-                'message': exception.PermissionDenied.message,
-                'status': 403,
-                'exception': 'PermissionDenied'
-            },
-            'InvalidPath': {
-                'message': exception.InvalidPath.message,
-                'status': 404,
-                'exception': 'InvalidPath'
-            },
-            'NodeNotFound': {
-                'message': exception.NodeNotFound.message,
-                'status': 404,
-                'exception': 'NodeNotFound'
-            },
-            'UnsupportedOperation': {
-                'message': exception.UnsupportedOperation.message,
-                'status': 500,
-                'exception': 'UnsupportedOperation'
-            },
-            'InternalError': {
-                'message': exception.InternalError.message,
-                'status': 500,
-                'exception': 'InternalError'
-            },
-        }
-
         # build api
-        api = Api(self, errors=error_map)
+        api = ErrorHandlerApi(self)
         api.add_resource(ServerInfo, '/')
         api.add_resource(DataTree, '/data', '/data/', '/data/<path:path>')
         api.add_resource(Authenticator, '/auth', '/auth/')
