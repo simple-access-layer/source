@@ -17,4 +17,4 @@ class ErrorHandlerApi(Api):
         """
 
         return jsonify({"message":str(e),
-                        "class":e.__class__.__name__}), e.code
+                        "exception":e.__class__.__name__}), e.code
