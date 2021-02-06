@@ -16,4 +16,5 @@ class ErrorHandlerApi(Api):
         :return: Tuple of JSON equivalent of `e` and its status code
         """
 
-        return jsonify({"message":str(e)}), e.code
+        return jsonify({"message":str(e),
+                        "class":e.__class__.__name__}), e.code
