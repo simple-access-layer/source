@@ -1,0 +1,3 @@
+"""
+Tests server exception responses
+"""
