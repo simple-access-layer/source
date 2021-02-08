@@ -1,20 +1,32 @@
-Simple Access Layer (c) 2018, European Atomic Energy Community (EURATOM)
-
-Simple Access Layer (SAL) has been developed for EURATOM within the framework of JET. It is released as open source software under the European Union Public Licence version 1.2 (EUPL v1.2).
-
-SAL makes use of several dynamically-linked external dependencies, which continue to be subject to the terms and conditions stipulated in the respective licences they have been released under. These external dependencies include the following:
-
-flask: 3-clause BSD License
-flask-restful: 3-clause BSD License
-itsdangerous: 3-clause BSD License
-numpy: 3-clause BSD License
-scipy: 3-clause BSD License
-requests: Apache 2 License	
-ldap3: LGPL v3 License
-matplotlib: custom matplotlib license
-
-SAL makes use of the following font file, which is distributed subject to its respective terms and conditions:
-
-Roboto-Medium: Apache 2 License
-
+Simple Access Layer (c) 2018, European Atomic Energy Community (EURATOM)
+
+
+
+Simple Access Layer (SAL) has been developed for EURATOM within the framework of JET. It is released as open source software under the European Union Public Licence version 1.2 (EUPL v1.2).
+
+
+
+SAL makes use of several dynamically-linked external dependencies, which continue to be subject to the terms and conditions stipulated in the respective licences they have been released under. These external dependencies include the following:
+
+flask: 3-clause BSD License
+
+flask-restful: 3-clause BSD License
+
+itsdangerous: 3-clause BSD License
+
+numpy: 3-clause BSD License
+
+requests: Apache 2 License	
+
+ldap3 (optional dependency): LGPL v3 License
+
+
+SAL makes use of the following font file, which is distributed subject to its respective terms and conditions:
+
+
+
+Roboto-Medium: Apache 2 License
+
+
+
 EURATOM disclaims all liability related to or arising out of the use made by third parties of any external dependencies which may be included or redistributed with or via SAL.

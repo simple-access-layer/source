@@ -1,4 +1,5 @@
-numpy
 flask
 flask-restful
+itsdangerous
+numpy
 requests
