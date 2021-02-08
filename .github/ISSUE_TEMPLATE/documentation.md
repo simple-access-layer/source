@@ -2,7 +2,7 @@
 name: Documentation
 about: Suggest a topic which requires additional documentation
 title: ''
-labels: documentation, PT
+labels: "Documentation, Priority: Triage"
 assignees:
 
 ---
