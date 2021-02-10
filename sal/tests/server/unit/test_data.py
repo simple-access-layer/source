@@ -51,8 +51,7 @@ def test_data_tree_get_report(content, revision, mock_server,
     data = {'revision':revision}
     
     expected = {**{'request':{'url':'http://localhost/' + path}}, **content}
-    call_args = '/{}:{}'.format(path,
-                                                                      revision)
+    call_args = '/{}:{}'.format(path, revision)
     
     with patch('sal.server.resource.data.serialise', return_value=content):
         _check_request(mock_server, 'get', path, expected, data=data)
@@ -84,22 +83,18 @@ def test_data_tree_get_object(content, revision, mock_server,
     """
 
     path = 'this/is/the/path'
+    data = {'revision':revision, 'object':'full'}
+
     expected = {**{'request':{'url':'http://localhost/' + path}}, **content}
-    dt = DataTree()
-    
-    with mock_server.test_request_context(path=path,
-                                          data={'revision':revision,
-                                                'object':'full'}):
-        with patch('sal.server.resource.data.serialise',
-                   return_value=content):
-            get_out = dt.get(path)
-    mock_persistence_provider.get.assert_called_with('/{}:{}'.format(path,
-                                                                     revision),
-                                                     False)
+    call_args = ('/{}:{}'.format(path,revision), False)
+
+    with patch('sal.server.resource.data.serialise', return_value=content):
+        _check_request(mock_server, 'get', path, expected, data=data)
+
+    mock_persistence_provider.get.assert_called_with(*call_args)
     # mock_persistence_provider must be reset, as it maintains state between
     # hypothesis examples. Reset will ensure the assert_called_with is valid. 
     mock_persistence_provider.reset_mock()
-    assert get_out == expected
 
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
@@ -124,22 +119,18 @@ def test_data_tree_get_summary(content, revision, mock_server,
     """
 
     path = 'this/is/the/path'
+    data = {'revision':revision, 'object':'summary'}
+
     expected = {**{'request':{'url':'http://localhost/' + path}}, **content}
-    dt = DataTree()
+    call_args = ('/{}:{}'.format(path, revision), True)
     
-    with mock_server.test_request_context(path=path,
-                                          data={'revision':revision,
-                                                'object':'summary'}):
-        with patch('sal.server.resource.data.serialise',
-                   return_value=content):
-            get_out = dt.get(path)
-    mock_persistence_provider.get.assert_called_with('/{}:{}'.format(path,
-                                                                     revision),
-                                                     True)
+    with patch('sal.server.resource.data.serialise', return_value=content):
+        _check_request(mock_server, 'get', path, expected, data=data)
+    
+    mock_persistence_provider.get.assert_called_with(*call_args)
     # mock_persistence_provider must be reset, as it maintains state between
     # hypothesis examples. Reset will ensure the assert_called_with is valid. 
     mock_persistence_provider.reset_mock()
-    assert get_out == expected
 
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
@@ -230,13 +221,10 @@ def test_data_tree_post_object(mock_server, mock_persistence_provider,
     """
 
     path = 'this/is/the/path'
-    dt = DataTree()
     
-    with mock_server.test_request_context(path=path,
-                                          json=json_content):
-        post_out = dt.post(path)
+    expected = ('', 204)
 
-    assert post_out == ('', 204)
+    _check_request(mock_server, 'post', path, expected, json=json_content)
 
     # Ideally we would use assert_called_with here, however as Branch and
     # DataObject do not implement __eq__, we cannot create an object from
@@ -349,8 +337,8 @@ def test_data_tree_post_report(mock_server, json_content):
 # currently an expected fail
 @pytest.mark.xfail(reason='Known bug when copying using DataTree.post')
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
-@given(s_rev=valid_revisions)
-def test_data_tree_copy_object(s_rev, mock_server,
+@given(source_revision=valid_revisions)
+def test_data_tree_copy_object(source_revision, mock_server,
                                mock_persistence_provider):
 
     """
@@ -369,24 +357,21 @@ def test_data_tree_copy_object(s_rev, mock_server,
     """
 
     path = 'this/is/the/path'
-    s_path = 'this/is/another/path'
-    dt = DataTree()
-    
-    with mock_server.test_request_context(path=path,
-                                          data={'source':s_path,
-                                                'source_revision':s_rev}):
-        post_out = dt.post(path)
+    source_path = 'this/is/another/path'
+    data = {'source':source_path, 'source_revision':source_revision}
 
-    mock_persistence_provider.copy.assert_called_with('/{}'.format(path),
-                                                      '/{}:{}'.format(s_path,
-                                                                      s_rev))
+    expected = ('', 204)
+    call_args = '/{}'.format(path), '/{}:{}'.format(source_path,
+                                                    source_revision)
 
-    assert post_out == ('', 204)
+    _check_request(mock_server, 'post', path, expected, data=data)
+
+    mock_persistence_provider.copy.assert_called_with(call_args)
 
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
-@given(s_rev=invalid_revisions)
-def test_data_tree_copy_invalid_source_revision(s_rev, mock_server,
+@given(source_revision=invalid_revisions)
+def test_data_tree_copy_invalid_source_revision(source_revision, mock_server,
                                                 mock_persistence_provider):
 
     """
@@ -404,8 +389,8 @@ def test_data_tree_copy_invalid_source_revision(s_rev, mock_server,
     """
 
     path = 'this/is/the/path'
-    s_path = 'this/is/another/path'
-    data = {'source':s_path, 'source_revision':s_rev}
+    source_path = 'this/is/another/path'
+    data = {'source':source_path, 'source_revision':source_revision}
     
     _check_raising_request(mock_server, 'post', path, BadRequest, data=data)
 
