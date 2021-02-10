@@ -40,7 +40,7 @@ def test_data_tree_get_report(content, revision, mock_server,
     GIVEN
         A request with a URL path
         AND a revision query where the revision=non-negative int
-        AND No object query
+        AND no object query
     WHEN
         The DataTree gets from the path
     THEN
@@ -48,21 +48,19 @@ def test_data_tree_get_report(content, revision, mock_server,
     """
 
     path = 'this/is/the/path'
-    expected = {**{'request':{'url':'http://localhost/' + path}}, **content}
-    dt = DataTree()
+    data = {'revision':revision}
     
-    with mock_server.test_request_context(path=path,
-                                          data={'revision':revision}):
-        with patch('sal.server.resource.data.serialise',
-                   return_value=content):
-            list_out = dt.get(path)
-    mock_persistence_provider.list.assert_called_with('/{}:{}'.format(path,
+    expected = {**{'request':{'url':'http://localhost/' + path}}, **content}
+    call_args = '/{}:{}'.format(path,
                                                                       revision)
-                                                     )
+    
+    with patch('sal.server.resource.data.serialise', return_value=content):
+        _check_request(mock_server, 'get', path, expected, data=data)
+
+    mock_persistence_provider.list.assert_called_with(call_args)
     # mock_persistence_provider must be reset, as it maintains state between
     # hypothesis examples. Reset will ensure the assert_called_with is valid. 
     mock_persistence_provider.reset_mock()
-    assert list_out == expected
 
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
@@ -165,23 +163,18 @@ def test_data_tree_get_invalid_revision(content, revision, obj, mock_server,
     """
 
     path = 'this/is/the/path'
-    dt = DataTree()
     data = {'revision':revision}
     if obj:
         data['object'] = obj
-    
-    with mock_server.test_request_context(path=path,
-                                          data=data):
-        with patch('sal.server.resource.data.serialise',
-                   return_value=content):
-            with pytest.raises(BadRequest):
-                dt.get(path)
+
+    _check_raising_request(mock_server, 'get', path, BadRequest, data=data)
 
 
-def test_data_tree_invalid_object_query(mock_server):
+def test_data_tree_get_invalid_object_query(mock_server):
 
     """
-    Tests that an exception is raised when the 
+    Tests that an exception is raised when the query argument for object is not
+    'full' or 'summary'
 
     GIVEN
         A request with a URL path
@@ -194,14 +187,9 @@ def test_data_tree_invalid_object_query(mock_server):
     """
 
     path = 'this/is/the/path'
-    revision = 0
-    dt = DataTree()
+    data = {'revision':0, 'object':'invalid'}
     
-    with mock_server.test_request_context(path=path,
-                                          data={'revision':revision,
-                                                'object':'invalid'}):
-        with pytest.raises(BadRequest): 
-            dt.get(path)
+    _check_raising_request(mock_server, 'get', path, BadRequest, data=data)
 
 
 @pytest.mark.parametrize('json_content, cls',
@@ -263,7 +251,7 @@ def test_data_tree_post_object(mock_server, mock_persistence_provider,
 
 
 # Post does not currently raise an exception if a revision is supplied
-@pytest.mark.xfail(reason='Known omitted exception in DataTree.post')
+# @pytest.mark.xfail(reason='Known exception omission in DataTree.post')
 @pytest.mark.parametrize('json_content, cls',
                          [({'content':'object',
                             'type':'branch',
@@ -297,7 +285,7 @@ def test_data_tree_post_object_with_revision(revision, mock_server,
     GIVEN
         A request with a URL path
         AND a request with JSON content describing a branch or data object
-        AND a request with a revision=int
+        AND a request with a revision=non-negative int
     WHEN
         The DataTree posts to the path
     THEN
@@ -306,12 +294,9 @@ def test_data_tree_post_object_with_revision(revision, mock_server,
 
     path = 'this/is/the/path'
     json_content['revision'] = revision
-    dt = DataTree()
-    
-    with mock_server.test_request_context(path=path,
-                                          json=json_content):
-        with pytest.raises(BadRequest):
-            dt.post(path)
+
+    _check_raising_request(mock_server, 'post', path, BadRequest,
+                           json=json_content)
 
 
 # Post currently has a bug which means that the exception is returned rather
@@ -354,12 +339,9 @@ def test_data_tree_post_report(mock_server, json_content):
     """
 
     path = 'this/is/the/path'
-    dt = DataTree()
-    
-    with mock_server.test_request_context(path=path,
-                                          json=json_content):
-        with pytest.raises(InvalidRequest):
-            dt.post(path)
+
+    _check_raising_request(mock_server, 'post', path, InvalidRequest,
+                           json=json_content)
 
 
 # Post currently has a bug which passes a different path format for the source
@@ -423,10 +405,48 @@ def test_data_tree_copy_invalid_source_revision(s_rev, mock_server,
 
     path = 'this/is/the/path'
     s_path = 'this/is/another/path'
-    dt = DataTree()
+    data = {'source':s_path, 'source_revision':s_rev}
     
-    with mock_server.test_request_context(path=path,
-                                          data={'source':s_path,
-                                                'source_revision':s_rev}):
-        with pytest.raises(BadRequest):
-            dt.post(path)
+    _check_raising_request(mock_server, 'post', path, BadRequest, data=data)
+
+
+def _check_request(server, http_method, path, expected, **kwargs):
+
+    """
+    Makes a request and checks that the return is as expected
+
+    :param server: The sal.server.SALServer used for the test
+    :param http_method: The (str) http method being used (e.g. 'get', 'post') 
+    :param path: The (str) path of the request
+    :param expected: The expected output from the request
+    
+    **kwargs Can be one or more dict to be passed to the request context e.g.
+    `data` or `json`    
+    """
+
+    dt = DataTree()    
+    with server.test_request_context(path=path, **kwargs):
+            out = getattr(dt, http_method)(path) 
+    assert out == expected
+
+
+def _check_raising_request(server, http_method, path, e_cls, **kwargs):
+
+    """
+    Function where the combination of parameters is expected to raise a
+    BadRequest, which is tested pytest.raises
+
+    :param server: The sal.server.SALServer used for the test
+    :param http_method: The (str) http method being used (e.g. 'get', 'post') 
+    :param path: The (str) path of the request
+    :param e_cls: The class of the Exception which is expected to be raised
+    
+    **kwargs Can be one or more dict to be passed to the request context e.g.
+    `data` or `json`
+    """
+    
+    dt = DataTree()
+    with server.test_request_context(path=path,
+                                     **kwargs):
+        with pytest.raises(e_cls):
+            getattr(dt, http_method)(path)
