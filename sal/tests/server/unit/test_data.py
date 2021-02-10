@@ -10,42 +10,17 @@
 
 from unittest.mock import Mock, patch
 
-from hypothesis import example, given, strategies as st
+from hypothesis import given, settings, strategies as st, HealthCheck
 import pytest
 
 from sal.server.main import (SALServer, PersistenceProvider, DataTree, DataObject)
 
-@pytest.fixture(scope='module')
-def mock_persistence_provider():
-    pp = Mock(spec_set=PersistenceProvider)
-    # pp.list.return_value = 5
-    # pp.list = lambda path, group=None: {'path':path, "group":group}
-    return pp 
 
-# Module scope is required so that pytest plays nicely with hypothesis
-# hypothesis has the issue that each example on a test function isn't treated
-# as a separate event for any fixtures (i.e., the fixtures aren't rebuilt for
-# each example), so errors if the fixture has function scope
-@pytest.fixture(scope='module')
-def mock_server(mock_persistence_provider):
-    """
-    A SALServer with mocked attributes 
-    """
-
-    sal_server = SALServer(mock_persistence_provider)
-    sal_server.config['TESTING'] = True
-    with sal_server.app_context():
-        yield sal_server
-
-
-# def test_temp(mock_server):
-#     perp = mock_server.config['SAL']['PERSISTENCE']
-#     with patch.object(perp, 'list', return_value=5):
-#         assert perp.list() == 5
-#         perp.list.assert_called_with()
-#     import pdb; pdb.set_trace()
-#     assert isinstance(mock_server, SALServer)
-
+# The health check suppression is required so that hypothesis plays nicely with 
+# pytest: Hypothesis has the issue that each example on a test function isn't
+# treated as a separate event for any fixtures (i.e., the fixtures aren't
+# rebuilt for each example), so errors if the fixture has function scope
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
 @given(content=st.dictionaries(keys=st.text(),
                                values=st.floats() | st.text() | st.booleans(),
                                min_size=0, max_size=3),
