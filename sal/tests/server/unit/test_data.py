@@ -239,7 +239,7 @@ def test_data_tree_post_object(mock_server, mock_persistence_provider,
 
 
 # Post does not currently raise an exception if a revision is supplied
-# @pytest.mark.xfail(reason='Known exception omission in DataTree.post')
+@pytest.mark.xfail(reason='Known exception omission in DataTree.post')
 @pytest.mark.parametrize('json_content, cls',
                          [({'content':'object',
                             'type':'branch',
