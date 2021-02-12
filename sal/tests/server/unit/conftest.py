@@ -1,3 +1,14 @@
+"""
+Defines the fixtures user in the server unit tests
+
+.. note::
+    The vast majority of test functions will require one of the server fixtures
+    (e.g. server, server_with_auth_prov) to be a parameter, even if the fixture
+    is not used within the function. This is because Flask requires an app to
+    be instantiated and the `app_context` to be entered in order for its
+    functionality (e.g. requests, Resource) to be used. 
+"""
+
 from unittest.mock import Mock, patch
 
 import pytest
@@ -21,7 +32,7 @@ def mock_authentication_provider():
 def server(mock_persistence_provider):
 
     """
-    A SALServer with mocked attributes 
+    A SALServer with mocked attributes
     """
 
     ss = SALServer(mock_persistence_provider)
