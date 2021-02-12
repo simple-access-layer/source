@@ -1,8 +1,42 @@
-def test_auth_required_with_authenticator():
+"""
+Tests relating to token generation and verification
+
+.. note::
+    The health check suppression which is applied to some test functions is
+    required so that hypothesis plays nicely with pytest: Hypothesis has the
+    issue that each example on a test function isn't treated as a separate
+    event for any fixtures (i.e., the fixtures aren't rebuilt for each
+    example), so errors if the fixture has function scope
+"""
+
+from time import sleep
+
+import pytest
+from hypothesis import HealthCheck, given, settings, strategies as st
+
+from sal.server import auth
+
+
+def test_auth_required_without_authenticator(server):
 
     """
-    Tests whether the authentication requirement is correctly determined
-    
+    GIVEN
+        No authentication provider is defined
+    WHEN
+        Whether authentication is required is requested  
+    THEN
+        Whether authentication is required is returned
+    """
+
+    assert auth.auth_required() == False
+
+
+@pytest.mark.parametrize('auth_required', ['True', 'False'])
+def test_auth_required_with_authenticator(server_with_auth_prov,
+                                          mock_authentication_provider,
+                                          auth_required):
+
+    """
     GIVEN
         An authentication provider is defined
     WHEN
@@ -11,16 +45,24 @@ def test_auth_required_with_authenticator():
         Whether authentication is required is returned
     """
 
-    pass
+    mock_authentication_provider.required.return_value = auth_required
+    assert auth.auth_required() == auth_required
 
 
-def test_verify_valid_token():
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+@given(addr=st.ip_addresses(),
+       user=st.text(alphabet=st.characters(whitelist_categories=('Lu',
+                                                                 'Ll',
+                                                                 'Nd',
+                                                                 'P'))))
+def test_verify_valid_token(addr, user, server_with_auth_prov):
 
     """
-    Tests that a token is correctly verified
+    Uses `generate_token` to create token, as the essential behaviour to test
+    is that a generated token can correctly verified 
 
     GIVEN
-        A server with a token secret
+        A server with a secret token key
         AND a server with a token lifetime
         AND a request from a IP address
         AND a token generated using the IP
@@ -33,16 +75,19 @@ def test_verify_valid_token():
         The username is extracted from the token
     """
 
-    pass
+    # str cast required because hypothesis generates IPv4Address and
+    # IPv6Address objects
+    with server_with_auth_prov.test_request_context(
+        environ_base={'REMOTE_ADDR':str(addr)}):
+        token = auth.generate_token(user)
+        assert user == auth.verify_token(token)
 
 
-def test_verify_expired_token():
+def test_verify_expired_token(server_with_auth_prov):
 
     """
-    Tests that an expired token is correctly verified
-
     GIVEN
-        A server with a token secret
+        A server with a secret token key
         AND a server with a token lifetime
         AND a request from a IP address
         AND a token generated using the IP
@@ -55,16 +100,21 @@ def test_verify_expired_token():
         None is returned
     """
 
-    pass
+    user = 'username'
+    server_with_auth_prov.config['SAL']['TOKEN_LIFETIME'] = 0
+
+    with server_with_auth_prov.test_request_context(
+        environ_base={'REMOTE_ADDR':'0.0.0.0'}):
+        token = auth.generate_token(user)
+        sleep(1)
+        assert auth.verify_token(token) is None
 
 
-def test_verify_token_different_ip():
+def test_verify_token_different_ip(server_with_auth_prov):
 
     """
-    Tests that a token with a different IP is correctly verified
-
     GIVEN
-        A server with a token secret
+        A server with a secret token key
         AND a server with a token lifetime
         AND a request from a IP address
         AND a token generated using a different IP
@@ -77,17 +127,27 @@ def test_verify_token_different_ip():
         None is returned
     """
 
-    pass
+    token_addr = '0.0.0.0'
+    request_addr = '20.313.236.111'
+    user = 'username'
+
+    with server_with_auth_prov.test_request_context(
+        environ_base={'REMOTE_ADDR':token_addr}):
+        token = auth.generate_token(user)
+
+    with server_with_auth_prov.test_request_context(
+        environ_base={'REMOTE_ADDR':str(request_addr)}):
+        assert auth.verify_token(token) is None
 
 
-def test_verify_invalid_token():
+def test_verify_invalid_token(server_with_auth_prov):
 
     """
     Tests that an invalid token (i.e., random, or generated with a different
     secret key) is correctly verified
 
     GIVEN
-        A server with a token secret
+        A server with a secret token key
         AND a server with a token lifetime
         AND a request from a IP address
         AND a token generated using a different IP
@@ -100,7 +160,10 @@ def test_verify_invalid_token():
         None is returned
     """
 
-    pass
+    with server_with_auth_prov.test_request_context(
+        environ_base={'REMOTE_ADDR':str('0.0.0.0')}):
+        token = auth.generate_token('username') 
+        assert auth.verify_token(token + 'A') is None
 
 
 def test_authentication_wrapper_without_auth():
@@ -121,7 +184,16 @@ def test_authentication_wrapper_without_auth():
 
     pass
 
-def test_extracting_token_from_header():
+# Hypothesis set to only use URL safe characters
+@settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
+@given(token=st.text(min_size=10,
+                     alphabet=st.characters(whitelist_characters=('_',
+                                                                  '-',
+                                                                  '.'),
+                                            whitelist_categories=('Lu',
+                                                                  'Ll',
+                                                                  'Nd'))))
+def test_extracting_token_from_header(token, server_with_auth_prov):
 
     """
     GIVEN
@@ -133,4 +205,7 @@ def test_extracting_token_from_header():
         The token is returned
     """
 
-    pass
+    headers = {'Authorization':'Bearer {}'.format(token)}
+
+    with server_with_auth_prov.test_request_context(headers=headers):
+        assert auth._extract_token_header() == token
