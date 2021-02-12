@@ -31,7 +31,7 @@ invalid_revisions = st.integers(max_value=-1)
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
 @given(content=generic_content,
        revision=valid_revisions)
-def test_data_tree_get_report(content, revision, mock_server,
+def test_data_tree_get_report(content, revision, server,
                               mock_persistence_provider):
 
     """
@@ -54,7 +54,7 @@ def test_data_tree_get_report(content, revision, mock_server,
     call_args = '/{}:{}'.format(path, revision)
     
     with patch('sal.server.resource.data.serialise', return_value=content):
-        _check_request(mock_server, 'get', path, expected, data=data)
+        _check_request(server, 'get', path, expected, data=data)
 
     mock_persistence_provider.list.assert_called_with(call_args)
     # mock_persistence_provider must be reset, as it maintains state between
@@ -65,7 +65,7 @@ def test_data_tree_get_report(content, revision, mock_server,
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
 @given(content=generic_content,
        revision=valid_revisions)
-def test_data_tree_get_object(content, revision, mock_server,
+def test_data_tree_get_object(content, revision, server,
                               mock_persistence_provider):
 
     """
@@ -89,7 +89,7 @@ def test_data_tree_get_object(content, revision, mock_server,
     call_args = ('/{}:{}'.format(path,revision), False)
 
     with patch('sal.server.resource.data.serialise', return_value=content):
-        _check_request(mock_server, 'get', path, expected, data=data)
+        _check_request(server, 'get', path, expected, data=data)
 
     mock_persistence_provider.get.assert_called_with(*call_args)
     # mock_persistence_provider must be reset, as it maintains state between
@@ -100,7 +100,7 @@ def test_data_tree_get_object(content, revision, mock_server,
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
 @given(content=generic_content,
        revision=valid_revisions)
-def test_data_tree_get_summary(content, revision, mock_server,
+def test_data_tree_get_summary(content, revision, server,
                                mock_persistence_provider):
 
     """
@@ -125,7 +125,7 @@ def test_data_tree_get_summary(content, revision, mock_server,
     call_args = ('/{}:{}'.format(path, revision), True)
     
     with patch('sal.server.resource.data.serialise', return_value=content):
-        _check_request(mock_server, 'get', path, expected, data=data)
+        _check_request(server, 'get', path, expected, data=data)
     
     mock_persistence_provider.get.assert_called_with(*call_args)
     # mock_persistence_provider must be reset, as it maintains state between
@@ -137,7 +137,7 @@ def test_data_tree_get_summary(content, revision, mock_server,
 @given(content=generic_content,
        revision=invalid_revisions,
        obj=st.sampled_from(['full', 'summary', None]))
-def test_data_tree_get_invalid_revision(content, revision, obj, mock_server,
+def test_data_tree_get_invalid_revision(content, revision, obj, server,
                                         mock_persistence_provider):
 
     """
@@ -158,10 +158,10 @@ def test_data_tree_get_invalid_revision(content, revision, obj, mock_server,
     if obj:
         data['object'] = obj
 
-    _check_raising_request(mock_server, 'get', path, BadRequest, data=data)
+    _check_raising_request(server, 'get', path, BadRequest, data=data)
 
 
-def test_data_tree_get_invalid_object_query(mock_server):
+def test_data_tree_get_invalid_object_query(server):
 
     """
     Tests that an exception is raised when the query argument for object is not
@@ -180,7 +180,7 @@ def test_data_tree_get_invalid_object_query(mock_server):
     path = 'this/is/the/path'
     data = {'revision':0, 'object':'invalid'}
     
-    _check_raising_request(mock_server, 'get', path, BadRequest, data=data)
+    _check_raising_request(server, 'get', path, BadRequest, data=data)
 
 
 @pytest.mark.parametrize('json_content, cls',
@@ -203,7 +203,7 @@ def test_data_tree_get_invalid_object_query(mock_server):
                                       'value':{'type':'uint64',
                                                'value':5}}},
                             DataObject)])
-def test_data_tree_post_object(mock_server, mock_persistence_provider,
+def test_data_tree_post_object(server, mock_persistence_provider,
                                json_content, cls):
 
     """
@@ -224,7 +224,7 @@ def test_data_tree_post_object(mock_server, mock_persistence_provider,
     
     expected = ('', 204)
 
-    _check_request(mock_server, 'post', path, expected, json=json_content)
+    _check_request(server, 'post', path, expected, json=json_content)
 
     # Ideally we would use assert_called_with here, however as Branch and
     # DataObject do not implement __eq__, we cannot create an object from
@@ -262,7 +262,7 @@ def test_data_tree_post_object(mock_server, mock_persistence_provider,
                             DataObject)])
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
 @given(revision=valid_revisions)
-def test_data_tree_post_object_with_revision(revision, mock_server,
+def test_data_tree_post_object_with_revision(revision, server,
                                              mock_persistence_provider,
                                              json_content, cls):
 
@@ -283,7 +283,7 @@ def test_data_tree_post_object_with_revision(revision, mock_server,
     path = 'this/is/the/path'
     json_content['revision'] = revision
 
-    _check_raising_request(mock_server, 'post', path, BadRequest,
+    _check_raising_request(server, 'post', path, BadRequest,
                            json=json_content)
 
 
@@ -310,7 +310,7 @@ def test_data_tree_post_object_with_revision(revision, mock_server,
                            'revision':{'latest':1,
                                        'current':2,
                                        'modified':[5,]}}}])
-def test_data_tree_post_report(mock_server, json_content):
+def test_data_tree_post_report(server, json_content):
 
     """
     Tests that a DataTree does not put a branch report or a leaf report to a
@@ -328,7 +328,7 @@ def test_data_tree_post_report(mock_server, json_content):
 
     path = 'this/is/the/path'
 
-    _check_raising_request(mock_server, 'post', path, InvalidRequest,
+    _check_raising_request(server, 'post', path, InvalidRequest,
                            json=json_content)
 
 
@@ -338,7 +338,7 @@ def test_data_tree_post_report(mock_server, json_content):
 @pytest.mark.xfail(reason='Known bug when copying using DataTree.post')
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
 @given(source_revision=valid_revisions)
-def test_data_tree_copy_object(source_revision, mock_server,
+def test_data_tree_copy_object(source_revision, server,
                                mock_persistence_provider):
 
     """
@@ -364,14 +364,14 @@ def test_data_tree_copy_object(source_revision, mock_server,
     call_args = '/{}'.format(path), '/{}:{}'.format(source_path,
                                                     source_revision)
 
-    _check_request(mock_server, 'post', path, expected, data=data)
+    _check_request(server, 'post', path, expected, data=data)
 
     mock_persistence_provider.copy.assert_called_with(call_args)
 
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
 @given(source_revision=invalid_revisions)
-def test_data_tree_copy_invalid_source_revision(source_revision, mock_server,
+def test_data_tree_copy_invalid_source_revision(source_revision, server,
                                                 mock_persistence_provider):
 
     """
@@ -392,7 +392,7 @@ def test_data_tree_copy_invalid_source_revision(source_revision, mock_server,
     source_path = 'this/is/another/path'
     data = {'source':source_path, 'source_revision':source_revision}
     
-    _check_raising_request(mock_server, 'post', path, BadRequest, data=data)
+    _check_raising_request(server, 'post', path, BadRequest, data=data)
 
 
 def _check_request(server, http_method, path, expected, **kwargs):

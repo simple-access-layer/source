@@ -10,7 +10,10 @@ def mock_persistence_provider():
     return pp 
 
 @pytest.fixture
-def mock_server(mock_persistence_provider):
+
+@pytest.fixture
+def server(mock_persistence_provider):
+
     """
     A SALServer with mocked attributes 
     """
