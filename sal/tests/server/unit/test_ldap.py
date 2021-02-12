@@ -7,30 +7,10 @@ LDAP Authenticator is too tightly coupled to ldap3 to test
 
 """
 
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-import pytest
-
-from sal.server.main import SALServer, PersistenceProvider
 from sal.server.providers import ldap
 
-@pytest.fixture
-def mock_persistence_provider():
-    pp = Mock(spec_set=PersistenceProvider)
-    # pp.list.return_value = 5
-    # pp.list = lambda path, group=None: {'path':path, "group":group}
-    return pp 
-
-@pytest.fixture
-def mock_server(mock_persistence_provider):
-    """
-    A SALServer with mocked attributes 
-    """
-
-    sal_server = SALServer(mock_persistence_provider)
-    sal_server.config['TESTING'] = True
-    with sal_server.app_context():
-        yield sal_server
 
 def mock_init(self, server, uname, pword, **kwargs):
     self.sv = server
@@ -58,7 +38,7 @@ def apply_ldap_patches(func):
 
 
 @apply_ldap_patches
-def test_ldap_authenticate_valid_credentials(mock_server):
+def test_ldap_authenticate_valid_credentials(server):
 
     """
     GIVEN
@@ -76,7 +56,7 @@ def test_ldap_authenticate_valid_credentials(mock_server):
 
 
 @apply_ldap_patches
-def test_ldap_authenticate_invalid_credentials(mock_server):
+def test_ldap_authenticate_invalid_credentials(server):
 
     """
     GIVEN
