@@ -10,6 +10,7 @@ Tests relating to token generation and verification
 """
 
 from time import sleep
+from unittest.mock import patch
 
 import pytest
 from hypothesis import HealthCheck, given, settings, strategies as st
@@ -166,14 +167,14 @@ def test_verify_invalid_token(server_with_auth_prov):
         assert auth.verify_token(token + 'A') is None
 
 
-def test_authentication_wrapper_without_auth():
+def test_authentication_wrapper_without_auth(server):
 
     """
     Tests that a function can be wrapped so that the username is added to the
     **kwargs when authentication is not required
 
     GIVEN
-        A server which does not required authentication
+        A server which does not require authentication
         AND a function which returns the username
     WHEN
         The function is wrapped with ``authenticated_endpoint``
@@ -182,7 +183,49 @@ def test_authentication_wrapper_without_auth():
         None is returned
     """
 
-    pass
+    def get_user(*args, **kwargs):
+        return kwargs['user']
+
+    with server.test_request_context(): 
+        # Check that the unwrapped function does not return the user
+        with pytest.raises(KeyError):
+            get_user()
+        get_user = auth.authenticated_endpoint(get_user)
+        assert get_user() is None
+
+
+def test_authentication_wrapper_with_auth(server_with_auth_prov):
+
+    """
+    Tests that a function can be wrapped so that the username is added to the
+    **kwargs when authentication is required
+
+    GIVEN
+        A server which requires authentication
+        AND a function which returns the username
+    WHEN
+        The function is wrapped with ``authenticated_endpoint``
+        AND the function is called
+    THEN
+        The username is returned
+    """
+
+    user = 'username'
+    headers = {'Authorization':'Bearer {}'.format('arb')}
+
+    def get_user(*args, **kwargs):
+        return kwargs['user']
+
+    with server_with_auth_prov.test_request_context(headers=headers): 
+        # Check that the unwrapped function does not return the user
+        with pytest.raises(KeyError):
+            get_user()
+
+        # authenticated_endpoint gets username by verifying the token
+        with patch('sal.server.auth.verify_token', return_value=user):
+            get_user = auth.authenticated_endpoint(get_user)
+            assert get_user() == user
+
 
 # Hypothesis set to only use URL safe characters
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture])
@@ -209,3 +252,6 @@ def test_extracting_token_from_header(token, server_with_auth_prov):
 
     with server_with_auth_prov.test_request_context(headers=headers):
         assert auth._extract_token_header() == token
+
+
+
