@@ -13,6 +13,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from sal.core.object.report import BranchReport, LeafReport
 from sal.server.main import (AuthenticationProvider, PersistenceProvider,
                              SALServer)  
 
@@ -25,7 +26,10 @@ def mock_persistence_provider():
 def mock_authentication_provider():
     ap = Mock(spec_set=AuthenticationProvider)
     ap.authenticate = (
-        lambda u, p : True if u == 'username' and p == 'password' else False) 
+        lambda u, p : True if u == 'username' and p == 'password' else False)
+    # Note that ap.required currently mimics AuthenticationProvider.required
+    # This should not be relied upon to always be the case!
+    ap.required.return_value = True
     return ap 
 
 @pytest.fixture
