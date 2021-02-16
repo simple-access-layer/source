@@ -248,7 +248,7 @@ def test_extracting_token_from_header(token, server_with_auth_prov):
         The token is returned
     """
 
-    headers = {'Authorization':'Bearer {}'.format(token)}
+    headers = {'Authorization': 'Bearer {}'.format(token)}
 
     with server_with_auth_prov.test_request_context(headers=headers):
         assert auth._extract_token_header() == token
