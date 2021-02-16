@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from sal.core.object import Branch, BranchReport, DataObject, LeafReport 
-
+from sal.tests.server.constants import B64_USER_CRED
 
 def test_get_server_info(server_with_auth_prov):
 
@@ -46,12 +46,12 @@ def test_get_token(server_with_auth_prov, path):
         This does not test the validity of the token
     """
 
-    headers = {'Authorization': 'Basic dXNlcm5hbWU6cGFzc3dvcmQ='}
+    headers = {'Authorization': 'Basic {}'.format(B64_USER_CRED)}
 
     with server_with_auth_prov.test_client() as client:
         out = client.get(path, headers=headers)
         assert out.status_code == 200
-        assert 'token' in json.loads(out.data)['Authorization']
+        assert 'token' in json.loads(out.data)['authorisation']
 
 
 @pytest.mark.parametrize('data_path, is_branch',
@@ -170,7 +170,7 @@ def test_get_report_with_token(server_with_auth_prov,
 
     with server_with_auth_prov.test_client() as client:
         token_response = client.get('/auth',
-            headers={'Authorization': 'Basic dXNlcm5hbWU6cGFzc3dvcmQ='})
+            headers={'Authorization': 'Basic {}'.format(B64_USER_CRED)})
         token = json.loads(token_response.data)['authorisation']['token']
         report_response = client.get(path,
             headers={'Authorization': 'Bearer {}'.format(token)})

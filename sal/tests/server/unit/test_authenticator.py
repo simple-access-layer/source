@@ -9,6 +9,8 @@ import pytest
 from werkzeug.exceptions import Forbidden
 
 from sal.server.resource.authenticator import Authenticator, generate_token
+from sal.tests.server.constants import B64_ADMIN_CRED, B64_USER_CRED
+
 
 def test_get_token_without_auth_required(server):
 
@@ -58,17 +60,17 @@ def test_get_token_without_valid_credentials(server_with_auth_prov,
 
 
 @pytest.mark.parametrize('headers, uname',
-    [({'Authorization': 'Basic dXNlcm5hbWU6cGFzc3dvcmQ='}, 'username'),
-     ({'Authorization': 'Basic YWRtaW46YWRtaW5fcGFzc3dvcmQ='}, 'admin')])
+    [({'Authorization': 'Basic {}'.format(B64_USER_CRED)}, 'username'),
+     ({'Authorization': 'Basic {}'.format(B64_ADMIN_CRED)}, 'admin')])
 def test_get_token_with_valid_credentials(server_with_auth_prov,
                                           mock_authentication_provider,
                                           headers, uname):
 
     """
-    Authorization is base64 encoded
+    Authorization credentials are base64 encoded
 
-    First parametrization tests user credentials ('{username}:{password}')
-    Second parametrization tests admin credentials ('{admin}:{admin_password}')
+    First parametrization tests user credentials ('')
+    Second parametrization tests admin credentials ('')
 
     GIVEN
         A server which requires authentication
