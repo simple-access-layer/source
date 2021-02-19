@@ -17,7 +17,23 @@ PW = 'password'
 
 
 @pytest.fixture
-def patched_client(server_root_response):
+def host():
+
+    return 'https://sal.testing'
+
+@pytest.fixture
+def token(server_auth_response):
+
+    return server_auth_response.json()['authorisation']['token']
+
+
+@pytest.fixture
+def patched_client(host, server_root_response):
+
+    """
+    Patches SALClient host setting (which normally connects to a host server)
+    so that SALClient can be initialized.
+    """
 
     def host_setter(self, url):
         self._host = url
@@ -25,14 +41,25 @@ def patched_client(server_root_response):
     patched_host = SALClient.host.setter(host_setter)
 
     with patch.object(SALClient, 'host', patched_host):
-        return SALClient('https://sal.testing')
+        return SALClient(host)
 
 
 @pytest.fixture
 def patched_client_with_auth(patched_client):
 
+    """
+    A SALClient connected to a server which requires authentication
+    """
+
     patched_client.auth_required = True
     return patched_client
+
+
+@pytest.fixture
+def patch_get(server_auth_response):
+
+    return patch('sal.client.main.requests.get',
+                 return_value=server_auth_response)
 
 
 @pytest.mark.xfail(reason='User is not warned')
@@ -54,7 +81,10 @@ def test_authenticate_not_required(patched_client):
 
 
 def test_authenticate_with_credentials(patched_client_with_auth,
-                                       server_auth_response):
+                                       server_auth_response,
+                                       host,
+                                       token,
+                                       patch_get):
 
     """
     GIVEN
@@ -68,20 +98,35 @@ def test_authenticate_with_credentials(patched_client_with_auth,
         The client stores a token received from the host 
     """
 
-    host = patched_client_with_auth.host
-    token = server_auth_response.json()['authorisation']['token'] 
+    with patch_get as requests_get:
+        check_authentication(patched_client_with_auth,
+                             requests_get,
+                             token,
+                             auth_args=[UN, PW],
+                             request_args=['{}/auth'.format(host)],
+                             request_kwargs={'auth': (UN, PW),
+                                             'verify': True})
 
-    with patch('sal.client.main.requests.get',
-               return_value=server_auth_response) as requests_get:
-        patched_client_with_auth.authenticate(UN, PW)
-        requests_get.assert_called_with('{}/auth'.format(host),
-                                        auth=(UN, PW),
-                                        verify=True)
-        assert patched_client_with_auth.auth_token == token
+        # patched_client_with_auth.authenticate(UN, PW)
+        # requests_get.assert_called_with('{}/auth'.format(host),
+        #                                 auth=(UN, PW),
+        #                                 verify=True)
+        # assert patched_client_with_auth.auth_token == token
+
+
+def check_authentication(client, requests_get, token, auth_args=[],
+                         auth_kwargs={}, request_args=[], request_kwargs={}):
+
+    client.authenticate(*auth_args, **auth_kwargs)
+    requests_get.assert_called_with(*request_args, **request_kwargs)
+    assert client.auth_token == token
 
 
 def test_authenticate_prompt_password(patched_client_with_auth,
-                                      server_auth_response):
+                                      server_auth_response,
+                                      host,
+                                      token,
+                                      patch_get):
 
     """
     GIVEN
@@ -94,23 +139,27 @@ def test_authenticate_prompt_password(patched_client_with_auth,
         AND the client stores a token received from the host
     """
 
-    host = patched_client_with_auth.host
-    token = server_auth_response.json()['authorisation']['token']
-
-    with patch('sal.client.main.requests.get',
-               return_value=server_auth_response) as requests_get:
+    with patch_get as requests_get:
         with patch('sal.client.main.getpass.getpass', return_value=PW) as gp:
-            patched_client_with_auth.authenticate(UN)
+            check_authentication(patched_client_with_auth,
+                                requests_get,
+                                token,
+                                auth_args=[UN],
+                                request_args=['{}/auth'.format(host)],
+                                request_kwargs={'auth': (UN, PW),
+                                                'verify': True})
             
             gp.assert_called()
-            requests_get.assert_called_with('{}/auth'.format(host),
-                                            auth=(UN, PW),
-                                            verify=True)
-            assert patched_client_with_auth.auth_token == token
+
+
+
 
 
 def test_authenticate_prompt_credentials(patched_client_with_auth,
-                                         server_auth_response):
+                                         server_auth_response,
+                                         host,
+                                         token,
+                                         patch_get):
 
     """
     GIVEN
@@ -123,12 +172,7 @@ def test_authenticate_prompt_credentials(patched_client_with_auth,
         AND the client stores a token received from the host
     """
 
-    host = patched_client_with_auth.host
-
-    token = server_auth_response.json()['authorisation']['token']
-
-    with patch('sal.client.main.requests.get',
-               return_value=server_auth_response) as requests_get:
+    with patch_get as requests_get:
         with patch('sal.client.main.getpass.getpass', return_value=PW) as gp:
             with patch('sal.client.main.input',return_value=UN) as inpt:
                 patched_client_with_auth.authenticate()
@@ -142,7 +186,10 @@ def test_authenticate_prompt_credentials(patched_client_with_auth,
 
 
 def test_authenticate_default_credentials_file(patched_client_with_auth,
-                                               server_auth_response):
+                                               server_auth_response,
+                                               host,
+                                               token,
+                                               patch_get):
 
     """
     GIVEN
@@ -157,14 +204,11 @@ def test_authenticate_default_credentials_file(patched_client_with_auth,
         A request is sent using credentials from the credentials file 
     """
 
-    host = patched_client_with_auth.host
-    token = server_auth_response.json()['authorisation']['token']
     cred_file = {'https://sal.testing': {'user': UN,
                                         'password': PW}}
     def_cred_path = str(Path.home().joinpath(_AUTH_DEFAULT_CREDENTIALS_PATH))
 
-    with patch('sal.client.main.requests.get',
-               return_value=server_auth_response) as requests_get:
+    with patch_get as requests_get:
         with patch.object(configparser.ConfigParser,
                           '__getitem__',
                           side_effect = lambda key : cred_file[key]):
@@ -180,7 +224,10 @@ def test_authenticate_default_credentials_file(patched_client_with_auth,
 
 
 def test_authenticate_specify_credentials_file(patched_client_with_auth,
-                                               server_auth_response):
+                                               server_auth_response,
+                                               host,
+                                               token,
+                                               patch_get):
 
     """
     GIVEN
@@ -192,15 +239,12 @@ def test_authenticate_specify_credentials_file(patched_client_with_auth,
         A request is sent using credentials from the credentials file 
     """
 
-    host = patched_client_with_auth.host
-    token = server_auth_response.json()['authorisation']['token']
     cred_file = {'https://sal.testing': {'user': UN,
                                         'password': PW}}
     # Specify the credentials file path
     cred_path = '/sal/cred_file'
 
-    with patch('sal.client.main.requests.get',
-               return_value=server_auth_response) as requests_get:
+    with patch_get as requests_get:
         with patch.object(configparser.ConfigParser,
                           '__getitem__',
                           side_effect = lambda key : cred_file[key]):
@@ -216,7 +260,10 @@ def test_authenticate_specify_credentials_file(patched_client_with_auth,
 
 
 def test_authenticate_replace_credentials_file(patched_client_with_auth,
-                                               server_auth_response):
+                                               server_auth_response,
+                                               host,
+                                               token,
+                                               patch_get):
 
     """
     GIVEN
@@ -230,8 +277,6 @@ def test_authenticate_replace_credentials_file(patched_client_with_auth,
         A request is sent using credentials from the new credentials file 
     """
 
-    host = patched_client_with_auth.host
-    token = server_auth_response.json()['authorisation']['token']
     cred_file = {'https://sal.testing': {'user': UN,
                                         'password': PW}}
     # Specify the credentials file path
@@ -239,8 +284,7 @@ def test_authenticate_replace_credentials_file(patched_client_with_auth,
     patched_client_with_auth.credentials_file = cred_path
     new_cred_path = '/sal/new_cred_file'
 
-    with patch('sal.client.main.requests.get',
-               return_value=server_auth_response) as requests_get:
+    with patch_get as requests_get:
         with patch.object(configparser.ConfigParser,
                           '__getitem__',
                           side_effect = lambda key : cred_file[key]):
