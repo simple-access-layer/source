@@ -99,27 +99,11 @@ def test_authenticate_with_credentials(patched_client_with_auth,
     """
 
     with patch_get as requests_get:
-        check_authentication(patched_client_with_auth,
+        check_authentication(host,
+                             patched_client_with_auth,
                              requests_get,
                              token,
-                             auth_args=[UN, PW],
-                             request_args=['{}/auth'.format(host)],
-                             request_kwargs={'auth': (UN, PW),
-                                             'verify': True})
-
-        # patched_client_with_auth.authenticate(UN, PW)
-        # requests_get.assert_called_with('{}/auth'.format(host),
-        #                                 auth=(UN, PW),
-        #                                 verify=True)
-        # assert patched_client_with_auth.auth_token == token
-
-
-def check_authentication(client, requests_get, token, auth_args=[],
-                         auth_kwargs={}, request_args=[], request_kwargs={}):
-
-    client.authenticate(*auth_args, **auth_kwargs)
-    requests_get.assert_called_with(*request_args, **request_kwargs)
-    assert client.auth_token == token
+                             auth_args=[UN, PW])
 
 
 def test_authenticate_prompt_password(patched_client_with_auth,
@@ -141,18 +125,13 @@ def test_authenticate_prompt_password(patched_client_with_auth,
 
     with patch_get as requests_get:
         with patch('sal.client.main.getpass.getpass', return_value=PW) as gp:
-            check_authentication(patched_client_with_auth,
-                                requests_get,
-                                token,
-                                auth_args=[UN],
-                                request_args=['{}/auth'.format(host)],
-                                request_kwargs={'auth': (UN, PW),
-                                                'verify': True})
+            check_authentication(host,
+                                 patched_client_with_auth,
+                                 requests_get,
+                                 token,
+                                 auth_args=[UN])
             
             gp.assert_called()
-
-
-
 
 
 def test_authenticate_prompt_credentials(patched_client_with_auth,
@@ -175,14 +154,14 @@ def test_authenticate_prompt_credentials(patched_client_with_auth,
     with patch_get as requests_get:
         with patch('sal.client.main.getpass.getpass', return_value=PW) as gp:
             with patch('sal.client.main.input',return_value=UN) as inpt:
-                patched_client_with_auth.authenticate()
+                check_authentication(host,
+                                     patched_client_with_auth,
+                                     requests_get,
+                                     token,
+                                     auth_args=[])
             
                 inpt.assert_called()
                 gp.assert_called()
-                requests_get.assert_called_with('{}/auth'.format(host),
-                                                auth=(UN, PW),
-                                                verify=True)
-                assert patched_client_with_auth.auth_token == token
 
 
 def test_authenticate_default_credentials_file(patched_client_with_auth,
@@ -213,14 +192,13 @@ def test_authenticate_default_credentials_file(patched_client_with_auth,
                           '__getitem__',
                           side_effect = lambda key : cred_file[key]):
             with patch.object(configparser.ConfigParser, 'read') as cpr:
-                patched_client_with_auth.authenticate()
+                check_authentication(host,
+                                     patched_client_with_auth,
+                                     requests_get,
+                                     token,
+                                     auth_args=[])
         
                 cpr.assert_called_with(def_cred_path)
-        
-                requests_get.assert_called_with('{}/auth'.format(host),
-                                                auth=(UN, PW),
-                                                verify=True)
-                assert patched_client_with_auth.auth_token == token
 
 
 def test_authenticate_specify_credentials_file(patched_client_with_auth,
@@ -249,13 +227,14 @@ def test_authenticate_specify_credentials_file(patched_client_with_auth,
                           '__getitem__',
                           side_effect = lambda key : cred_file[key]):
             with patch.object(configparser.ConfigParser, 'read') as cpr:
-                patched_client_with_auth.authenticate(credentials=cred_path)
-        
+                check_authentication(host,
+                                     patched_client_with_auth,
+                                     requests_get,
+                                     token,
+                                     auth_args=[],
+                                     auth_kwargs={'credentials':cred_path})
+
                 cpr.assert_called_with(cred_path)
-                requests_get.assert_called_with('{}/auth'.format(host),
-                                                auth=(UN, PW),
-                                                verify=True)
-                assert patched_client_with_auth.auth_token == token
                 assert patched_client_with_auth.credentials_file == cred_path
 
 
@@ -289,14 +268,14 @@ def test_authenticate_replace_credentials_file(patched_client_with_auth,
                           '__getitem__',
                           side_effect = lambda key : cred_file[key]):
             with patch.object(configparser.ConfigParser, 'read') as cpr:
-                patched_client_with_auth.authenticate(
-                    credentials=new_cred_path)
-        
+                check_authentication(host,
+                                     patched_client_with_auth,
+                                     requests_get,
+                                     token,
+                                     auth_args=[],
+                                     auth_kwargs={'credentials':new_cred_path})
+
                 cpr.assert_called_with(new_cred_path)
-                requests_get.assert_called_with('{}/auth'.format(host),
-                                                auth=(UN, PW),
-                                                verify=True)
-                assert patched_client_with_auth.auth_token == token
 
 
 def test_authenticate_missing_credentials_file(patched_client_with_auth):
@@ -315,3 +294,15 @@ def test_authenticate_missing_credentials_file(patched_client_with_auth):
     with pytest.raises(exception.AuthenticationFailed):
         patched_client_with_auth.authenticate()
 
+
+# Although auth_args and auth_kwargs would normally be *args and **kwargs, I
+# think in this case it makes the arguments passed to authenticate more
+# explicit
+def check_authentication(host, client, requests_get, token, auth_args,
+                         auth_kwargs={}):
+
+    client.authenticate(*auth_args, **auth_kwargs)
+    requests_get.assert_called_with('{}/auth'.format(host),
+                                    auth=(UN, PW),
+                                    verify=True)
+    assert client.auth_token == token
