@@ -8,7 +8,7 @@ Tests setting of the host on the client
     without connecting to the host.  
 """
 
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import requests
 import pytest
@@ -16,32 +16,7 @@ import pytest
 from sal.client.main import SALClient, exception
 
 
-@pytest.fixture
-def server_response_ok():
-
-    server_response = Mock(spec=requests.Response)
-    server_response.status_code = 200
-    server_response.headers = {'Date': 'Tue, 16 Feb 2021 17:48:15 GMT',
-                               'Content-Type': 'application/json',
-                               'Content-Length': '347',
-                               'Connection': 'keep-alive'}
-    server_response.json.return_value = {
-        'host': 'https://sal.testing/',
-        'api': {'version': 2,
-        'requires_auth': True,
-        'resources': ['data'],
-        'classes': {'core': ['dictionary',
-                             'scalar',
-                             'string',
-                             'array']}},
-        'service': {'name': 'Simple Access Layer (SAL) Server',
-                    'version': '1.2.2'},
-        'request': {'url': 'https://sal.testing/'}}
-
-    return server_response
-
-
-def test_connect_to_valid_host():
+def test_connect_to_valid_host(server_root_response):
 
     """
     GIVEN
@@ -49,10 +24,24 @@ def test_connect_to_valid_host():
     WHEN
         A client connects to the host
     THEN
-        The URL and server are validated
+        The client validates the host (i.e. no exceptions are thrown)
+        AND the client stores the host URL
+        AND the client determines if the host has authentication enabled
     """
 
+    host = 'https://sal.testing'
+    requires_auth = server_root_response.json()['api']['requires_auth']
 
+    with patch('sal.client.main.requests.get',
+                return_value=server_root_response):
+        sc = SALClient(host)
+        assert sc.host == host
+        assert sc.auth_required == requires_auth
+
+
+
+@pytest.mark.xfail(reason='AttributeError when SALClient._host undefined',
+                   raises=AttributeError)
 def test_connect_to_host_no_response():
 
     """
@@ -64,8 +53,14 @@ def test_connect_to_host_no_response():
         The client raises a ConnectionError
     """
 
+    with patch('sal.client.main.requests.get',
+               side_effect=requests.ConnectionError()):
+        with pytest.raises(ConnectionError):
+            SALClient('https://sal.testing')
 
-def test_connect_to_host_not_sal_server():
+
+
+def test_connect_to_host_not_sal_server(server_root_response):
 
     """
     GIVEN
@@ -76,8 +71,15 @@ def test_connect_to_host_not_sal_server():
         The client raises a ConnectionError
     """
 
+    server_root_response.json.return_value['service']['name'] = 'Generic Server'
 
-def test_connect_to_host_with_new_api(server_response_ok):
+    with patch('sal.client.main.requests.get',
+               return_value=server_root_response):
+        with pytest.raises(ConnectionError):
+            SALClient('https://sal.testing')
+
+
+def test_connect_to_host_with_new_api(server_root_response):
 
     """
     GIVEN
@@ -88,10 +90,10 @@ def test_connect_to_host_with_new_api(server_response_ok):
         The client raises a ConnectionError
     """
 
-    server_response_ok.json.return_value['api']['version'] = 3
+    server_root_response.json.return_value['api']['version'] = 3
 
     with patch('sal.client.main.requests.get',
-               return_value=server_response_ok):
+               return_value=server_root_response):
         with pytest.raises(ConnectionError):
             SALClient('https://sal.testing')
 
@@ -109,3 +111,17 @@ def test_connect_to_host_invalid_url():
 
     with pytest.raises(ValueError):
         SALClient('989s0d8fisdfk')
+
+
+def test_connect_to_new_host():
+
+    """
+    GIVEN
+        A client which has previously connected to a valid host
+    WHEN
+        The client changes to a new valid host
+    THEN
+        The client validates the new host (i.e. no exceptions are thrown)
+        AND the client stores the new host URL (overwriting the old host URL)
+        AND the client determines if the new host has authentication enabled
+    """
