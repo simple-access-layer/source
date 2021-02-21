@@ -1,15 +1,39 @@
 
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 import requests
 
+from sal.client.main import SALClient
+
 
 @pytest.fixture
-def server_root_response():
+def host():
+
+    return 'https://sal.testing'
+
+
+@pytest.fixture
+def patched_client(host):
 
     """
-    200 response from server when connecting to root
+    Patches SALClient host setting (which normally connects to a host server)
+    so that SALClient can be initialized.
+    """
+
+    def host_setter(self, url):
+        self._host = url
+
+    patched_host = SALClient.host.setter(host_setter)
+
+    with patch.object(SALClient, 'host', patched_host):
+        return SALClient(host)
+
+@pytest.fixture
+def server_response():
+
+    """
+    200 response from server
     """
 
     server_response = Mock(spec=requests.Response)
@@ -18,6 +42,17 @@ def server_root_response():
                                'Content-Type': 'application/json',
                                'Content-Length': '347',
                                'Connection': 'keep-alive'}
+    return server_response
+
+
+@pytest.fixture
+def server_root_response(server_response):
+
+    """
+    200 response from server when connecting to root
+    """
+
+
     server_response.json.return_value = {
         'host': 'https://sal.testing/',
         'api': {'version': 2,
@@ -35,18 +70,12 @@ def server_root_response():
 
 
 @pytest.fixture
-def server_auth_response():
+def server_auth_response(server_response):
 
     """
     200 response from server when connecting to auth with valid credentials
     """
 
-    server_response = Mock(spec=requests.Response)
-    server_response.status_code = 200
-    server_response.headers = {'Date': 'Tue, 16 Feb 2021 17:48:15 GMT',
-                               'Content-Type': 'application/json',
-                               'Content-Length': '347',
-                               'Connection': 'keep-alive'}
     server_response.json.return_value = {
         'authorisation': {'user': 'username',
                           'token': '78945JHKJFSJDFKH7897wej8UIOJKhuwiofdSDHk'}}

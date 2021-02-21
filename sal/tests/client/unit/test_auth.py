@@ -8,8 +8,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from sal.client.main import (SALClient, _AUTH_DEFAULT_CREDENTIALS_PATH,
-                             configparser, exception)
+from sal.client.main import (_AUTH_DEFAULT_CREDENTIALS_PATH, configparser,
+                             exception)
 
 
 UN = 'username'
@@ -17,31 +17,9 @@ PW = 'password'
 
 
 @pytest.fixture
-def host():
-
-    return 'https://sal.testing'
-
-@pytest.fixture
 def token(server_auth_response):
 
     return server_auth_response.json()['authorisation']['token']
-
-
-@pytest.fixture
-def patched_client(host, server_root_response):
-
-    """
-    Patches SALClient host setting (which normally connects to a host server)
-    so that SALClient can be initialized.
-    """
-
-    def host_setter(self, url):
-        self._host = url
-
-    patched_host = SALClient.host.setter(host_setter)
-
-    with patch.object(SALClient, 'host', patched_host):
-        return SALClient(host)
 
 
 @pytest.fixture
