@@ -113,7 +113,11 @@ def test_connect_to_host_invalid_url():
         SALClient('989s0d8fisdfk')
 
 
-def test_connect_to_new_host():
+# OSError is raised because client tries to authenticate without password,
+# which requires stdin (which pytest complains about)
+@pytest.mark.xfail(reason='Connecting to new host uses old host auth_required',
+                   raises=OSError)
+def test_connect_to_new_host(server_root_response):
 
     """
     GIVEN
@@ -125,3 +129,21 @@ def test_connect_to_new_host():
         AND the client stores the new host URL (overwriting the old host URL)
         AND the client determines if the new host has authentication enabled
     """
+
+    host = 'https://sal.testing'
+    new_host = 'https://sal.new'
+
+    with patch('sal.client.main.requests.get',
+                return_value=server_root_response):
+        sc = SALClient(host)
+    
+    new_host_requires_auth = not sc.auth_required
+    new_response = server_root_response.json()
+    new_response['api']['requires_auth'] = new_host_requires_auth
+    
+    with patch('sal.client.main.requests.get',
+                return_value=new_response):
+        assert sc.auth_required == True
+        sc.host = new_host
+        assert sc.host == new_host
+        assert sc.auth_required == False
