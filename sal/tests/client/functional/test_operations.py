@@ -1,10 +1,76 @@
 """
-Tests the SAL operations: list, get, put, copy, delete 
+Tests the SAL operations: list, get, put, copy, delete
+
+.. note::
+    Tests do not check all attributes of returned objects as deserialising
+    objects is not directly a SALClient responsibility
 """
 
-def test_list():
+from datetime import datetime
+from unittest.mock import patch
+
+import pytest
+
+from sal.core.serialise import serialise
+from sal.core.object import BranchReport, LeafReport, Branch, DataObject 
+
+
+@pytest.fixture
+def timestamp():
+
+    return datetime(2000, 1, 1, 12, 00, 00)
+
+
+@pytest.fixture
+def branch_report_response(server_response, timestamp):
 
     """
+    JSON representing a BranchReport
+    """
+
+    br = BranchReport('A BranchReport', ['b1', 'b2', 'b3'], [], timestamp)
+    server_response.json.return_value = serialise(br)
+    return server_response
+
+
+@pytest.fixture
+def leaf_report_response():
+
+    """
+    JSON representing a LeafReport
+    """
+
+    pass
+
+
+@pytest.fixture
+def branch_response():
+
+    """
+    JSON representing a Branch
+    """
+
+
+@pytest.fixture
+def data_object_response():
+
+    """
+    JSON representing a DataObject
+    """
+
+    pass
+
+
+@pytest.mark.parametrize('path, revision, verify_https_cert',
+                         [('/node', 0, False),
+                          ('/node:head', 0, True),
+                          ('/node:10', 10, False)])
+def test_list_branch(host, patched_client, timestamp, branch_report_response,
+                     path, revision, verify_https_cert):
+
+    """
+    Parametrization includes the three different ways of passing a revision
+
     GIVEN
         A server with data nodes
     WHEN
@@ -13,7 +79,17 @@ def test_list():
         The client returns either a BranchReport or a LeafReport
     """
 
-    # Include '/data:head', '/data', and '/data:10' examples
+    patched_client.verify_https_cert = verify_https_cert
+
+    with patch('sal.client.main.requests.get',
+               return_value=branch_report_response) as brr:
+        br = patched_client.list(path)
+
+        brr.assert_called_with('{0}/data/node?revision={1}'.format(host,
+                                                                   revision),
+                                      verify=verify_https_cert)
+        assert isinstance(br, BranchReport)
+        assert br.timestamp == timestamp
 
 
 def test_list_with_auth():
