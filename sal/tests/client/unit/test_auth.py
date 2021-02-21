@@ -296,10 +296,25 @@ def test_authenticate_missing_credentials_file(patched_client_with_auth):
 
 
 # Although auth_args and auth_kwargs would normally be *args and **kwargs, I
-# think in this case it makes the arguments passed to authenticate more
-# explicit
+# think it is preferable in this case if it is more explicit that the arguments
+# are passed to SALClient.authenticate
 def check_authentication(host, client, requests_get, token, auth_args,
                          auth_kwargs={}):
+
+    """
+    :param host: The host URL
+    :param client: The client being tested
+    :param requests_get: A mocked request.get called by the client
+    :param token: The token the client is expected to have after authentication
+    :param auth_args: The arguments passed to SALClient.authenticate
+    :param auth_kwargs: The keyword arguments passed to SALClient.authenticate
+    :type host: str
+    :type client: SALClient
+    :type requests_get: Mock
+    :type token: str
+    :type auth_args: iterable
+    :type auth_kwargs: dict
+    """
 
     client.authenticate(*auth_args, **auth_kwargs)
     requests_get.assert_called_with('{}/auth'.format(host),
