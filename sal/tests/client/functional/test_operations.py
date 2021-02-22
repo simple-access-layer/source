@@ -113,65 +113,43 @@ def test_get(host, patched_client, timestamp, branch_response, path, revision,
             host, obj, revision), verify=verify_https_cert)
         assert isinstance(b, Branch)
 
-    # Include '/data:head', '/data', and '/data:10' examples
 
-
-def test_get_with_auth():
-
-    """
-    GIVEN
-        A server with data nodes which requires authentication
-        AND a client with a token in a file in .sal located in home directory
-    WHEN
-        The client performs a get operation
-    THEN
-        The token is included in a request header
-        AND the client returns either a Branch or a DataObject
-    """
-
-
-def test_put_create():
+@pytest.mark.parametrize('path, verify_https_cert',
+                         [('/node', False),
+                          ('/node:head', True),
+                          ('/node:0', False)])
+def test_put(host, patched_client, no_content_response, branch, path,
+             verify_https_cert):
 
     """
     GIVEN
         A server with data nodes
     WHEN
-        The client performs a put operation with a path that does not exist on
-        the server
+        The client performs a put operation
     THEN
-        A new data node is created on the server
+        A POST request for the specified path with a serialised Branch object
+        is sent to the host
     """
 
+    patched_client.verify_https_cert = verify_https_cert
 
-def test_put_update():
+    with patch('sal.client.main.requests.post',
+               return_value=no_content_response) as r:
+        patched_client.put(path, branch)
 
-    """
-    GIVEN
-        A server with data nodes which requires authentication
-    WHEN
-        The client performs a put operation with a path that does exist on the
-        server 
-    THEN
-        The server data node corresponding to the path is replaced
-    """
+        r.assert_called_with('{0}/data/node'.format(host),
+                             json=serialise(branch),
+                             verify=verify_https_cert)
 
 
-def test_put_with_auth():
-
-    """
-    GIVEN
-        A server with data nodes
-        AND a client with a token in a file in .sal located in home directory
-    WHEN
-        The client performs a put operation with a path that does not exist on
-        the server
-    THEN
-        The token is included in a request header
-        AND a new data node is created on the server
-    """
-
-
-def test_copy():
+@pytest.mark.xfail(reason='SALCLient incorrect sets source path',
+                   raises=AssertionError)
+@pytest.mark.parametrize('target, source, source_revision, verify_https_cert',
+                         [('/node', '/another/node', 0, False),
+                          ('/node:head', '/another/node:head', 0, True),
+                          ('/node', '/another/node:15', 15, True)])
+def test_copy(host, patched_client, no_content_response, target, source,
+              source_revision, verify_https_cert):
 
     """
     GIVEN
@@ -179,27 +157,29 @@ def test_copy():
     WHEN
         The client performs a copy operation from a source to a target
     THEN
-        Data is copied from the source to the target on the server
+        A POST request 
     """
 
-    # Include '/data:head', '/data', and '/data:10' examples for both target
-    # and source
+    patched_client.verify_https_cert = verify_https_cert
+
+    with patch('sal.client.main.requests.post',
+               return_value=no_content_response) as r:
+        patched_client.copy(target, source)
+
+        r.assert_called_with(
+            '{0}/data/node?source=/another/node&source_revision={1}'.format(
+                host,
+                source_revision),
+            json=None,
+            verify=verify_https_cert)
 
 
-def test_copy_with_auth():
-
-    """
-    GIVEN
-        A server with data nodes which requires authentication
-        AND a client with a token in a file in .sal located in home directory
-    WHEN
-        The client performs a copy operation from a source to a target
-    THEN
-        Data is copied from the source to the target on the server
-    """
-
-
-def test_delete():
+@pytest.mark.parametrize('path, verify_https_cert',
+                         [('/node', False),
+                          ('/node:head', True),
+                          ('/node:0', False)])
+def test_delete(host, patched_client, no_content_response, path,
+                verify_https_cert):
 
     """
     GIVEN
@@ -207,8 +187,17 @@ def test_delete():
     WHEN
         The client performs a delete operation
     THEN
-        Data is delete from the specified path 
+        A DELETE request for the specified path is sent to the host 
     """
+
+    patched_client.verify_https_cert = verify_https_cert
+
+    with patch('sal.client.main.requests.delete',
+               return_value=no_content_response) as r:
+        patched_client.delete(path)
+
+        r.assert_called_with('{0}/data/node'.format(host),
+                             verify=verify_https_cert)
 
 
 @pytest.mark.parametrize('op, requests_method, response',
