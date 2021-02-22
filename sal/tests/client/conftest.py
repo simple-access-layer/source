@@ -14,6 +14,12 @@ def host():
 
 
 @pytest.fixture
+def token():
+
+    return '78945JHKJFSJDFKH7897wej8UIOJKhuwiofdSDHk'
+
+
+@pytest.fixture
 def patched_client(host):
 
     """
@@ -28,6 +34,18 @@ def patched_client(host):
 
     with patch.object(SALClient, 'host', patched_host):
         return SALClient(host)
+
+
+@pytest.fixture
+def patched_client_with_auth(patched_client):
+
+    """
+    A SALClient connected to a server which requires authentication
+    """
+
+    patched_client.auth_required = True
+    return patched_client
+
 
 @pytest.fixture
 def server_response():
@@ -70,7 +88,7 @@ def server_root_response(server_response):
 
 
 @pytest.fixture
-def server_auth_response(server_response):
+def server_auth_response(server_response, token):
 
     """
     200 response from server when connecting to auth with valid credentials
@@ -78,6 +96,14 @@ def server_auth_response(server_response):
 
     server_response.json.return_value = {
         'authorisation': {'user': 'username',
-                          'token': '78945JHKJFSJDFKH7897wej8UIOJKhuwiofdSDHk'}}
+                          'token': token}}
 
+    return server_response
+
+
+
+@pytest.fixture
+def no_content_response(server_response):
+
+    server_response.status_code = 204
     return server_response

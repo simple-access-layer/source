@@ -17,23 +17,6 @@ PW = 'password'
 
 
 @pytest.fixture
-def token(server_auth_response):
-
-    return server_auth_response.json()['authorisation']['token']
-
-
-@pytest.fixture
-def patched_client_with_auth(patched_client):
-
-    """
-    A SALClient connected to a server which requires authentication
-    """
-
-    patched_client.auth_required = True
-    return patched_client
-
-
-@pytest.fixture
 def patch_get(server_auth_response):
 
     return patch('sal.client.main.requests.get',
