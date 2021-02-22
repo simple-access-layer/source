@@ -12,7 +12,7 @@ from unittest.mock import patch
 import pytest
 
 from sal.core.serialise import serialise
-from sal.core.object import BranchReport, LeafReport, Branch, DataObject 
+from sal.core.object import BranchReport, Branch
 
 
 @pytest.fixture
@@ -34,39 +34,33 @@ def branch_report_response(server_response, timestamp):
 
 
 @pytest.fixture
-def leaf_report_response():
+def branch():
 
-    """
-    JSON representing a LeafReport
-    """
-
-    pass
-
+    return Branch('A Branch')
 
 @pytest.fixture
-def branch_response():
+def branch_response(branch, server_response):
 
     """
     JSON representing a Branch
     """
 
+    server_response.json.return_value = serialise(branch)
+    return server_response
+
 
 @pytest.fixture
-def data_object_response():
+def auth_header(token):
 
-    """
-    JSON representing a DataObject
-    """
-
-    pass
+    return {'Authorization': 'Bearer 78945JHKJFSJDFKH7897wej8UIOJKhuwiofdSDHk'}
 
 
 @pytest.mark.parametrize('path, revision, verify_https_cert',
                          [('/node', 0, False),
                           ('/node:head', 0, True),
                           ('/node:10', 10, False)])
-def test_list_branch(host, patched_client, timestamp, branch_report_response,
-                     path, revision, verify_https_cert):
+def test_list(host, patched_client, timestamp, branch_report_response,
+              path, revision, verify_https_cert):
 
     """
     Parametrization includes the three different ways of passing a revision
@@ -76,7 +70,7 @@ def test_list_branch(host, patched_client, timestamp, branch_report_response,
     WHEN
         A client performs a list operation on a path
     THEN
-        The client returns either a BranchReport or a LeafReport
+        The client returns a BranchReport
     """
 
     patched_client.verify_https_cert = verify_https_cert
@@ -87,25 +81,17 @@ def test_list_branch(host, patched_client, timestamp, branch_report_response,
 
         brr.assert_called_with('{0}/data/node?revision={1}'.format(host,
                                                                    revision),
-                                      verify=verify_https_cert)
+                               verify=verify_https_cert)
         assert isinstance(br, BranchReport)
         assert br.timestamp == timestamp
 
 
-def test_list_with_auth():
-
-    """
-    GIVEN
-        A server with data nodes which requires authentication
-        AND a client with a token in a file in .sal located in home directory
-    WHEN
-        The client performs a list operation
-    THEN
-        The token is included in a request header
-        AND the client returns either a BranchReport or a LeafReport
-    """
-
-def test_get():
+@pytest.mark.parametrize('path, revision, verify_https_cert, summary',
+                         [('/node', 0, False, True),
+                          ('/node:head', 0, True, False),
+                          ('/node:10', 10, False, False)])
+def test_get(host, patched_client, timestamp, branch_response, path, revision,
+             verify_https_cert, summary):
 
     """
     GIVEN
@@ -115,6 +101,17 @@ def test_get():
     THEN
         The client returns either a Branch or a DataObject
     """
+
+    patched_client.verify_https_cert = verify_https_cert
+    obj = 'summary' if summary else 'full'
+
+    with patch('sal.client.main.requests.get',
+               return_value=branch_response) as br:
+        b = patched_client.get(path, summary=summary)
+
+        br.assert_called_with('{0}/data/node?object={1}&revision={2}'.format(
+            host, obj, revision), verify=verify_https_cert)
+        assert isinstance(b, Branch)
 
     # Include '/data:head', '/data', and '/data:10' examples
 
@@ -213,3 +210,45 @@ def test_delete():
         Data is delete from the specified path 
     """
 
+
+@pytest.mark.parametrize('op, requests_method, response',
+                         [('list', 'get', 'branch_report_response'),
+                          ('get', 'get', 'branch_response'),
+                          ('put', 'post', 'no_content_response'),
+                          ('copy', 'post', 'no_content_response'),
+                          ('delete', 'delete', 'no_content_response')])
+def test_op_with_auth(host, patched_client_with_auth, token, auth_header, op,
+                      requests_method, response, request):
+
+    """
+    .. note::
+        requests_method is the str of the requests method which will be called
+        in performing the operation. It is not related to the pytest special
+        fixture 'request', which is used to dynamically get the correct
+        response fixture for the parametrization.
+
+    GIVEN
+        A server with data nodes which requires authentication
+        AND a client with a token in a file in .sal located in home directory
+    WHEN
+        The client performs an operation
+    THEN
+        The token is included in a request header
+    """
+
+    patched_client_with_auth.auth_token = token
+    patched_client_with_auth.verify_https_cert = True
+    args = ['/a/path']
+    # Inelegant way to add put content and copy source path
+    if op == 'put':
+        args.append(request.getfixturevalue('branch'))
+    elif op == 'copy':
+        args.append('/another/path')
+
+    with patch('sal.client.main.requests.{}'.format(requests_method),
+               return_value=request.getfixturevalue(response)) as r:
+        getattr(patched_client_with_auth, op)(*args)
+
+        # Headers are part of **kwargs, so are always the last arg 
+        headers = r.call_args[-1]['headers']
+        assert auth_header == headers
