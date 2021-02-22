@@ -142,7 +142,7 @@ def test_put(host, patched_client, no_content_response, branch, path,
                              verify=verify_https_cert)
 
 
-@pytest.mark.xfail(reason='SALCLient incorrect sets source path',
+@pytest.mark.xfail(reason='SALCLient incorrectly sets source path',
                    raises=AssertionError)
 @pytest.mark.parametrize('target, source, source_revision, verify_https_cert',
                          [('/node', '/another/node', 0, False),
