@@ -16,7 +16,7 @@ import pytest
 from sal.client.main import SALClient, exception
 
 
-def test_connect_to_valid_host(server_root_response):
+def test_connect_to_valid_host(host, server_root_response):
 
     """
     GIVEN
@@ -29,7 +29,6 @@ def test_connect_to_valid_host(server_root_response):
         AND the client determines if the host has authentication enabled
     """
 
-    host = 'https://sal.testing'
     requires_auth = server_root_response.json()['api']['requires_auth']
 
     with patch('sal.client.main.requests.get',
