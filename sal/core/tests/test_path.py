@@ -1,7 +1,5 @@
 import unittest
 
-import jetserver.jetvfs.path as pth
-
 VALID_SEGMENTS = [
     "abcdefghijklmnopqrstuvwxyz._-01234567890",
     "zeta", "18234", ".", "_", "-"
