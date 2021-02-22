@@ -34,7 +34,16 @@ def test_validate_xml_response(host, xml_response):
             SALClient(host)
 
 
-def test_validate_error_response():
+@pytest.mark.parametrize('response_exception, status_code',
+                         [(exception.InvalidPath, 404),
+                          (exception.NodeNotFound, 404),
+                          (exception.UnsupportedOperation, 500),
+                          (exception.InvalidRequest, 400),
+                          (exception.AuthenticationFailed, 401),
+                          (exception.PermissionDenied, 403),
+                          (exception.InternalError, 500)])
+def test_validate_error_response(host, server_response, response_exception,
+                                 status_code):
 
     """
     GIVEN
@@ -45,5 +54,12 @@ def test_validate_error_response():
         The relevant exception is raised
     """
 
+    server_response.status_code = status_code
+    exception_str = response_exception.__name__
+    server_response.json.return_value = {'exception': exception_str,
+                                         'message': response_exception.message}
 
+    with patch('sal.client.main.requests.get', return_value=server_response):
+        with pytest.raises(response_exception):
+            SALClient(host)
     
