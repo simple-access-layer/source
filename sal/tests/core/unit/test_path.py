@@ -1,3 +1,7 @@
+"""
+Tests relating to SAL path operations and validation
+"""
+
 
 from random import randint
 
@@ -6,6 +10,8 @@ from hypothesis import example, given, strategies as st
 
 from sal.core import path
 
+# Initializing commonly used hypothesis strategies so that this isn't
+# duplicated
 
 # A segment can contain any lowercase alphanumeric characters, and '-', '_',
 # '.'
@@ -27,17 +33,21 @@ def int_postfix(draw):
     :rtype: LazyStrategy
 
     .. note::
-        ints are restricted to <= 9999 for the sake of performance
+        ints are restricted to <= 9999 for performance
     """
     
     return ':{}'.format((draw(st.integers(0, 9999))))
 
-# A valid postfix for any path
-# This is either '', ':head' or ':*' where * is any non-negative int
-VALID_POSTFIX = st.one_of(st.just(''),  st.just(':head'), int_postfix())
 
-# A valid prefix for a relative path
-VALID_REL_PREFIX = st.one_of(st.just(''), st.just('../'))
+@st.composite
+def valid_postfix(draw):
+
+    """
+    :return: A valid postfix for any path (either '', ':head' or int_postfix)
+    :rtype: LazyStrategy
+    """
+
+    return draw(st.one_of(st.just(''),  st.just(':head'), int_postfix()))
 
 
 @st.composite
@@ -77,7 +87,7 @@ def valid_abs_path(draw):
     valid_abs_path = '/' + '/'.join([draw(valid_segment) for i
                                      in range(n_segments)])
     if randint(0, 1):
-        valid_abs_path += draw(VALID_POSTFIX)
+        valid_abs_path += draw(valid_postfix())
     return valid_abs_path
 
 
@@ -90,14 +100,16 @@ def valid_rel_path(draw):
     :rtype: LazyStrategy
     """
 
+    valid_rel_prefixes = st.one_of(st.just(''), st.just('../'))
+
     n_segments = draw(st.integers(min_value=1, max_value=4))
     valid_segment = st.text(SEGMENT_CHARACTERS,
                             min_size=4,
                             max_size=8)
     valid_rel_path = '/'.join([draw(valid_segment) for i in range(n_segments)])
-    valid_rel_path = (draw(VALID_REL_PREFIX)
+    valid_rel_path = (draw(valid_rel_prefixes)
                       + valid_rel_path
-                      + draw(VALID_POSTFIX))
+                      + draw(valid_postfix()))
     return valid_rel_path
 
 
@@ -119,15 +131,23 @@ def test_path_segment_validation(valid_segment):
 @given(invalid_segment=invalid_segment())
 def test_path_invalid_segment_validation(invalid_segment):
 
+
+@given(valid_segment=st.text(SEGMENT_CHARACTERS, min_size=1, max_size=15),
+       invalid_segment=invalid_segment())
+def test_path_segment_validation(valid_segment, invalid_segment):
+
     """
     GIVEN
-        
+        A segment (i.e. component) of a path made up of valid SAL characters
+        OR a segment (i.e. component) of a path containing at least one invalid
+        character
     WHEN
         The segment is validated
     THEN
-        The segment is determined to be valid
+        The segment's validity is correctly identified
     """
 
+    assert path.segment_valid(valid_segment)
     assert not path.segment_valid(invalid_segment)
 
 
@@ -148,54 +168,164 @@ def test_valid_path_validation(valid_path):
     assert path.is_valid(valid_path)
 
 
-def test_path_decomposition():
+@given(valid_abs_path=valid_abs_path(), valid_rel_path=valid_rel_path())
+def test_path_is_absolute(valid_abs_path, valid_rel_path):
 
     """
     GIVEN
-
+        An absolute path (A path starting with '/' and consisting of one or
+        more valid segments)
+        OR a relative path (starting with '../' or a valid segment character and
+        consisting of one or more valid segments)
     WHEN
-
+        It is checked if the path is absolute
     THEN
-    """
-
-
-def test_path_segment_normalisation():
-
-    """
-    GIVEN
-
-    WHEN
-
-    THEN
-    """
-
-
-@given(valid_abs_path=valid_abs_path())
-def test_path_is_absolute(valid_abs_path):
-
-    """
-    GIVEN
-
-    WHEN
-
-    THEN
+        Whether or not the path is absolute is determined
     """
 
     assert path.is_absolute(valid_abs_path)
+    assert not path.is_absolute(valid_rel_path)
 
 
-@given(valid_rel_path=valid_rel_path())
-@example('.')
-@example('.:0')
-@example('.:head')
-def test_path_to_relative(valid_rel_path):
+@given(valid_rel_path=valid_rel_path(), valid_abs_path=valid_abs_path())
+@example(valid_rel_path='.', valid_abs_path='/')
+@example(valid_rel_path='.:0', valid_abs_path='/a')
+@example(valid_rel_path='.:head', valid_abs_path='/:head')
+def test_path_is_relative(valid_rel_path, valid_abs_path):
 
     """
     GIVEN
-
+        A relative path (starting with '../' or a valid segment character and
+        consisting of one or more valid segments)
+        OR an absolute path (A path starting with '/' and consisting of one or
+        more valid segments)
     WHEN
-
+        If it is checked if the path is relative
     THEN
+        Whether or not the path is relative is returned
     """
 
     assert path.is_relative(valid_rel_path)
+    assert not path.is_relative(valid_abs_path)
+
+
+@pytest.mark.parametrize('test_path, normalised, unnormalised',
+   [("/",
+     ([], 0, True),
+     ([], 0, True)
+    ),
+    ("/:head",
+     ([], 0, True),
+     ([], 0, True)
+    ),
+    ("/:0",
+     ([], 0, True),
+     ([], 0, True)
+    ),
+    ("/:123",
+     ([], 123, True),
+     ([], 123, True)
+    ),
+    ("/abc",
+     (["abc"], 0, True),
+     (["abc"], 0, True)
+    ),
+    ("/abc/../EFG/637:145",
+     (["efg", "637"],  145, True),
+     (["abc", "..", "efg", "637"], 145, True)
+    ),
+    (".",
+     ([], 0, False),
+     (["."], 0, False)
+    ),
+    (".:head",
+     ([], 0, False),
+     (["."], 0, False)
+    ),
+    (".:0",
+     ([], 0, False),
+     (["."], 0, False)
+    ),
+    (".:76",
+     ([], 76, False),
+     (["."], 76, False)
+    ),
+    ("../abc/efg",
+     (["..", "abc", "efg"], 0, False),
+     (["..", "abc", "efg"], 0, False)
+    ),
+    ("../abc/efg:1",
+     (["..", "abc", "efg"], 1, False),
+     (["..", "abc", "efg"], 1, False)
+    ),
+    ("/../../a/../b",
+     (["b"], 0, True),
+     (["..", "..", "a", "..", "b"], 0, True)
+    )])
+def test_path_decomposition(test_path, normalised, unnormalised):
+
+    """
+    GIVEN
+        A valid path
+    WHEN
+        The path is decomposed
+    THEN
+        The components, revision and whether the path is absolute is returned
+    """
+
+    assert path.decompose(test_path, normalise=True) == normalised
+    assert path.decompose(test_path, normalise=False) == unnormalised
+
+
+@pytest.mark.parametrize('test_path, expected',
+    [("/abc/def/ghi", "/abc/def/ghi"),
+     ("/abc/def/ghi:0", "/abc/def/ghi"),
+     ("/abc/def/ghi:head", "/abc/def/ghi"),
+     ("/abc/def/ghi:99", "/abc/def/ghi:99"),
+     ("/./../..", "/"),
+     ("/abc/../def:0", "/def"),
+     ("/a/b/../../../c/d/.././e:head", "/c/e"),
+     ("./../..", "../.."),
+     ("a/../../../b/c/d/..", "../../b/c"),
+     ("../abc/../efg/ijk:56", "../efg/ijk:56"),
+     (".", "."),
+     (".:98", ".:98")])
+def test_normalise_path(test_path, expected):
+
+    """
+    GIVEN
+        A valid path
+    WHEN
+        The path is normalised
+    THEN
+        The redundant pathing operators are removed from the path
+    """
+
+    assert path.normalise(test_path) == expected
+
+
+@pytest.mark.parametrize('base, relative, expected',
+    [("/", ".", "/"),
+     ("/", "a", "/a"),
+     ("/:76", "a", "/a"),
+     ("/:76", "a:245", "/a:245"),
+     ("/", "a:245", "/a:245"),
+     ("/abc/def/ghi", "../../ijk", "/abc/ijk"),
+     ("/abc/def/../ghi", "../../ijk", "/ijk"),
+     ("/abc/def/ghi", "../../ijk/..", "/abc"),
+     ("/abc/def/ghi", "../../../..:100", "/:100"),
+     ("/abc/def/ghi:98", "../../../..:head", "/")])
+def test_path_to_absolute(base, relative, expected):
+
+    """
+    GIVEN
+        A valid base path
+        AND a valid relative path
+    WHEN
+        The components are joined
+    THEN
+        The absolute path composed of the base and relative components is
+        returned
+    """
+
+    assert path.to_absolute(base, relative) == expected
