@@ -21,8 +21,8 @@ SEGMENT_CHARACTERS = st.characters(min_codepoint=48,
                                    whitelist_characters=['-', '_', '.'])
 
 # Almost all characters not in SEGMENT_CHARACTERS
-INVALID_CHARACTERS = st.characters(blacklist_categories=['Ll', 'Nd'],
-                                   blacklist_characters=['-', '_', '.'])
+INVALID_CHARACTERS = st.characters(blacklist_categories=['Ll', 'Lu', 'Nd'],
+                                   blacklist_characters=['-', '_', '.', ':'])
 
 @st.composite
 def int_postfix(draw):
@@ -67,7 +67,7 @@ def invalid_segment(draw):
                                       max_size=4))
 
     # Insert invalid characters randomly into valid segment
-    index = randint(0, len(valid_segment))
+    index = draw(st.integers(min_value=0, max_value=len(valid_segment)))
     return valid_segment[:index] + invalid_characters + valid_segment[index:]
 
 
@@ -113,23 +113,38 @@ def valid_rel_path(draw):
     return valid_rel_path
 
 
-@given(valid_segment=st.text(SEGMENT_CHARACTERS, min_size=1, max_size=15))
-def test_path_segment_validation(valid_segment):
+@st.composite
+def invalid_path(draw):
 
-    """
-    GIVEN
-        
-    WHEN
-        The segment is validated
-    THEN
-        The segment is determined to be valid
-    """
+    # Get a valid relative path to modify in different ways
+    n_segments = draw(st.integers(min_value=1, max_value=3))
+    valid_segment = st.text(SEGMENT_CHARACTERS,
+                            min_size=2,
+                            max_size=5)
+    valid_path = '/'.join([draw(valid_segment) for i in range(n_segments)])
 
-    assert path.segment_valid(valid_segment)
+    # A path can be invalid because it contains invalid characters
+    invalid_characters = draw(st.text(INVALID_CHARACTERS,
+                                      min_size=1,
+                                      max_size=4))
+    index = randint(0, len(valid_path))
+    invalid_char_path = (valid_path[:index]
+                         + invalid_characters
+                         + valid_path[index:])
+    
+    # A path can be invalid because it has an invalid prefix
+    invalid_prefix_path = '//' + valid_path
+    
+    # A path can be invalid because it has an invalid postfix
+    # First map is a negative revision
+    # Second map is a float revision
+    invalid_postfix = draw(st.one_of(st.just(':'),
+                                     int_postfix().map(
+                                         lambda x: x.replace(':', ':-')),
+                                     int_postfix().map(lambda x: x + '.5')))
+    invalid_postfix_path = valid_path + invalid_postfix
 
-
-@given(invalid_segment=invalid_segment())
-def test_path_invalid_segment_validation(invalid_segment):
+    return draw(st.sampled_from([invalid_char_path]))
 
 
 @given(valid_segment=st.text(SEGMENT_CHARACTERS, min_size=1, max_size=15),
@@ -151,14 +166,15 @@ def test_path_segment_validation(valid_segment, invalid_segment):
     assert not path.segment_valid(invalid_segment)
 
 
-@given(valid_path=st.one_of(valid_abs_path(), valid_rel_path()))
-def test_valid_path_validation(valid_path):
+@given(valid_path=st.one_of(valid_abs_path(), valid_rel_path()),
+       invalid_path=invalid_path())
+def test_valid_path_validation(valid_path, invalid_path):
 
     """
     GIVEN
         A path consisting of valid SAL segment characters, separated by zero or
         more '/', optionally postfixed with ':' and either 'head' or one or
-        more numerics, and not ending in '/'
+        more integers, and not ending in '/'
     WHEN
         The path is validated
     THEN
@@ -166,6 +182,7 @@ def test_valid_path_validation(valid_path):
     """
 
     assert path.is_valid(valid_path)
+    assert not path.is_valid(invalid_path)
 
 
 @given(valid_abs_path=valid_abs_path(), valid_rel_path=valid_rel_path())
