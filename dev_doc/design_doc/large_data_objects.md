@@ -72,7 +72,3 @@ where each `<ENCODED_OBJECT>` is a JSON representation of a complete object (i.e
 - What is supported by `flask` and `flask_restful`
 - Achievable using JSON
 - `Transfer-Encoding` header only supported in HTTP 1.1
-
-## Additional
-
-- If client size memory usage is determined to be an worth considering, one simple improvement that could be applied is defining `__slots__` for subclasses of `DataObject`, as this will  
