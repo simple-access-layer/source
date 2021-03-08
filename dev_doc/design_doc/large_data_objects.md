@@ -7,12 +7,12 @@ Enable a SAL server to respond to a client `get` operation on a leaf node which 
 ### Definitions
 `get`: One of the SAL operations (`list, get, copy, put, delete`) for interacting with a node.  **This is not equivalent to an HTTP GET request.**
 
-large `DataObject`: An instance of a subclass of a SAL `DataObject` which is > 200 Mb but still 
+large `DataObject`: An instance of a subclass of a SAL `DataObject` which is > 200 Mb.
 
 ## Requirements
 
 - Client `get` operation should be independent of node size i.e., it should not require additional parameters or headers to be passed.
-- Data objects are assumed to be 
+- A large `DataObject` is assumed to fit within client-side memory.
 
 
 ## Architecture
@@ -72,3 +72,9 @@ where each `<ENCODED_OBJECT>` is a JSON representation of a complete object (i.e
 - What is supported by `flask` and `flask_restful`
 - Achievable using JSON
 - `Transfer-Encoding` header only supported in HTTP 1.1
+
+
+## Alternative Approaches
+
+- Client side chunking using `Range` header
+- Partial JSON objects
