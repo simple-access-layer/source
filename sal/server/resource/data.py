@@ -1,3 +1,7 @@
+import json
+from inspect import isgenerator, isgeneratorfunction
+
+from flask import Response
 from flask_restful import Resource, request, reqparse, current_app
 
 from sal.core.serialise import serialise, deserialise
@@ -84,6 +88,14 @@ class DataTree(Resource):
             summary = (object_request == 'summary')
             obj = self.persistence_provider.get(path, summary)
 
+            # If obj is a generated, use a generator to in the response
+            if isgenerator(obj):
+                return Response(_jsonify_generator(obj),
+                                mimetype='application/json')
+            # In case a generator function is returned instead of a generator
+            elif isgeneratorfunction(obj):
+                return Response(_jsonify_generator(obj()),
+                                mimetype='application/json')
         else:
 
             # request report
@@ -158,3 +170,21 @@ class DataTree(Resource):
 
         # return no content
         return '', 204
+
+
+def _jsonify_generator(generator):
+
+    yield '{"objects":['
+
+    # In case of empty generator
+    try:
+        yield json.dumps(serialise(next(generator)))
+    except StopIteration:
+        yield ']}'
+        raise StopIteration
+    
+    # Serialise objects in generator
+    for obj in generator:
+        yield ',' + json.dumps(serialise(obj))
+
+    yield ']}'
