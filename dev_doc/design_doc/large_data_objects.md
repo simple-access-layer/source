@@ -18,24 +18,40 @@ large `DataObject`: An instance of a subclass of a SAL `DataObject` which is > 2
 ## Architecture
 
 ### Overview
-- The suggested approach will modify the server `get` operation, the client `get` operation, and the `DataObject` and it's subclasses.
+In addition to the current response from `get` operations, the server will respond with chunked transfer encoding for large data.  This is achieved by returning a `Response` object with a generator which yields the JSON representation of the large data (and any additional fields which define the `DataObject`).  Therefore the backend data will need to be requested within a generator.  The suggested approach will modify the server `get` operation, the client `get` operation, and the `DataObject` and it's subclasses.
 
-#### Core and dataclass changes
-- Create a base class for node objects (`Branch, BranchReport, DataObject, LeafReport`) called `Node`.
-- Add abstract `to_dict` and `from_dict` to `Node` (from the subclasses).
-- Move serialisation into `Node` by adding concrete `serialise` and `deserialise` methods which use the subclass implementations of `to_dict` and `from_dict`.
-- Override `serialise` and `deserialise` for `DataObject`, as this requires the data type encoding in the JSON.
-- Add `to_json` and `from_json` to `Node`, using `serialise` and `deserialise`.  This can be concrete in `Node` but overriden in classes with generator data.  `to_json` can return either a byte string or generator representation of JSON, with the generator representation required for Flask to respond with a chunked transfer encoding.
+**Server changes**
 
-- A design needs to be determined for a class/classes wtih generator data.  Possibility include:
-    * A class decorator which takes a class as a parameter.  The defined class will have the same attributes and methods as the parameter class, but with specific methods (e.g. to_json1) changed. The same could be achieved with either a mixin or simple inheritance from the parameter class, although the latter would introduce duplication.  In all cases the `DataSummary` could be the same as is used for the original `DataObject` (e.g., `StringSummary` as the summary class for `StringGenerator`).
-    * A function which creates generator classes from each class in the registry.  This would be fine for `DataObject` subclasses where `to_json` is the same, but might be more challenging for others (e.g., `Signal`).
-    * A container class.    
-
-#### Server changes
 - Change `DataTree.get` to return a `flask.Response` object, rather than a `dict`.  A `flask.Response` object can take either byte string or generator representations of JSON for the `response` parameter: this parameter will be provided with `to_json` from a `Node` subclass.
 
+**Core and dataclass changes**
+
+The current architecture of objects which can be returned from nodes (`Branch`, `BranchReport`, `LeafReport`, `DataObject` and it's subclasses) has two issues:
+    
+1. While all four base classes list above can be returned from a GET request, they do not share a common interface.  While they effectively implement a common interface, it would be preferable for this to be defined.
+
+2. There is a signficant amount of code duplication, which is particularly prevalent with `SummaryObject` subclasses and 'DataObject' classes which contain `numpy.ndarray` objects.
+
+A summary of suggested changes to the architecture are:
+
+- Create abstract base class `Node` for the four different responses from nodes.
+- Add abstract `to_dict` and `from_dict` to `Node` (from the subclasses).
+- Move serialisation from serialise.py functions into `Node` and its subclasses.  `serialise` will either return either a byte string or generator representations of JSON. The generator representation is required for Flask to respond with a chunked transfer encoding.  `serialise` will also take a parameter (`additional`, although name may be changed) which will enable additional data to be added before the object is serialised.  This will allow the `url`, which is currently added within `DataTree.get` to be added to the `Response`.
+- Create abstract base classes `NodeReport` (`BranchReport`, `LeafReport`) `NodeObject` (`Branch`, `DataObject`), which will unify common serialisation behaviour. will no longer gh the former would have duplicated method names in the mixin, and the latter would have code duplication.
+
+As a few [data classes](https://simple-access-layer.github.io/documentation/datamodel/dataclasses.html) will require significantly differnet serialisation, this will be handlded on a per class basis, with classes inheriting from `DataGenerator`.  `DataGenerator` will also define a concrete `serialise` method for the typical serialisation (e.g. for `StringGenerator`).  Each `DataGenerator` subclass will take a generator as a `value`, which will be used for serialisation.  `DataGenerator` subclasses will also be added to the `DataClass` registry, and the corresponding `DataSummary` will be used as the summary class (e.g., `StringSummary` as the summary class for `StringGenerator`).
+
+An abstract `__add__` will also be added to `DataObject`, as the concrete implementations will be used to combine chunked data.
+
+**Client Changes**
+
+- The client `get` operation will have an additional decoding for chunked transfers.  This will use `DataObject.__add__` for combining the chunks. 
+
 ### UML class diagrams
+
+Class diagram only includes significant additions/modifications to current classes.
+
+![SAL Node Class Diagram](../files/SAL_Node_Class_Digram.jpeg)
 
 ### Server Responses
 
@@ -102,14 +118,17 @@ where each `<ENCODED_OBJECT>` is a JSON representation of a complete object (i.e
 - REST API
 - What is supported by `flask` and `flask_restful`
 - Achievable using JSON
-- `Transfer-Encoding` header only supported in HTTP 1.1
+- `DataClass` architecture
 
 ## Issues with suggested approach
 
-- This will remove the ability to add content to the response within `DataTree.get`, as the serialised content returned here by `PersistenceProvider.get` will be either a byte string or generator.
+- `Transfer-Encoding` header only supported in HTTP 1.1
+- Client side decoding will be less elegant.
+- Multiple return types from `deserialise`.
 
 ## Alternative Approaches
 
 - Client side chunking using `Range` header
 - Partial JSON objects
 - `PersistenceProvider.get` has additional return of generator, which is then converted to JSON within `DataTree.get` (or function called from `DataTree.get`).
+- A container class rather than `DataGenerator` subclasses.  This might be problematic because `serialise` would have to vary for different `DataObject` subclasses contained by the container class (particularly `Signal`, as it has to contain multiple generators).  
