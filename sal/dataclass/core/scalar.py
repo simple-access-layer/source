@@ -119,15 +119,6 @@ class Scalar(DataObject):
 
         return value
 
-    def summary(self):
-        """
-        Returns a summary of the Scalar object.
-
-        :return: A ScalarSummary object.
-        """
-
-        return self.SUMMARY_CLASS(self.description)
-
     def to_dict(self):
         """
         Returns a dictionary representation of the object.

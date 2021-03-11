@@ -171,15 +171,6 @@ class Dictionary(DataObject):
 
         return value
 
-    def summary(self):
-        """
-        Returns a summary of the Dictionary object.
-
-        :return: A DictionarySummary object.
-        """
-
-        return self.SUMMARY_CLASS(self.description)
-
     def to_dict(self):
         """
         Returns a dictionary representation of the object.
