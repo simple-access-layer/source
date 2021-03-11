@@ -163,10 +163,6 @@ class BranchReport(NodeReport):
             ]}
         return dct
 
-    def serialise(self):
-
-        pass
-
     @classmethod
     def from_dict(cls, d):
 
@@ -234,10 +230,6 @@ class LeafReport(NodeReport):
                 'version': self.version
             }
         return dct
-
-    def serialise(self):
-
-        pass
 
     @classmethod
     def from_dict(cls, d):
