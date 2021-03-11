@@ -180,3 +180,58 @@ def scalar_status(scalar_status_status, scalar_status_key,
 def scalar_status_summary(scalar_status_description):
 
     return dataclass.ScalarStatusSummary(description=scalar_status_description)
+
+
+@pytest.fixture
+def asym_array_error_lower():
+
+    return np.array([2] * 5)
+
+
+@pytest.fixture
+def asym_array_error_upper():
+
+    return np.array([7] * 5)
+
+
+@pytest.fixture
+def asym_array_error_description():
+
+    return 'asym_err'
+
+
+@pytest.fixture
+def asym_array_error_summary_dict(asym_array_error_description):
+
+    return {'_class': 'error_asymmetrical',
+            '_group': 'signal_error',
+            '_version': 1,
+            'description': asym_array_error_description,
+            '_type': 'summary'}
+
+
+@pytest.fixture
+def asym_array_error_dict(asym_array_error_summary_dict,
+                          asym_array_error_lower, asym_array_error_upper):
+
+    return {**asym_array_error_summary_dict,
+            '_type': 'object',
+            'lower': asym_array_error_lower,
+            'upper': asym_array_error_upper}
+
+
+@pytest.fixture
+def asym_array_error(asym_array_error_lower, asym_array_error_upper,
+                     asym_array_error_description):
+    
+    return dataclass.AsymmetricArrayError(
+        asym_array_error_lower,
+        asym_array_error_upper,
+        description=asym_array_error_description)
+
+
+@pytest.fixture
+def asym_array_error_summary(asym_array_error_description):
+
+    return dataclass.AsymmetricArrayErrorSummary(
+        description=asym_array_error_description)
