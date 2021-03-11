@@ -88,22 +88,13 @@ class DataTree(Resource):
             summary = (object_request == 'summary')
             obj = self.persistence_provider.get(path, summary)
 
-            # If obj is a generated, use a generator to in the response
-            if isgenerator(obj):
-                return Response(_jsonify_generator(obj),
-                                mimetype='application/json')
-            # In case a generator function is returned instead of a generator
-            elif isgeneratorfunction(obj):
-                return Response(_jsonify_generator(obj()),
-                                mimetype='application/json')
         else:
 
             # request report
             obj = self.persistence_provider.list(path)
 
         # generate response
-        response = serialise(obj)
-        response["request"] = {"url": request.url}
+        response = Response(obj.serialise({"url": request.url}))
         return response
 
     def post(self, path='', user=None):
