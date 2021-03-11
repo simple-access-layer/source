@@ -28,7 +28,8 @@ class AsymmetricArrayError(Error):
     VERSION = 1
     SUMMARY_CLASS = AsymmetricArrayErrorSummary
 
-    def __init__(self, lower, upper, dtype=None, description=None):
+    def __init__(self, lower, upper, dtype=None,
+                 description='Aymmetrical error per point'):
         """
         The dimensions of the error are defined by the shape of the data
         supplied. The shape must match the shape of the object to which
@@ -52,8 +53,6 @@ class AsymmetricArrayError(Error):
             np.uint8, np.uint16, np.uint32, np.uint64,
             np.float32, np.float64
         }
-
-        description = description or 'Asymmetrical error per point.'
 
         # explicitly convert data to a numpy array, lets us use numpy to handle lists etc...
         lower = np.array(lower)

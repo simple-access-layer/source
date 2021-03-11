@@ -16,13 +16,11 @@ class StringSummary(DataSummary):
     GROUP = 'core'
     VERSION = 1
 
-    def __init__(self, description=None):
+    def __init__(self, description='A string'):
         """
         :param description: A string describing the contents of the string (default='A string.').
         """
 
-        #: A string describing the string.
-        description = description or 'A string.'
         super().__init__(description)
 
 
@@ -40,14 +38,12 @@ class String(DataObject):
     VERSION = 1
     SUMMARY_CLASS = StringSummary
 
-    def __init__(self, value, description=None):
+    def __init__(self, value, description='A string'):
         """
         :param value: The string.
         :param description: A string describing the string contents (default='A string.').
         """
 
-        #: A string describing the string.
-        description = description or 'A string.'
         super().__init__(description)
 
         #: The string contents.

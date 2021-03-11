@@ -25,7 +25,7 @@ class SignalSummary(DataSummary):
     GROUP = 'signal'
     VERSION = 1
 
-    def __init__(self, dimensions, error=None, mask=None, units=None, description=None):
+    def __init__(self, dimensions, error=None, mask=None, units=None, description='A signal'):
         """
         :param dimensions: A list of DimensionSummary objects.
         :param error: An ErrorSummary object or None (default=None).
@@ -37,9 +37,6 @@ class SignalSummary(DataSummary):
         # validate strings
         units = units or 'au'
         units = str(units)
-
-        description = description or 'A signal.'
-        description = str(description)
 
         # a signal requires at least one dimension
         dimensions = list(dimensions)
@@ -181,7 +178,7 @@ class Signal(DataObject):
     VERSION = 1
     SUMMARY_CLASS = SignalSummary
 
-    def __init__(self, dimensions, data=None, dtype=None, error=None, mask=None, units=None, description=None):
+    def __init__(self, dimensions, data=None, dtype=None, error=None, mask=None, units=None, description='A signal'):
         """
         The minimal requirements to create a signal object is a list of
         Dimension objects. This will create an Signal object with an empty
@@ -307,9 +304,6 @@ class Signal(DataObject):
         # validate strings
         units = units or 'au'
         units = str(units)
-
-        description = description or 'A signal.'
-        description = str(description)
 
         # a signal requires at least one dimension
         dimensions = list(dimensions)

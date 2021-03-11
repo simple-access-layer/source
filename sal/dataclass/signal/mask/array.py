@@ -20,9 +20,7 @@ class ArrayStatus(Mask):
     VERSION = 1
     SUMMARY_CLASS = ArrayStatusSummary
 
-    def __init__(self, status, key, description=None):
-
-        description = description or 'Array status mask.'
+    def __init__(self, status, key, description='Array status mask'):
 
         # explicitly convert data to a numpy array, lets us use numpy to handle lists etc...
         status = np.array(status, dtype=np.uint8, order='C')

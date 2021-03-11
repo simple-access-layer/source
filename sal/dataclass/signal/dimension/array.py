@@ -24,7 +24,8 @@ class ArrayDimension(Dimension):
     VERSION = 1
     SUMMARY_CLASS = ArrayDimensionSummary
 
-    def __init__(self, data, dtype=None, units=None, error=None, temporal=False, description=None):
+    def __init__(self, data, dtype=None, units=None, error=None,
+                 temporal=False, description='An array dimension.'):
         """
         An array dimension is defined by a 1 dimensional array containing the 
         axis values for each point along the dimension. The array length
@@ -54,8 +55,6 @@ class ArrayDimension(Dimension):
             np.uint8, np.uint16, np.uint32, np.uint64,
             np.float32, np.float64
         }
-
-        description = description or 'An array dimension.'
 
         # validate data
         data = np.array(data)

@@ -16,13 +16,11 @@ class ScalarSummary(DataSummary):
     GROUP = 'core'
     VERSION = 1
 
-    def __init__(self, description=None):
+    def __init__(self, description='A scalar value'):
         """
         :param description: A string describing the scalar (default='A scalar value.').
         """
 
-        #: A string describing the scalar value.
-        description = description or 'A scalar value.'
         super().__init__(description)
 
 
@@ -51,14 +49,12 @@ class Scalar(DataObject):
     VERSION = 1
     SUMMARY_CLASS = ScalarSummary
 
-    def __init__(self, value, description=None):
+    def __init__(self, value, description='A scalar value'):
         """
         :param value: The scalar value.
         :param description: A string describing the scalar (default='A scalar value.').
         """
 
-        #: A string describing the scalar value.
-        description = description or 'A scalar value.'
         super().__init__(description)
 
         #: The scalar value.

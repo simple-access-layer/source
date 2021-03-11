@@ -14,15 +14,11 @@ class ArraySummary(DataSummary):
     GROUP = 'core'
     VERSION = 1
 
-    def __init__(self, shape, description=None):
+    def __init__(self, shape, description='An array'):
         """
         """
 
         self.shape = tuple(shape)
-
-        description = description or 'An array.'
-        description = str(description)
-
         super().__init__(description)
 
     def to_dict(self):
@@ -65,7 +61,7 @@ class Array(DataObject):
     VERSION = 1
     SUMMARY_CLASS = ArraySummary
 
-    def __init__(self, shape, data=None, dtype=None, description=None):
+    def __init__(self, shape, data=None, dtype=None, description='An array'):
         """
         The data array shape is is a tuple defining the length of each
         dimension. For example:
@@ -113,9 +109,6 @@ class Array(DataObject):
         }
 
         shape = tuple(shape)
-
-        description = description or 'An array.'
-        description = str(description)
 
         # validate data type
         if dtype:

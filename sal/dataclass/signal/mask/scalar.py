@@ -19,9 +19,7 @@ class ScalarStatus(Mask):
     VERSION = 1
     SUMMARY_CLASS = ScalarStatusSummary
 
-    def __init__(self, status, key, description=None):
-
-        description = description or'Scalar status mask.'
+    def __init__(self, status, key, description='Scalar status mask'):
 
         super().__init__(description)
 

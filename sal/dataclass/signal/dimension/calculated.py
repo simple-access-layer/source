@@ -24,7 +24,8 @@ class CalculatedDimension(Dimension):
     VERSION = 1
     SUMMARY_CLASS = CalculatedDimensionSummary
 
-    def __init__(self, length, start, step, units=None, error=None, temporal=False, description=None):
+    def __init__(self, length, start, step, units=None, error=None,
+                 temporal=False, description='A calculated dimension'):
         """
         A calculated dimensions is defined by a length, start value and step
         value. The value of the dimension coordinate increases by the value
@@ -56,8 +57,6 @@ class CalculatedDimension(Dimension):
         :param temporal: True is the dimension represent time, False otherwise (default=False).
         :param description: A string describing the signal (default='A signal.'). 
         """
-
-        description = description or 'A calculated dimension.'
 
         # calculate limits and setup an array to simplify user interaction
         self.start = float(start)

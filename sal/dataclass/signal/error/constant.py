@@ -27,7 +27,7 @@ class ConstantError(Error):
     VERSION = 1
     SUMMARY_CLASS = ConstantErrorSummary
 
-    def __init__(self, lower, upper, relative=False, description=None):
+    def __init__(self, lower, upper, relative=False, description='Constant error'):
         """
         The lower and upper error bars are defined independently and apply to
         the entire range of data to which this error class is applied. The
@@ -42,8 +42,6 @@ class ConstantError(Error):
         :param relative: True if the error is relative, False if absolute (default=False).
         :param description: A text description of the error. 
         """
-
-        description = description or 'Constant error.'
 
         self.lower = lower
         self.upper = upper

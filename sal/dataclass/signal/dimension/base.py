@@ -48,7 +48,8 @@ class Dimension(DataObject):
 
     GROUP = 'signal_dimension'
 
-    def __init__(self, length, units=None, error=None, temporal=False, description=None):
+    def __init__(self, length, units=None, error=None, temporal=False,
+                 description='A coordinate dimension.'):
         """
         :param length: The length of the dimension.
         :param error: An ErrorSummary object or None (default=None)
@@ -60,9 +61,6 @@ class Dimension(DataObject):
         # validate inputs
         units = units or 'au'
         units = str(units)
-
-        description = description or 'A coordinate dimension.'
-        description = str(description)
 
         length = int(length)
         if length < 1:
@@ -112,7 +110,8 @@ class DimensionSummary(DataSummary):
 
     GROUP = 'signal_dimension'
 
-    def __init__(self, length, units=None, error=None, temporal=False, description=None):
+    def __init__(self, length, units=None, error=None, temporal=False,
+                 description='A coordinate dimension.'):
         """
         :param length: The length of the dimension.
         :param error: An ErrorSummary object or None (default=None)
@@ -124,9 +123,6 @@ class DimensionSummary(DataSummary):
         # validate inputs
         units = units or 'au'
         units = str(units)
-
-        description = description or 'A coordinate dimension.'
-        description = str(description)
 
         length = int(length)
         if length < 1:
