@@ -1,8 +1,9 @@
 import re
-from ..time import validate_timestamp, encode_timestamp
+
+from .node_report import NodeReport
 
 
-class BranchReport:
+class BranchReport(NodeReport):
     """
     Describes the contents of a branch node.
 
@@ -15,30 +16,13 @@ class BranchReport:
     :param revision_modified: List of revision numbers in which the node was modified.
     """
 
-    def __init__(self, description, branches, leaves, timestamp, revision_current=1, revision_latest=1, revision_modified=None):
+    def __init__(self, description, branches, leaves, timestamp, **kwargs):
 
+        super().__init__(description, timestamp, **kwargs)
         # types and defaults
         description = str(description)
         branches = list(branches)
         leaves = list(leaves)
-        timestamp = validate_timestamp(timestamp)
-
-        revision_current = int(revision_current)
-        revision_latest = int(revision_latest)
-
-        revision_modified = revision_modified or (1, )
-        tuple(revision_modified)
-
-        # revisions numbers cannot be less than 1
-        if revision_current < 1:
-            raise ValueError('Current revision cannot be less than 1.')
-
-        if revision_latest < 1:
-            raise ValueError('Latest revision cannot be less than 1.')
-
-        for revision in revision_modified:
-            if revision < 1:
-                raise ValueError('Modification revisions cannot be less than 1.')
 
         # leaves list must contain (name, ObjectReport) tuples
         for leaf in leaves:
@@ -57,10 +41,6 @@ class BranchReport:
         self.description = description
         self.branches = branches
         self.leaves = leaves
-        self.timestamp = timestamp
-        self.revision_current = revision_current
-        self.revision_latest = revision_latest
-        self.revision_modified = revision_modified
 
     def __repr__(self):
 
@@ -74,11 +54,9 @@ class BranchReport:
 
         return (
             'node: branch\n'
-            'description: {}\n'
-            'revision: {} (latest = {})\n'
-            'children:\n'
             '{}'
-            ''.format(self.description, self.revision_current, self.revision_latest, children)
+            'children:\n'
+            '{}\n'.format(super().__repr__(), children)
         )
 
     def _leaf_sorter(self, s):
@@ -117,26 +95,22 @@ class BranchReport:
         :return: Serialised object.
         """
 
-        return {
-            'description': self.description,
-            'children': {
-                'branches': self.branches,
-                'leaves': [
-                    {
-                        'name': name,
-                        'class': obj.cls,
-                        'group': obj.group,
-                        'version': obj.version
-                    } for name, obj in self.leaves
-                ]
-            },
-            'timestamp': encode_timestamp(self.timestamp),
-            'revision': {
-                'latest': self.revision_latest,
-                'current': self.revision_current,
-                'modified': self.revision_modified
-            },
-        }
+        dct = super().to_dict()
+        dct['children'] = {
+            'branches': self.branches,
+            'leaves': [
+                {
+                    'name': name,
+                    'class': obj.cls,
+                    'group': obj.group,
+                    'version': obj.version
+                } for name, obj in self.leaves
+            ]}
+        return dct
+
+    def serialise(self):
+
+        pass
 
     @classmethod
     def from_dict(cls, d):
@@ -161,7 +135,7 @@ class BranchReport:
         )
 
 
-class LeafReport:
+class LeafReport(NodeReport):
     """
     Describes the contents of a leaf node.
 
@@ -175,49 +149,21 @@ class LeafReport:
     :param revision_modified: List of revision numbers in which the node was modified.
     """
 
-    def __init__(self, description, cls, group, version, timestamp, revision_current=1, revision_latest=1, revision_modified=None):
+    def __init__(self, description, cls, group, version, timestamp, **kwargs):
 
         # types and defaults
-        description = str(description)
-        cls = str(cls)
-        group = str(group)
-        version = int(version)
-        timestamp = validate_timestamp(timestamp)
-
-        revision_current = int(revision_current)
-        revision_latest = int(revision_latest)
-
-        revision_modified = revision_modified or (1, )
-        tuple(revision_modified)
-
-        # revisions numbers cannot be less than 1
-        if revision_current < 1:
-            raise ValueError('Current revision cannot be less than 1.')
-
-        if revision_latest < 1:
-            raise ValueError('Latest revision cannot be less than 1.')
-
-        for revision in revision_modified:
-            if revision < 1:
-                raise ValueError('Modification revisions cannot be less than 1.')
-
-        self.description = description
-        self.cls = cls
-        self.group = group
-        self.version = version
-        self.timestamp = timestamp
-        self.revision_latest = revision_latest
-        self.revision_current = revision_current
-        self.revision_modified = revision_modified
+        super().__init__(description, timestamp, **kwargs)
+        self.cls = str(cls)
+        self.group = str(group)
+        self.version = int(version)
 
     def __repr__(self):
 
         return (
             'node: leaf\n'
-            'description: {}\n'
-            'revision: {} (latest = {})\n'
+            '{}'
             'object: {} ({}, v{})'
-        ).format(self.description, self.revision_current, self.revision_latest, self.cls, self.group, self.version)
+        ).format(super().__repr__(), self.cls, self.group, self.version)
 
     def to_dict(self):
         """
@@ -226,20 +172,17 @@ class LeafReport:
         :return: Serialised object.
         """
 
-        return {
-            'description': self.description,
-            'object': {
+        dct = super().to_dict()
+        dct['object'] = {
                 'class': self.cls,
                 'group': self.group,
                 'version': self.version
-            },
-            'timestamp': encode_timestamp(self.timestamp),
-            'revision': {
-                'latest': self.revision_latest,
-                'current': self.revision_current,
-                'modified': self.revision_modified
             }
-        }
+        return dct
+
+    def serialise(self):
+
+        pass
 
     @classmethod
     def from_dict(cls, d):
