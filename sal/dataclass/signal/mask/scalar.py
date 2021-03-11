@@ -33,9 +33,6 @@ class ScalarStatus(Mask):
     def shape_compatible(self, shape):
         return True
 
-    def summary(self):
-        return self.SUMMARY_CLASS(self.description)
-
     def to_dict(self):
         v = super().to_dict()
         v['status'] = self.status

@@ -88,9 +88,6 @@ class AsymmetricArrayError(Error):
     def shape_compatible(self, shape):
         return shape == self.lower.shape and shape == self.upper.shape
 
-    def summary(self):
-        return self.SUMMARY_CLASS(self.description)
-
     def to_dict(self):
         v = super().to_dict()
 

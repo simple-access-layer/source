@@ -37,9 +37,6 @@ class ArrayStatus(Mask):
     def shape_compatible(self, shape):
         return shape == self.status.shape
 
-    def summary(self):
-        return self.SUMMARY_CLASS(self.description)
-
     def to_dict(self):
         v = super().to_dict()
         v['status'] = self.status
