@@ -182,25 +182,35 @@ class DataClass(Node):
             str(hex(id(self)))
         )
 
-    @classmethod
-    def from_dict(cls, d):
-        """
-        Instances the class from a dictionary representation.
-        
-        :param d: Dictionary containing a serialised object. 
-        :return: An object instance.
-        """
-
-        raise NotImplementedError('This method must be implemented by sub-classes.')
-
     def to_dict(self):
         """
-        Returns a dictionary representation of the data object.
-         
+        Creates a new data object dictionary populated with common header data.
+        
         :return: A data object dictionary. 
         """
 
-        raise NotImplementedError('This method must be implemented by sub-classes.')
+        return {
+            "_class": self.CLASS,
+            "_group": self.GROUP,
+            "_version": np.uint64(self.VERSION),
+            "_type": TYPE_SUMMARY,
+            "description": str(self.description)
+        }
+
+    @classmethod
+    def from_dict(cls, d):
+        """
+        Instances the object from a dictionary representation.
+
+        :param d: Dictionary containing a serialised object.
+        :return: An object instance.
+        """
+
+        if not cls.is_compatible(d):
+            raise ValueError('The dictionary does not contain a serialised'
+                             ' {}.'.format(cls.__name__))
+        return cls(d['description'])
+
 
     @classmethod
     def is_compatible(cls, d):
@@ -226,21 +236,6 @@ class DataClass(Node):
                 and group == cls.GROUP
                 and version == cls.VERSION
                 and class_type == cls.CLASS_TYPE)
-
-    def _new_dict(self):
-        """
-        Creates a new data object dictionary populated with common header data.
-        
-        :return: A data object dictionary. 
-        """
-
-        return {
-            "_class": self.CLASS,
-            "_group": self.GROUP,
-            "_version": np.uint64(self.VERSION),
-            "_type": TYPE_SUMMARY,
-            "description": str(self.description)
-        }
 
 
 # TODO: add tests
