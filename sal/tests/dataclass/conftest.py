@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from sal import dataclass
@@ -81,3 +82,101 @@ def string(string_value, string_description):
 def string_summary(string_description):
 
     return dataclass.StringSummary(description=string_description)
+
+
+@pytest.fixture
+def array_status_status():
+
+    return np.array([0, 1, 4, 2, 2, 3, 1, 2], dtype=np.uint8)
+
+
+@pytest.fixture
+def array_status_key():
+
+    return np.array([0, 1, 2, 3, 4], dtype=str)
+
+@pytest.fixture
+def array_status_description():
+
+    return 'arr_mask'
+
+
+@pytest.fixture
+def array_status_summary_dict(array_status_description):
+
+    return {'_class': 'mask_array_status',
+            '_group': 'signal_mask',
+            '_version': 1,
+            'description': array_status_description,
+            '_type': 'summary'}
+
+
+@pytest.fixture
+def array_status_dict(array_status_summary_dict, array_status_status,
+                      array_status_key):
+
+    return {**array_status_summary_dict, '_type': 'object',
+            'key': array_status_key, 'status': array_status_status}
+
+
+@pytest.fixture
+def array_status(array_status_status, array_status_key,
+                 array_status_description):
+
+    return dataclass.ArrayStatus(array_status_status, array_status_key,
+                                 description=array_status_description)
+
+
+@pytest.fixture
+def array_status_summary(array_status_description):
+
+    return dataclass.ArrayStatusSummary(description=array_status_description)
+
+
+@pytest.fixture
+def scalar_status_status():
+
+    return 1
+
+
+@pytest.fixture
+def scalar_status_key():
+
+    return np.array([0, 1, 2, 3, 4], dtype=str)
+
+@pytest.fixture
+def scalar_status_description():
+
+    return 'scalar_mask'
+
+
+@pytest.fixture
+def scalar_status_summary_dict(scalar_status_description):
+
+    return {'_class': 'mask_scalar_status',
+            '_group': 'signal_mask',
+            '_version': 1,
+            'description': scalar_status_description,
+            '_type': 'summary'}
+
+
+@pytest.fixture
+def scalar_status_dict(scalar_status_summary_dict, scalar_status_status,
+                      scalar_status_key):
+
+    return {**scalar_status_summary_dict, '_type': 'object',
+            'key': scalar_status_key, 'status': scalar_status_status}
+
+
+@pytest.fixture
+def scalar_status(scalar_status_status, scalar_status_key,
+                 scalar_status_description):
+
+    return dataclass.ScalarStatus(scalar_status_status, scalar_status_key,
+                                 description=scalar_status_description)
+
+
+@pytest.fixture
+def scalar_status_summary(scalar_status_description):
+
+    return dataclass.ScalarStatusSummary(description=scalar_status_description)

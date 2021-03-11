@@ -1,12 +1,17 @@
+import numpy as np
 import pytest
 
 from sal import dataclass
 
 @pytest.mark.parametrize('fixture, class_, group, version',
-                         [('scalar', 'scalar', 'core', 1),
-                          ('scalar_summary', 'scalar', 'core', 1),
-                          ('string', 'string', 'core', 1),
-                          ('string_summary', 'string', 'core', 1)])
+    [('scalar', 'scalar', 'core', 1),
+     ('scalar_summary', 'scalar', 'core', 1),
+     ('string', 'string', 'core', 1),
+     ('string_summary', 'string', 'core', 1),
+     ('array_status', 'mask_array_status', 'signal_mask', 1),
+     ('array_status_summary', 'mask_array_status', 'signal_mask', 1),
+     ('scalar_status', 'mask_scalar_status', 'signal_mask', 1),
+     ('scalar_status_summary', 'mask_scalar_status', 'signal_mask', 1)])
 def test_class_attributes(fixture, class_, group, version, request):
 
     """
@@ -25,10 +30,14 @@ def test_class_attributes(fixture, class_, group, version, request):
 
 
 @pytest.mark.parametrize('dataclass_fixture, dict_fixture',
-                         [('scalar', 'scalar_dict'),
-                          ('scalar_summary', 'scalar_summary_dict'),
-                          ('string', 'string_dict'),
-                          ('string_summary', 'string_summary_dict')])
+    [('scalar', 'scalar_dict'),
+     ('scalar_summary', 'scalar_summary_dict'),
+     ('string', 'string_dict'),
+     ('string_summary', 'string_summary_dict'),
+     ('array_status', 'array_status_dict'),
+     ('array_status_summary', 'array_status_summary_dict'),
+     ('scalar_status', 'scalar_status_dict'),
+     ('scalar_status_summary', 'scalar_status_summary_dict')])
 def test_to_dict(dataclass_fixture, dict_fixture, request):
 
     """
@@ -42,7 +51,10 @@ def test_to_dict(dataclass_fixture, dict_fixture, request):
 
     dataclass = request.getfixturevalue(dataclass_fixture)
     dict_ = request.getfixturevalue(dict_fixture)
-    assert dataclass.to_dict() == dict_
+    test_dict = dataclass.to_dict()
+
+    for k, v in dict_.items():
+        np.testing.assert_equal(test_dict[k], v)
 
 
 @pytest.mark.parametrize('dataclass_fixture, dict_fixture, class_',
@@ -57,7 +69,19 @@ def test_to_dict(dataclass_fixture, dict_fixture, request):
                            dataclass.String),
                           ('string_summary',
                            'string_summary_dict',
-                           dataclass.StringSummary)])
+                           dataclass.StringSummary),
+                          ('array_status',
+                           'array_status_dict',
+                           dataclass.ArrayStatus),
+                          ('array_status_summary',
+                           'array_status_summary_dict',
+                           dataclass.ArrayStatusSummary),
+                          ('scalar_status',
+                           'scalar_status_dict',
+                           dataclass.ScalarStatus),
+                          ('scalar_status_summary',
+                           'scalar_status_summary_dict',
+                           dataclass.ScalarStatusSummary)])
 def test_from_dict(dataclass_fixture, dict_fixture, class_, request):
 
     """
@@ -78,7 +102,9 @@ def test_from_dict(dataclass_fixture, dict_fixture, class_, request):
 
 @pytest.mark.parametrize('object_fixture, summary_fixture',
                          [('scalar', 'scalar_summary'),
-                          ('string', 'string_summary')])
+                          ('string', 'string_summary'),
+                          ('array_status', 'array_status_summary'),
+                          ('scalar_status', 'scalar_status_summary')])
 def test_summary(object_fixture, summary_fixture, request):
 
     """
@@ -108,4 +134,4 @@ def _per_attribute_comparison(test_object, expected):
     """
 
     for attr, val in vars(expected).items():
-        assert getattr(test_object, attr) == val
+        np.testing.assert_equal(getattr(test_object, attr), val)
