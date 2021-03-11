@@ -15,7 +15,7 @@ class DictionarySummary(DataSummary):
     GROUP = 'core'
     VERSION = 1
 
-    def __init__(self, description='A dictionary'):
+    def __init__(self, description='A dictionary.'):
         """
         :param description: A string describing the dictionary (default='A dictionary.').
         """
@@ -56,7 +56,7 @@ class Dictionary(DataObject):
     VERSION = 1
     SUMMARY_CLASS = DictionarySummary
 
-    def __init__(self, items=None, description='A dictionary'):
+    def __init__(self, items=None, description='A dictionary.'):
         """
         :param items: A dictionary containing item values.
         :param description: A string describing the dictionary (default='A dictionary.').

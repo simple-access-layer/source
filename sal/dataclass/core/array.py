@@ -14,7 +14,7 @@ class ArraySummary(DataSummary):
     GROUP = 'core'
     VERSION = 1
 
-    def __init__(self, shape, description='An array'):
+    def __init__(self, shape, description='An array.'):
         """
         """
 
@@ -61,7 +61,7 @@ class Array(DataObject):
     VERSION = 1
     SUMMARY_CLASS = ArraySummary
 
-    def __init__(self, shape, data=None, dtype=None, description='An array'):
+    def __init__(self, shape, data=None, dtype=None, description='An array.'):
         """
         The data array shape is is a tuple defining the length of each
         dimension. For example:

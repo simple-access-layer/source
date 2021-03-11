@@ -193,7 +193,7 @@ class DataClass(Node):
             "_class": self.CLASS,
             "_group": self.GROUP,
             "_version": np.uint64(self.VERSION),
-            "_type": TYPE_SUMMARY,
+            "_type": self.CLASS_TYPE,
             "description": str(self.description)
         }
 
