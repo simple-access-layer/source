@@ -21,11 +21,6 @@ class Node(ABC):
             raise ValueError("A description cannot be an empty string.")
         self._description = value
 
-    @abstractmethod
-    def serialise(self, additional):
-
-        raise NotImplementedError
-
     @classmethod
     @abstractmethod
     def from_dict(cls, dict):
