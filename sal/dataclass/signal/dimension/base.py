@@ -86,12 +86,11 @@ class Dimension(DataObject):
     def __len__(self):
         return self.length
 
-    def _new_dict(self):
+    def to_dict(self):
 
-        v = super()._new_dict()
+        v = super().to_dict()
 
         v.update({
-            'description': self.description,
             'units': self.units,
             'length': np.uint64(self.length),
             'temporal': self.temporal,
@@ -143,9 +142,6 @@ class DimensionSummary(DataSummary):
         self.units = units
         super().__init__(description)
 
-    def to_dict(self):
-        return self._new_dict()
-
     @classmethod
     def from_dict(cls, d):
 
@@ -167,9 +163,9 @@ class DimensionSummary(DataSummary):
 
         return c
 
-    def _new_dict(self):
+    def to_dict(self):
 
-        v = super()._new_dict()
+        v = super().to_dict()
 
         v.update({
             'units': self.units,

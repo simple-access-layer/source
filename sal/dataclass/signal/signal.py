@@ -80,7 +80,7 @@ class SignalSummary(DataSummary):
         :return: A data object dictionary. 
         """
 
-        v = self._new_dict()
+        v = super().to_dict()
 
         v.update({
             'units': str(self.units),
@@ -428,10 +428,9 @@ class Signal(DataObject):
         :return: A data object dictionary. 
         """
 
-        v = self._new_dict()
+        v = super().to_dict()
 
         v.update({
-            'description': str(self.description),
             'units': str(self.units),
             'dimensions': {
                 'count': np.uint64(len(self.dimensions))

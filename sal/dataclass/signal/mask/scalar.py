@@ -39,7 +39,7 @@ class ScalarStatus(Mask):
         return self.SUMMARY_CLASS(self.description)
 
     def to_dict(self):
-        v = self._new_dict()
+        v = super().to_dict()
         v['status'] = self.status
         v['key'] = self.key
         return v

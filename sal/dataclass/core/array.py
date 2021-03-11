@@ -32,7 +32,7 @@ class ArraySummary(DataSummary):
         :return: A data object dictionary.
         """
 
-        v = self._new_dict()
+        v = super().to_dict()
         v['shape'] = np.array(self.shape, np.uint64)
         return v
 
@@ -169,10 +169,9 @@ class Array(DataObject):
         :return: A data object dictionary.
         """
 
-        v = self._new_dict()
+        v = super().to_dict()
 
         v.update({
-            'description': str(self.description),
             'data': self.data,
         })
 

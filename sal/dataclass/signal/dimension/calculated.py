@@ -85,7 +85,7 @@ class CalculatedDimension(Dimension):
 
     def to_dict(self):
 
-        v = self._new_dict()
+        v = super().to_dict()
         v['start'] = np.float64(self.start)
         v['step'] = np.float64(self.step)
         return v

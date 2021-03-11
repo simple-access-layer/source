@@ -24,28 +24,6 @@ class DictionarySummary(DataSummary):
         description = description or 'A dictionary.'
         super().__init__(description)
 
-    def to_dict(self):
-        """
-        Returns a dictionary representation of the object.
-
-        :return: A data object dictionary.
-        """
-
-        return self._new_dict()
-
-    @classmethod
-    def from_dict(cls, d):
-        """
-        Instances the object from a dictionary representation.
-
-        :param d: Dictionary containing a serialised object.
-        :return: An object instance.
-        """
-
-        if not cls.is_compatible(d):
-            raise ValueError('The dictionary does not contain a serialised dictionary class.')
-        return cls(d['description'])
-
 
 @dataclass.register
 class Dictionary(DataObject):
@@ -178,11 +156,10 @@ class Dictionary(DataObject):
         :return: A data object dictionary.
         """
 
-        v = self._new_dict()
+        v = super().to_dict()
 
         v.update({
             'items': self._items.copy(),
-            'description': str(self.description)
         })
 
         return v

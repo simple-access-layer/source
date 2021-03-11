@@ -97,7 +97,7 @@ class ArrayDimension(Dimension):
 
     def to_dict(self):
 
-        v = self._new_dict()
+        v = self.to_dict()
         v['data'] = self.data
         return v
 

@@ -30,7 +30,7 @@ class ErrorSummary(DataSummary):
     GROUP = 'signal_error'
 
     def to_dict(self):
-        return self._new_dict()
+        return super().to_dict()
 
     @classmethod
     def from_dict(cls, d):

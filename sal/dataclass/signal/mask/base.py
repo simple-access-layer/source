@@ -17,9 +17,6 @@ class MaskSummary(DataSummary):
 
     GROUP = 'signal_mask'
 
-    def to_dict(self):
-        return self._new_dict()
-
     @classmethod
     def from_dict(cls, d):
         if not cls.is_compatible(d):

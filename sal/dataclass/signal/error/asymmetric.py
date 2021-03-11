@@ -93,7 +93,7 @@ class AsymmetricArrayError(Error):
         return self.SUMMARY_CLASS(self.description)
 
     def to_dict(self):
-        v = self._new_dict()
+        v = super().to_dict()
 
         # validate error shapes
         if self.lower.shape != self.upper.shape:

@@ -81,7 +81,7 @@ class SymmetricArrayError(Error):
         return self.SUMMARY_CLASS(self.description)
 
     def to_dict(self):
-        v = self._new_dict()
+        v = super().to_dict()
         v['data'] = self.data
         return v
 

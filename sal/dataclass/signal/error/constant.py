@@ -74,11 +74,8 @@ class ConstantError(Error):
     def shape_compatible(self, shape):
         return True
 
-    def summary(self):
-        return self.SUMMARY_CLASS(self.description)
-
     def to_dict(self):
-        v = self._new_dict()
+        v = super().to_dict()
         v['lower'] = np.float64(self._lower)
         v['upper'] =np.float64(self._upper)
         v['relative'] = self.relative
