@@ -1,6 +1,9 @@
+from abc import abstractmethod
 import pkgutil
 import importlib
 import numpy as np
+
+from .node import Node
 
 # todo: consider making DataObject etc.. Abstract Base Classes (ABCs)
 
@@ -111,7 +114,7 @@ def list():
     return d
 
 
-class DataClass:
+class DataClass(Node):
     """
     Abstract base class representing a SAL data class.
 
@@ -120,14 +123,49 @@ class DataClass:
     classes.
     """
 
-    #: The class id string.
-    CLASS = None
+    @property
+    @classmethod
+    @abstractmethod
+    def CLASS_TYPE(cls):
 
-    #: The group id string.
-    GROUP = None
+        """
+        The type of class i.e., whether the DataClass is a summary or object
+        """
 
-    #: The data-class version.
-    VERSION = -1
+        raise NotImplementedError
+
+    @property
+    @classmethod
+    @abstractmethod
+    def CLASS(cls):
+
+        """
+        The class id string.
+        """
+
+        raise NotImplementedError
+    
+    @property
+    @classmethod
+    @abstractmethod
+    def GROUP(cls):
+
+        """
+        The group id string.
+        """
+
+        raise NotImplementedError
+
+    @property
+    @classmethod
+    @abstractmethod
+    def VERSION(cls):
+
+        """
+        The data-class version.
+        """
+
+        raise NotImplementedError
 
     def __init__(self, description):
 
@@ -180,10 +218,14 @@ class DataClass:
             data_class = d['_class']
             group = d['_group']
             version = d['_version']
+            class_type = d['_type']
         except KeyError:
             return False
 
-        return data_class == cls.CLASS and group == cls.GROUP and version == cls.VERSION
+        return (data_class == cls.CLASS
+                and group == cls.GROUP
+                and version == cls.VERSION
+                and class_type == cls.CLASS_TYPE)
 
     def _new_dict(self):
         """
@@ -196,6 +238,7 @@ class DataClass:
             "_class": self.CLASS,
             "_group": self.GROUP,
             "_version": np.uint64(self.VERSION),
+            "_type": TYPE_SUMMARY,
             "description": str(self.description)
         }
 
@@ -239,8 +282,18 @@ class DataObject(DataClass):
     dictionary pre-populated with the data class metadata keys.
     """
 
-    #: The summary class associated with this data class.
-    SUMMARY_CLASS = None
+    CLASS_TYPE = TYPE_OBJECT
+
+    @property
+    @classmethod
+    @abstractmethod
+    def SUMMARY_CLASS(cls): 
+    
+        """
+        The summary class associated with this data class.
+        """
+
+        raise NotImplementedError
 
     def summary(self):
         """
@@ -249,37 +302,7 @@ class DataObject(DataClass):
         :return: A DataSummary object.
         """
 
-        raise NotImplementedError('This method must be implemented by sub-classes.')
-
-    @classmethod
-    def is_compatible(cls, d):
-        """
-        Checks the dictionary contains the correct header information for the data class.
-
-        Returns True if the correct class, group, version and type attributes are defined,
-        False is returned otherwise.
-
-        :param d: Dictionary containing serialised class data.
-        :returns: True if compatible, False otherwise.
-        """
-
-        try:
-            class_type = d['_type']
-        except KeyError:
-            return False
-
-        return super().is_compatible(d) and class_type == TYPE_OBJECT
-
-    def _new_dict(self):
-        """
-        Creates a new data object dictionary populated with common header data.
-        
-        :return: A data object dictionary. 
-        """
-
-        d = super()._new_dict()
-        d['_type'] = TYPE_OBJECT
-        return d
+        return self.SUMMARY_CLASS(self.description)
 
 
 # TODO: add tests
@@ -295,32 +318,4 @@ class DataSummary(DataClass):
     values in the associated DataObject.
     """
 
-    @classmethod
-    def is_compatible(cls, d):
-        """
-        Checks the dictionary contains the correct header information for the data class.
-
-        Returns True if the correct class, group, version and type attributes are defined,
-        False is returned otherwise.
-
-        :param d: Dictionary containing serialised class data.
-        :returns: True if compatible, False otherwise.
-        """
-
-        try:
-            class_type = d['_type']
-        except KeyError:
-            return False
-
-        return super().is_compatible(d) and class_type == TYPE_SUMMARY
-
-    def _new_dict(self):
-        """
-        Creates a new data object dictionary populated with common header data.
-        
-        :return: A data object dictionary. 
-        """
-
-        d = super()._new_dict()
-        d['_type'] = TYPE_SUMMARY
-        return d
+    CLASS_TYPE = TYPE_SUMMARY
