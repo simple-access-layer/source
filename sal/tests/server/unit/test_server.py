@@ -126,7 +126,7 @@ def test_authenticator_validation_authorisation_without_authentication(
         A server without an authenticator
         AND the server has an authoriser
         AND a secret key longer than the minimum length
-        AND a zero or negative token lifetime
+        AND a non-zero token lifetime
     WHEN
         The server attemped to validate the authentication
     THEN
