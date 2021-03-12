@@ -235,3 +235,68 @@ def asym_array_error_summary(asym_array_error_description):
 
     return dataclass.AsymmetricArrayErrorSummary(
         description=asym_array_error_description)
+
+
+@pytest.fixture
+def constant_error_lower():
+
+    return 1
+
+
+@pytest.fixture
+def constant_error_upper():
+
+    return 7
+
+
+@pytest.fixture
+def constant_error_relative():
+
+    return True
+
+
+@pytest.fixture
+def constant_error_description():
+
+    return 'const_err'
+
+
+@pytest.fixture
+def constant_error_summary_dict(constant_error_description):
+
+    return {'_class': 'error_constant',
+            '_group': 'signal_error',
+            '_version': 1,
+            'description': constant_error_description,
+            '_type': 'summary'}
+
+
+@pytest.fixture
+def constant_error_dict(constant_error_summary_dict,
+                        constant_error_lower,
+                        constant_error_upper,
+                        constant_error_relative):
+
+    return {**constant_error_summary_dict,
+            '_type': 'object',
+            'lower': constant_error_lower,
+            'upper': constant_error_upper,
+            'relative': constant_error_relative}
+
+
+@pytest.fixture
+def constant_error(constant_error_lower, constant_error_upper,
+                   constant_error_relative, constant_error_description):
+    
+    return dataclass.ConstantError(
+        constant_error_lower,
+        constant_error_upper,
+        relative=constant_error_relative,
+        description=constant_error_description)
+
+
+@pytest.fixture
+def constant_error_summary(constant_error_description):
+
+    return dataclass.ConstantErrorSummary(
+        description=constant_error_description)

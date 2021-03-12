@@ -13,7 +13,9 @@ from sal import dataclass
      ('scalar_status', 'mask_scalar_status', 'signal_mask', 1),
      ('scalar_status_summary', 'mask_scalar_status', 'signal_mask', 1),
      ('asym_array_error', 'error_asymmetrical', 'signal_error', 1),
-     ('asym_array_error_summary', 'error_asymmetrical', 'signal_error', 1)])
+     ('asym_array_error_summary', 'error_asymmetrical', 'signal_error', 1),
+     ('constant_error', 'error_constant', 'signal_error', 1),
+     ('constant_error_summary', 'error_constant', 'signal_error', 1)])
 def test_class_attributes(fixture, class_, group, version, request):
 
     """
@@ -41,7 +43,9 @@ def test_class_attributes(fixture, class_, group, version, request):
      ('scalar_status', 'scalar_status_dict'),
      ('scalar_status_summary', 'scalar_status_summary_dict'),
      ('asym_array_error', 'asym_array_error_dict'),
-     ('asym_array_error_summary', 'asym_array_error_summary_dict')])
+     ('asym_array_error_summary', 'asym_array_error_summary_dict'),
+     ('constant_error', 'constant_error_dict'),
+     ('constant_error_summary', 'constant_error_summary_dict')])
 def test_to_dict(dataclass_fixture, dict_fixture, request):
 
     """
@@ -91,7 +95,13 @@ def test_to_dict(dataclass_fixture, dict_fixture, request):
                            dataclass.AsymmetricArrayError),
                           ('asym_array_error_summary',
                            'asym_array_error_summary_dict',
-                           dataclass.AsymmetricArrayErrorSummary)])
+                           dataclass.AsymmetricArrayErrorSummary),
+                          ('constant_error',
+                           'constant_error_dict',
+                           dataclass.ConstantError),
+                          ('constant_error_summary',
+                           'constant_error_summary_dict',
+                           dataclass.ConstantErrorSummary)])
 def test_from_dict(dataclass_fixture, dict_fixture, class_, request):
 
     """
@@ -115,7 +125,8 @@ def test_from_dict(dataclass_fixture, dict_fixture, class_, request):
                           ('string', 'string_summary'),
                           ('array_status', 'array_status_summary'),
                           ('scalar_status', 'scalar_status_summary'),
-                          ('asym_array_error', 'asym_array_error_summary')])
+                          ('asym_array_error', 'asym_array_error_summary'),
+                          ('constant_error', 'constant_error_summary')])
 def test_summary(object_fixture, summary_fixture, request):
 
     """
