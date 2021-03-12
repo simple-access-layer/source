@@ -1,0 +1,7 @@
+flask
+flask-restful
+hypothesis
+ldap3
+numpy
+pytest
+requests
