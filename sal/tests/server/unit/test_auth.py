@@ -151,8 +151,8 @@ def test_verify_invalid_token(server_with_auth_prov):
         A server with a secret token key
         AND a server with a token lifetime
         AND a request from a IP address
-        AND a token generated using a different IP
-        AND a token generated more than the token lifetime ago
+        AND a token generated using the IP
+        AND a token generated less than the token lifetime ago
         AND a token generated using the secret key
         AND a token generated with a username
     WHEN
@@ -252,5 +252,4 @@ def test_extracting_token_from_header(token, server_with_auth_prov):
 
     with server_with_auth_prov.test_request_context(headers=headers):
         assert auth._extract_token_header() == token
-
 
