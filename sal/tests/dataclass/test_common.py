@@ -15,7 +15,13 @@ from sal import dataclass
      ('asym_array_error', 'error_asymmetrical', 'signal_error', 1),
      ('asym_array_error_summary', 'error_asymmetrical', 'signal_error', 1),
      ('constant_error', 'error_constant', 'signal_error', 1),
-     ('constant_error_summary', 'error_constant', 'signal_error', 1)])
+     ('constant_error_summary', 'error_constant', 'signal_error', 1),
+     ('sym_array_error', 'error_symmetrical', 'signal_error', 1),
+     ('sym_array_error_summary', 'error_symmetrical', 'signal_error', 1),
+     ('array_dim', 'coordinate_array', 'signal_dimension', 1),
+     ('array_dim_summary', 'coordinate_array', 'signal_dimension', 1),
+     ('calc_dim', 'coordinate_calc', 'signal_dimension', 1),
+     ('calc_dim_summary', 'coordinate_calc', 'signal_dimension', 1)])
 def test_class_attributes(fixture, class_, group, version, request):
 
     """
@@ -45,7 +51,13 @@ def test_class_attributes(fixture, class_, group, version, request):
      ('asym_array_error', 'asym_array_error_dict'),
      ('asym_array_error_summary', 'asym_array_error_summary_dict'),
      ('constant_error', 'constant_error_dict'),
-     ('constant_error_summary', 'constant_error_summary_dict')])
+     ('constant_error_summary', 'constant_error_summary_dict'),
+     ('sym_array_error', 'sym_array_error_dict'),
+     ('sym_array_error_summary', 'sym_array_error_summary_dict'),
+     ('array_dim', 'array_dim_dict'),
+     ('array_dim_summary', 'array_dim_summary_dict'),
+     ('calc_dim', 'calc_dim_dict'),
+     ('calc_dim_summary', 'calc_dim_summary_dict')])
 def test_to_dict(dataclass_fixture, dict_fixture, request):
 
     """
@@ -101,7 +113,25 @@ def test_to_dict(dataclass_fixture, dict_fixture, request):
                            dataclass.ConstantError),
                           ('constant_error_summary',
                            'constant_error_summary_dict',
-                           dataclass.ConstantErrorSummary)])
+                           dataclass.ConstantErrorSummary),
+                          ('sym_array_error',
+                           'sym_array_error_dict',
+                           dataclass.SymmetricArrayError),
+                          ('sym_array_error_summary',
+                           'sym_array_error_summary_dict',
+                           dataclass.SymmetricArrayErrorSummary),
+                          ('array_dim',
+                           'array_dim_dict',
+                           dataclass.ArrayDimension),
+                          ('array_dim_summary',
+                           'array_dim_summary_dict',
+                           dataclass.ArrayDimensionSummary),
+                          ('calc_dim',
+                           'calc_dim_dict',
+                           dataclass.CalculatedDimension),
+                          ('calc_dim_summary',
+                           'calc_dim_summary_dict',
+                           dataclass.CalculatedDimensionSummary)])
 def test_from_dict(dataclass_fixture, dict_fixture, class_, request):
 
     """
@@ -126,7 +156,10 @@ def test_from_dict(dataclass_fixture, dict_fixture, class_, request):
                           ('array_status', 'array_status_summary'),
                           ('scalar_status', 'scalar_status_summary'),
                           ('asym_array_error', 'asym_array_error_summary'),
-                          ('constant_error', 'constant_error_summary')])
+                          ('constant_error', 'constant_error_summary'),
+                          ('sym_array_error', 'sym_array_error_summary'),
+                          ('array_dim', 'array_dim_summary'),
+                          ('calc_dim', 'calc_dim_summary')])
 def test_summary(object_fixture, summary_fixture, request):
 
     """
