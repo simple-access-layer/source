@@ -69,8 +69,8 @@ def test_get_token_with_valid_credentials(server_with_auth_prov,
     """
     Authorization credentials are base64 encoded
 
-    First parametrization tests user credentials ('')
-    Second parametrization tests admin credentials ('')
+    First parametrization tests user credentials
+    Second parametrization tests admin credentials
 
     GIVEN
         A server which requires authentication
