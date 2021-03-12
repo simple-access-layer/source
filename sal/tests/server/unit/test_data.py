@@ -7,6 +7,12 @@ Tests operations involving the data tree
     issue that each example on a test function isn't treated as a separate
     event for any fixtures (i.e., the fixtures aren't rebuilt for each
     example), so errors if the fixture has function scope
+
+.. note::
+    Unlike the other SAL operations, there are no tests for DELETE (i.e.
+    DataTree.delete) as there is no real logic in the interface to test. Any
+    tests relating to DELETE would have to be performed on any concrete
+    implementations of the SAL server.
 """
 
 from unittest.mock import Mock, patch
