@@ -3,6 +3,9 @@ import pytest
 
 from sal import dataclass
 
+DATACLASSES = (dataclass.DataObject, dataclass.DataSummary)
+
+
 @pytest.mark.parametrize('fixture, class_, group, version',
     [('scalar', 'scalar', 'core', 1),
      ('scalar_summary', 'scalar', 'core', 1),
@@ -21,7 +24,9 @@ from sal import dataclass
      ('array_dim', 'coordinate_array', 'signal_dimension', 1),
      ('array_dim_summary', 'coordinate_array', 'signal_dimension', 1),
      ('calc_dim', 'coordinate_calc', 'signal_dimension', 1),
-     ('calc_dim_summary', 'coordinate_calc', 'signal_dimension', 1)])
+     ('calc_dim_summary', 'coordinate_calc', 'signal_dimension', 1),
+     ('signal', 'signal', 'signal', 1),
+     ('signal', 'signal', 'signal', 1)])
 def test_class_attributes(fixture, class_, group, version, request):
 
     """
@@ -57,7 +62,9 @@ def test_class_attributes(fixture, class_, group, version, request):
      ('array_dim', 'array_dim_dict'),
      ('array_dim_summary', 'array_dim_summary_dict'),
      ('calc_dim', 'calc_dim_dict'),
-     ('calc_dim_summary', 'calc_dim_summary_dict')])
+     ('calc_dim_summary', 'calc_dim_summary_dict'),
+     ('signal', 'signal_dict'),
+     ('signal_summary', 'signal_summary_dict')])
 def test_to_dict(dataclass_fixture, dict_fixture, request):
 
     """
@@ -131,7 +138,13 @@ def test_to_dict(dataclass_fixture, dict_fixture, request):
                            dataclass.CalculatedDimension),
                           ('calc_dim_summary',
                            'calc_dim_summary_dict',
-                           dataclass.CalculatedDimensionSummary)])
+                           dataclass.CalculatedDimensionSummary),
+                          ('signal',
+                           'signal_dict',
+                           dataclass.Signal),
+                          ('signal_summary',
+                           'signal_summary_dict',
+                           dataclass.SignalSummary)])
 def test_from_dict(dataclass_fixture, dict_fixture, class_, request):
 
     """
@@ -159,7 +172,8 @@ def test_from_dict(dataclass_fixture, dict_fixture, class_, request):
                           ('constant_error', 'constant_error_summary'),
                           ('sym_array_error', 'sym_array_error_summary'),
                           ('array_dim', 'array_dim_summary'),
-                          ('calc_dim', 'calc_dim_summary')])
+                          ('calc_dim', 'calc_dim_summary'),
+                          ('signal', 'signal_summary')])
 def test_summary(object_fixture, summary_fixture, request):
 
     """
@@ -184,9 +198,23 @@ def _per_attribute_comparison(test_object, expected):
     As DataClass subclasses do not define __eq__, this attribute-wise
     comparison is the best way to test for equality.
 
+    Also handles when `expected` is a DataClass or a list of DataClass objects 
+
     .. note::
         This requires that no class has __slots__ defined
     """
 
-    for attr, val in vars(expected).items():
-        np.testing.assert_equal(getattr(test_object, attr), val)
+    for exp_attr, exp_val in vars(expected).items():
+        test_val = getattr(test_object, exp_attr)
+        
+        # Recursion handles when attribute is SAL DataClass
+        if isinstance(exp_val, DATACLASSES):
+            _per_attribute_comparison(test_val, exp_val)
+        # And when attribute is list of SAL DataClasses
+        elif (isinstance(exp_val, list)
+              and exp_val
+              and isinstance(exp_val[0], DATACLASSES)):
+            for exp_i, test_i in zip(exp_val, test_val):
+                _per_attribute_comparison(test_i, exp_i)
+        else:
+            np.testing.assert_equal(test_val, exp_val)

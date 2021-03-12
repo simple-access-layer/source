@@ -508,3 +508,154 @@ def calc_dim_summary(calc_dim_description, calc_dim_length, calc_dim_units,
         units=calc_dim_units,
         temporal=calc_dim_temporal,
         description=calc_dim_description)
+
+
+@pytest.fixture
+def signal_dimensions(calc_dim):
+
+    return [calc_dim]
+
+
+@pytest.fixture
+def signal_dimensions_summary(calc_dim_summary):
+
+    return [calc_dim_summary]
+
+
+# Following few fixtures are not necessary - simply to be explicit that they
+# are the fixtures being used for signal
+@pytest.fixture
+def signal_dimensions_dict(calc_dim_dict):
+
+    return calc_dim_dict
+
+
+@pytest.fixture
+def signal_dimensions_summary_dict(calc_dim_summary_dict):
+
+    return calc_dim_summary_dict
+
+
+@pytest.fixture
+def signal_error(constant_error):
+
+    return constant_error
+
+
+@pytest.fixture
+def signal_error_summary(constant_error_summary):
+
+    return constant_error_summary
+
+
+@pytest.fixture
+def signal_error_dict(constant_error_dict):
+
+    return constant_error_dict
+
+
+@pytest.fixture
+def signal_error_summary_dict(constant_error_summary_dict):
+
+    return constant_error_summary_dict
+
+
+@pytest.fixture
+def signal_mask(scalar_status):
+
+    return scalar_status
+
+
+@pytest.fixture
+def signal_mask_summary(scalar_status_summary):
+
+    return scalar_status_summary
+
+
+@pytest.fixture
+def signal_mask_dict(scalar_status_dict):
+
+    return scalar_status_dict
+
+
+@pytest.fixture
+def signal_mask_summary_dict(scalar_status_summary_dict):
+
+    return scalar_status_summary_dict
+
+
+@pytest.fixture
+def signal_data():
+
+    return np.arange(10, dtype=np.float64)
+
+
+@pytest.fixture
+def signal_units():
+
+    return 'ns'
+
+
+@pytest.fixture
+def signal_description():
+
+    return 'sig'
+
+
+@pytest.fixture
+def signal_summary_dict(signal_dimensions_summary_dict,
+                        signal_error_summary_dict,
+                        signal_mask_summary_dict,
+                        signal_units,
+                        signal_description):
+
+    return {'_class': 'signal',
+            '_group': 'signal',
+            '_version': 1,
+            'description': signal_description,
+            'dimensions': {'count': 1,
+                           '0': signal_dimensions_summary_dict},
+            'error': signal_error_summary_dict,
+            'mask': signal_mask_summary_dict,
+            'units': signal_units,
+            '_type': 'summary'}
+
+
+@pytest.fixture
+def signal_dict(signal_summary_dict,
+                signal_dimensions_dict,
+                signal_error_dict,
+                signal_mask_dict,
+                signal_data):
+
+    return {**signal_summary_dict,
+            'dimensions': {'count': 1,
+                           '0': signal_dimensions_dict},
+            'error': signal_error_dict,
+            'mask': signal_mask_dict,
+            'data': signal_data,
+            '_type': 'object'}
+
+
+@pytest.fixture
+def signal(signal_dimensions, signal_error, signal_mask, signal_data,
+           signal_units, signal_description):
+
+    return dataclass.Signal(signal_dimensions,
+                            data=signal_data,
+                            error=signal_error,
+                            mask=signal_mask,
+                            units=signal_units,
+                            description=signal_description)
+
+
+@pytest.fixture
+def signal_summary(signal_dimensions_summary, signal_error_summary,
+                   signal_mask_summary, signal_units, signal_description):
+
+    return dataclass.SignalSummary(signal_dimensions_summary,
+                                   error=signal_error_summary,
+                                   mask=signal_mask_summary,
+                                   units=signal_units,
+                                   description=signal_description)
+
