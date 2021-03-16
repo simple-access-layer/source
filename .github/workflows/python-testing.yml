@@ -6,21 +6,20 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    # strategy:
-    #   matrix:
-    #     python-version: [3.6, 3.7, 3.8]
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8]
   
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
-    # - name: Set up Python ${{ matrix.python-version }}      
-      uses: docker://acidrain/python-poetry:3.6
-    - name: Install dependencies
-      run: |
-        poetry install
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
     - name: Lint with pylint
+      uses: abatilo/actions-poetry@v2.0.0
+      # stop the build if there are errors
       run: |
-        # stop the build if there are errors
         poetry run pylint -E sal/
     - name: Test with pytest
       run: |
