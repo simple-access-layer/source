@@ -3,5 +3,6 @@ flask-restful
 hypothesis
 ldap3
 numpy
+pylint
 pytest
 requests
