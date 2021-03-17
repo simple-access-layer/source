@@ -13,7 +13,7 @@ from unittest.mock import patch
 import requests
 import pytest
 
-from sal.client.main import SALClient, exception
+from sal.client.main import SALClient, exception, _API_VERSION
 
 
 def test_connect_to_valid_host(host, server_root_response):
@@ -78,7 +78,7 @@ def test_connect_to_host_not_sal_server(server_root_response):
             SALClient('https://sal.testing')
 
 
-def test_connect_to_host_with_new_api(server_root_response):
+def test_connect_to_host_with_new_api(patched_client, server_root_response):
 
     """
     GIVEN
@@ -89,7 +89,8 @@ def test_connect_to_host_with_new_api(server_root_response):
         The client raises a ConnectionError
     """
 
-    server_root_response.json.return_value['api']['version'] = 3
+    server_root_response.json.return_value['api']['version'] = (1
+                                                                + _API_VERSION)
 
     with patch('sal.client.main.requests.get',
                return_value=server_root_response):
