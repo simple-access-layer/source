@@ -7,7 +7,7 @@ license = "EUPL"
 
 [tool.poetry.dependencies]
 python = "^3.6"
-flask = "^0.12.2"
+flask = "^1.0"
 flask-restful = "^0.3.8"
 ldap3 = "^2.8.1"
 numpy = "^1.19.2"
