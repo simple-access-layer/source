@@ -1,8 +1,9 @@
-flask
-flask-restful
-hypothesis
-ldap3
-numpy
-pylint
-pytest
-requests
+flask==0.12.2
+flask-restful==0.3.8
+hypothesis>=6.1.1
+itsdangerous>=1.1.0
+ldap3>=2.8.1
+numpy>=1.19.2
+pylint>=2.6.0
+pytest>=6.2.2
+requests>=2.14.2
