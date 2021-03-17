@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "sal"
+version = "1.2.4"
+description = "Simple Access Layer (SAL) is a data access middleware and storage system, focused on storing scientific data for large experiments."
+authors = ["Your Name <you@example.com>"]
+license = "EUPL"
+
+[tool.poetry.dependencies]
+python = "^3.6"
+flask = "^0.12.2"
+flask-restful = "^0.3.8"
+ldap3 = "^2.8.1"
+numpy = "^1.19.2"
+requests = "^2.14.2"
+
+[tool.poetry.dev-dependencies]
+pylint = "^2.6.0"
+pytest = "^6.2.2"
+hypothesis = "^6.1.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
