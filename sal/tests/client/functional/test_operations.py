@@ -12,7 +12,8 @@ from unittest.mock import patch
 import pytest
 
 from sal.core.serialise import serialise
-from sal.core.object import BranchReport, Branch
+from sal.core.object import BranchReport, Branch, LeafReport
+from sal.dataclass import Scalar
 
 
 @pytest.fixture
@@ -34,9 +35,22 @@ def branch_report_response(server_response, timestamp):
 
 
 @pytest.fixture
+def leaf_report_response(server_response, timestamp):
+
+    """
+    JSON representing a LeafReport
+    """
+
+    lr = LeafReport('A LeafReport', 'scalar', 'core', 1, timestamp)
+    server_response.json.return_value = serialise(lr)
+    return server_response
+
+
+@pytest.fixture
 def branch():
 
     return Branch('A Branch')
+
 
 @pytest.fixture
 def branch_response(branch, server_response):
@@ -50,17 +64,35 @@ def branch_response(branch, server_response):
 
 
 @pytest.fixture
+def scalar():
+
+    return Scalar(1)
+
+
+@pytest.fixture
+def scalar_response(scalar, server_response):
+
+    """
+    JSON representing a Scalar
+    """
+
+    server_response.json.return_value = serialise(scalar)
+    return server_response
+
+
+@pytest.fixture
 def auth_header(token):
 
     return {'Authorization': 'Bearer 78945JHKJFSJDFKH7897wej8UIOJKhuwiofdSDHk'}
 
 
-@pytest.mark.parametrize('path, revision, verify_https_cert',
-                         [('/node', 0, False),
-                          ('/node:head', 0, True),
-                          ('/node:10', 10, False)])
-def test_list(host, patched_client, timestamp, branch_report_response,
-              path, revision, verify_https_cert):
+@pytest.mark.parametrize(
+    'path, revision, verify_https_cert, response_fixture, response_type',
+    [('/node', 0, False, 'branch_report_response', BranchReport),
+     ('/node:head', 0, True, 'branch_report_response', BranchReport),
+     ('/node:10', 10, False, 'leaf_report_response', LeafReport)])
+def test_list(host, patched_client, timestamp, path, revision,
+              verify_https_cert, response_fixture, response_type, request):
 
     """
     Parametrization includes the three different ways of passing a revision
@@ -70,28 +102,32 @@ def test_list(host, patched_client, timestamp, branch_report_response,
     WHEN
         A client performs a list operation on a path
     THEN
-        The client returns a BranchReport
+        The client returns a BranchReport or a LeafReport
     """
 
     patched_client.verify_https_cert = verify_https_cert
 
+    response = request.getfixturevalue(response_fixture)
     with patch('sal.client.main.requests.get',
-               return_value=branch_report_response) as brr:
+               return_value=response) as brr:
         br = patched_client.list(path)
 
         brr.assert_called_with('{0}/data/node?revision={1}'.format(host,
                                                                    revision),
                                verify=verify_https_cert)
-        assert isinstance(br, BranchReport)
+        assert isinstance(br, response_type)
         assert br.timestamp == timestamp
 
 
-@pytest.mark.parametrize('path, revision, verify_https_cert, summary',
-                         [('/node', 0, False, True),
-                          ('/node:head', 0, True, False),
-                          ('/node:10', 10, False, False)])
-def test_get(host, patched_client, timestamp, branch_response, path, revision,
-             verify_https_cert, summary):
+@pytest.mark.parametrize(
+    'path, revision, verify_https_cert, summary, response_fixture,'
+    ' response_type',
+    [('/node', 0, False, True, 'branch_response', Branch),
+     ('/node:head', 0, True, False, 'branch_response', Branch),
+     ('/node:10', 10, False, False, 'scalar_response', Scalar)])
+def test_get(host, patched_client, timestamp, path, revision,
+             verify_https_cert, summary, response_fixture, response_type,
+             request):
 
     """
     GIVEN
@@ -105,40 +141,43 @@ def test_get(host, patched_client, timestamp, branch_response, path, revision,
     patched_client.verify_https_cert = verify_https_cert
     obj = 'summary' if summary else 'full'
 
+    response = request.getfixturevalue(response_fixture)
     with patch('sal.client.main.requests.get',
-               return_value=branch_response) as br:
+               return_value=response) as br:
         b = patched_client.get(path, summary=summary)
 
         br.assert_called_with('{0}/data/node?object={1}&revision={2}'.format(
             host, obj, revision), verify=verify_https_cert)
-        assert isinstance(b, Branch)
+        assert isinstance(b, response_type)
 
 
-@pytest.mark.parametrize('path, verify_https_cert',
-                         [('/node', False),
-                          ('/node:head', True),
-                          ('/node:0', False)])
-def test_put(host, patched_client, no_content_response, branch, path,
-             verify_https_cert):
+@pytest.mark.parametrize(
+    'path, verify_https_cert, object_fixture',
+    [('/node', False, 'branch'),
+     ('/node:head', True, 'scalar'),
+     ('/node:0', False, 'branch')])
+def test_put(host, patched_client, no_content_response, path,
+             verify_https_cert, object_fixture, request):
 
     """
     GIVEN
         A server with data nodes
     WHEN
-        The client performs a put operation
+        The client performs a put operation with a Branch or DataObject
     THEN
-        A POST request for the specified path with a serialised Branch object
-        is sent to the host
+        A POST request for the specified path with a serialised Branch or
+        serialised DataObject is sent to the host
     """
 
     patched_client.verify_https_cert = verify_https_cert
 
+    obj = request.getfixturevalue(object_fixture)
     with patch('sal.client.main.requests.post',
                return_value=no_content_response) as r:
-        patched_client.put(path, branch)
+        patched_client.put(path, obj)
 
         r.assert_called_with('{0}/data/node'.format(host),
-                             json=serialise(branch),
+                             json=serialise(obj),
                              verify=verify_https_cert)
 
 
