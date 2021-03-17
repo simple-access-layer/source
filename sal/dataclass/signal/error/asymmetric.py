@@ -109,7 +109,7 @@ class AsymmetricArrayError(Error):
             raise ValueError('The dictionary does not contain a serialised asymmetrical array error class.')
 
         if d['lower'].dtype != d['upper'].dtype:
-            raise ValueError('Cannot deserialise, lower and upper data types are inconsistent (lower: {}, upper: {})'.format(d['lower'].dtype), dtype=d['upper'].dtype)
+            raise ValueError('Cannot deserialise, lower and upper data types are inconsistent (lower: {}, upper: {})'.format(d['lower'].dtype, d['upper'].dtype))
 
         c = cls(
             lower=d['lower'],
