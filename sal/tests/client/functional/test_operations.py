@@ -157,7 +157,8 @@ def test_copy(host, patched_client, no_content_response, target, source,
     WHEN
         The client performs a copy operation from a source to a target
     THEN
-        A POST request 
+        A POST request including a source and source revision is sent to the
+        host
     """
 
     patched_client.verify_https_cert = verify_https_cert
