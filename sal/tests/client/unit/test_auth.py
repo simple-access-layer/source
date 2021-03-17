@@ -144,8 +144,8 @@ def test_authenticate_default_credentials_file(patched_client_with_auth,
         A request is sent using credentials from the credentials file 
     """
 
-    cred_file = {'https://sal.testing': {'user': UN,
-                                        'password': PW}}
+    cred_file = {host: {'user': UN,
+                        'password': PW}}
     def_cred_path = str(Path.home().joinpath(_AUTH_DEFAULT_CREDENTIALS_PATH))
 
     with patch_get as requests_get:
@@ -178,8 +178,8 @@ def test_authenticate_specify_credentials_file(patched_client_with_auth,
         A request is sent using credentials from the credentials file 
     """
 
-    cred_file = {'https://sal.testing': {'user': UN,
-                                        'password': PW}}
+    cred_file = {host: {'user': UN,
+                        'password': PW}}
     # Specify the credentials file path
     cred_path = '/sal/cred_file'
 
@@ -217,8 +217,8 @@ def test_authenticate_replace_credentials_file(patched_client_with_auth,
         A request is sent using credentials from the new credentials file 
     """
 
-    cred_file = {'https://sal.testing': {'user': UN,
-                                        'password': PW}}
+    cred_file = {host: {'user': UN,
+                        'password': PW}}
     # Specify the credentials file path
     cred_path = '/sal/cred_file'
     patched_client_with_auth.credentials_file = cred_path

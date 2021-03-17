@@ -64,7 +64,7 @@ def server_response():
 
 
 @pytest.fixture
-def server_root_response(server_response):
+def server_root_response(host, server_response):
 
     """
     200 response from server when connecting to root
@@ -72,7 +72,7 @@ def server_root_response(server_response):
 
 
     server_response.json.return_value = {
-        'host': 'https://sal.testing/',
+        'host': host,
         'api': {'version': 2,
                 'requires_auth': True,
                 'resources': ['data', 'auth'],
@@ -82,7 +82,7 @@ def server_root_response(server_response):
                                      'array']}},
         'service': {'name': 'Simple Access Layer (SAL) Server',
                     'version': '1.2.2'},
-        'request': {'url': 'https://sal.testing/'}}
+        'request': {'url': host}}
 
     return server_response
 
