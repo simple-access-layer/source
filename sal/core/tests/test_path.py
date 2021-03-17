@@ -1,6 +1,6 @@
 import unittest
 
-import jetserver.jetvfs.path as pth
+from sal.core import path as pth
 
 VALID_SEGMENTS = [
     "abcdefghijklmnopqrstuvwxyz._-01234567890",
