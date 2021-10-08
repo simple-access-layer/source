@@ -620,7 +620,8 @@ class SALClient:
             except requests.exceptions.SSLError:
                 raise ConnectionError('The host\'s HTTPS certificate is invalid, please contact the server admin.')
             except requests.exceptions.RequestException:
-                raise ConnectionError('The server did not respond ({}).'.format(self._host))
+                # getattr covers case when response is for first connection to host
+                raise ConnectionError('The server did not respond ({}).'.format(getattr(self,'_host', url)))
         return response
 
     @staticmethod
